@@ -113,7 +113,7 @@ El CLI `questions` se organiza en subcomandos especializados:
 - `questions tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías.
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
-- `questions ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "questions[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`.
+- `questions ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "questions[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`.
 
 ### 6. Mantenimiento XML
 - `questions xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.

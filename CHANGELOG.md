@@ -24,6 +24,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 - **ai --mode classify**: `--calibrar referencias.csv` mide la concordancia con una clasificación hecha por docentes (exacta, ±1 nivel, kappa, matriz, error de dificultad) sin escribir nada; `--revisar` abre una interfaz de terminal para corregir las clasificaciones con poca confianza (1–6 Bloom, +/- dificultad), que quedan como `manual` (reclasificar no las pisa) y se agregan a `--referencias`.
 - **dedup**: `--confirmar-jev` confirma cada par con Jev y descarta los que no evalúan lo mismo; `--aplicar` guarda una copia completa de cada archivo modificado o borrado en `--respaldo` y `--restaurar ultimo` lo deshace sin pisar ediciones posteriores.
 - **fix**: `code-lang` etiqueta el lenguaje de los bloques ``` (C o Java); `code-format` formatea el código C y Java con clang-format.
+- **ui**: editor propio para cada tipo de pregunta de Moodle (numérica y calculadas con tolerancia, verdadero/falso, emparejamiento, ordenamiento, huecos por grupo; campos comunes y opciones en ensayo, cloze, arrastrar sobre imagen y emparejamiento aleatorio); al guardar se conserva lo que el editor no muestra.
 - **ui**: filtro por cantidad de opciones (menos de / exactamente / más de N) en el árbol del visor web, con la cantidad de cada pregunta al lado de su nombre; la navegación recorre sólo las filtradas.
 - **fix extension**: renombra `.xml` ↔ `.gift` según el contenido de cada archivo, sin pisar los existentes; `--json`.
 - **format**: `--check` (sale con 1 si algo cambiaría) y `--diff`, para CI y pre-commit; `--json`.
@@ -34,6 +35,8 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **parser**: el formato «palabra faltante» (`El {=gato ~perro} maúlla.`) se leía como descripción y el rango numérico `{#1..5}` perdía la respuesta; al pasar a XML el rango se escribe como valor ± tolerancia.
+- **ui**: guardar un XML desde el visor rompía el emparejamiento, perdía la tolerancia de las numéricas y calculadas y convertía los `<` del código en `&lt;`.
 - **formatter**: el formato GIFT ya no corta preguntas con líneas en blanco en el código, no mezcla el código del enunciado con el bloque de respuestas ni une las líneas del código de una opción; `--correct-first` mueve el feedback junto a su opción.
 - **code-chars**: el mapa de caracteres había perdido el NBSP y el `;` griego (entradas `" " → " "`), cada pasada agregaba una línea en blanco antes del cierre del bloque y en XML sólo se procesaba el CDATA.
 - **parser**: las opciones con `\=`, `\~` o `\#` escapados ya no se parten.
