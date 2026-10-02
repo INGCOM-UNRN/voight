@@ -35,6 +35,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **health / fix code-lang**: con varios bloques ``` seguidos, el cierre de uno se tomaba por la apertura de otro (y se etiquetaba con un lenguaje equivocado); «código sin cerrar» ya no marca los backticks que están dentro de un bloque.
 - **parser**: el formato «palabra faltante» (`El {=gato ~perro} maúlla.`) se leía como descripción y el rango numérico `{#1..5}` perdía la respuesta; al pasar a XML el rango se escribe como valor ± tolerancia.
 - **ui**: guardar un XML desde el visor rompía el emparejamiento, perdía la tolerancia de las numéricas y calculadas y convertía los `<` del código en `&lt;`.
 - **formatter**: el formato GIFT ya no corta preguntas con líneas en blanco en el código, no mezcla el código del enunciado con el bloque de respuestas ni une las líneas del código de una opción; `--correct-first` mueve el feedback junto a su opción.
