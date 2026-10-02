@@ -184,3 +184,27 @@ def test_detectar_y_etiquetar_lenguaje():
     assert etiquetar_lenguaje(texto, por_defecto="c")[1] == 2
     xml = "<quiz><question><questiontext><text><![CDATA[```\nprintf(\"x\");\n```]]></text></questiontext></question></quiz>"
     assert "```c\nprintf" in etiquetar_lenguaje_archivo(xml, "xml")[0]
+
+
+def test_etiquetar_lenguaje_no_toma_un_cierre_por_apertura():
+    from questions.core.codigo import etiquetar_lenguaje
+
+    # El cierre del primer bloque seguido de texto que termina en ':' (señal de Python) y
+    # otro bloque: antes se etiquetaba el cierre como ```python y se rompían ambos.
+    texto = "```c\nint a = 1;\n```\ny luego:\n```java\nint b = 2;\n```\n¿Qué cambia?"
+    assert etiquetar_lenguaje(texto) == (texto, 0)
+    assert etiquetar_lenguaje(texto, por_defecto="c") == (texto, 0)
+    # Bloques pegados: sólo se etiqueta la apertura sin lenguaje.
+    pegados = "```c\nint a;\n```\n```\nint main(){return 0;}\n```"
+    assert etiquetar_lenguaje(pegados) == ("```c\nint a;\n```\n```c\nint main(){return 0;}\n```", 1)
+
+
+def test_backticks_sin_cerrar():
+    from questions.core.codigo import backticks_sin_cerrar
+
+    assert not backticks_sin_cerrar("```c\nchar c = '`';\n```\n¿Qué guarda?")
+    assert not backticks_sin_cerrar("```c\nint a;\n```\n```c\nint b;\n```")
+    assert not backticks_sin_cerrar("Usá `x` y\n```c\nint a;\n```")
+    assert backticks_sin_cerrar("```c\nint a;\n")
+    assert backticks_sin_cerrar("```c\nint a;\n```\n```\nint b;\n")
+    assert backticks_sin_cerrar("usa `x y listo")

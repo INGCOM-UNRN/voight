@@ -354,7 +354,6 @@ _SEÑALES_LENGUAJE = (
                      r"\bint\s+main\s*\(|->|\bstruct\s+\w+|\btypedef\b|\bNULL\b|\bchar\s*\*")),
     ("python", re.compile(r"^\s*def\s+\w+\(.*\):\s*$|^\s*import\s+\w+\s*$|\bprint\(|^\s*elif\b|:\s*$", re.M)),
 )
-_FENCE_SIN_LENGUAJE = re.compile(r"```[ \t]*\n(.*?)```", re.S)
 
 
 def detectar_lenguaje(codigo: str) -> Optional[str]:
@@ -366,25 +365,38 @@ def detectar_lenguaje(codigo: str) -> Optional[str]:
     return None
 
 
-def etiquetar_lenguaje(texto: str, por_defecto: Optional[str] = None) -> tuple:
-    """Agrega la etiqueta de lenguaje a los bloques ``` que no la tienen. (texto, cambios)."""
+def etiquetar_lenguaje(texto: str, por_defecto: Optional[str] = None, contexto: str = "xml") -> tuple:
+    """Agrega la etiqueta de lenguaje a los bloques ``` que no la tienen. (texto, cambios).
+
+    Los bloques se emparejan como en el resto del módulo (apertura y cierre, de izquierda
+    a derecha): el ``` que cierra un bloque nunca se toma por la apertura de otro.
+    """
     cambios = 0
 
     def etiquetar(m: re.Match) -> str:
         nonlocal cambios
-        lenguaje = detectar_lenguaje(m.group(1)) or por_defecto
+        if not m.group("fence") or m.group("lang").strip():
+            return m.group(0)
+        lenguaje = detectar_lenguaje(m.group("bloque")) or por_defecto
         if not lenguaje:
             return m.group(0)
         cambios += 1
-        return f"```{lenguaje}\n{m.group(1)}```"
+        return f"```{lenguaje}\n{m.group('bloque')}```"
 
-    return _FENCE_SIN_LENGUAJE.sub(etiquetar, texto), cambios
+    return _SECCIONES[contexto].sub(etiquetar, texto), cambios
 
 
 def etiquetar_lenguaje_archivo(contenido: str, formato: str, por_defecto: Optional[str] = None) -> tuple:
     if formato == "xml":
         return transformar_textos_xml(contenido, lambda t: etiquetar_lenguaje(t, por_defecto))
-    return etiquetar_lenguaje(contenido, por_defecto)
+    return etiquetar_lenguaje(contenido, por_defecto, "gift")
+
+
+def backticks_sin_cerrar(texto: str, contexto: str = "xml") -> bool:
+    """Un ``` o un ` que no forma parte de ninguna sección de código: queda sin pareja y
+    el código se come el resto del texto. Los backticks dentro de un bloque o de código
+    en línea (`char c = '`';`) son contenido, no marcas."""
+    return "`" in _SECCIONES[contexto].sub(" ", texto)
 
 
 # ---------------------------------------------------------------------------

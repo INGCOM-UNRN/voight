@@ -254,7 +254,9 @@ def auditar_longitudes(preguntas: Iterable[dict], umbral: float = UMBRAL_LONGITU
 def _backticks_desbalanceados(texto: str) -> bool:
     """Un ``` o un ` sin cerrar: el código se come el resto del texto (y en GIFT la
     transformación a fullwidth no puede saber dónde termina)."""
-    return texto.count("```") % 2 == 1 or texto.replace("```", "").count("`") % 2 == 1
+    from questions.core.codigo import backticks_sin_cerrar
+
+    return backticks_sin_cerrar(texto)
 
 
 _OPCION_PROBLEMATICA = re.compile(
