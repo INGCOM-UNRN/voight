@@ -1,5 +1,41 @@
 // mxviz - Client-side Application
 
+// Tipos de pregunta de Moodle: ícono y nombre para el árbol y el encabezado.
+const TIPOS = {
+    multichoice: {icon: '✅', label: 'Opción múltiple'},
+    truefalse: {icon: '✔️', label: 'Verdadero/Falso'},
+    shortanswer: {icon: '✏️', label: 'Respuesta corta'},
+    numerical: {icon: '🔢', label: 'Numérica'},
+    essay: {icon: '📝', label: 'Ensayo'},
+    matching: {icon: '🔗', label: 'Emparejamiento'},
+    description: {icon: '📄', label: 'Descripción'},
+    multianswer: {icon: '🧩', label: 'Respuestas anidadas (cloze)'},
+    cloze: {icon: '🧩', label: 'Respuestas anidadas (cloze)'},
+    calculated: {icon: '🧮', label: 'Calculada'},
+    calculatedsimple: {icon: '🧮', label: 'Calculada simple'},
+    calculatedmulti: {icon: '🧮', label: 'Calculada de opción múltiple'},
+    ordering: {icon: '↕️', label: 'Ordenamiento'},
+    gapselect: {icon: '🔽', label: 'Seleccionar palabras faltantes'},
+    ddwtos: {icon: '🖱️', label: 'Arrastrar y soltar sobre texto'},
+    ddimageortext: {icon: '🖼️', label: 'Arrastrar y soltar sobre imagen'},
+    ddmarker: {icon: '📍', label: 'Arrastrar y soltar marcadores'},
+    randomsamatch: {icon: '🎲', label: 'Emparejamiento aleatorio de respuestas cortas'},
+    unknown: {icon: '❓', label: 'Desconocido'},
+};
+
+// Cómo se editan las respuestas de cada tipo (answer_mode, lo decide el servidor).
+const MODOS = {
+    choices: {titulo: '✅ Respuestas:', agregar: '➕ Agregar respuesta'},
+    numerical: {titulo: '🔢 Respuestas numéricas:', agregar: '➕ Agregar respuesta'},
+    formulas: {titulo: '🧮 Fórmulas de respuesta:', agregar: '➕ Agregar fórmula'},
+    truefalse: {titulo: '✔️ Respuesta correcta:', agregar: null},
+    pairs: {titulo: '🔗 Pares (pregunta → respuesta):', agregar: '➕ Agregar par'},
+    ordering: {titulo: '↕️ Elementos, en el orden correcto:', agregar: '➕ Agregar elemento'},
+    groups: {titulo: '🧩 Opciones de los huecos [[n]]:', agregar: '➕ Agregar opción'},
+};
+
+const SI_NO = [['1', 'Sí'], ['0', 'No']];
+
 class MxvizApp {
     constructor() {
         this.currentQuestion = null;
@@ -172,16 +208,24 @@ class MxvizApp {
     }
 
     getTypeIcon(type) {
-        const icons = {
-            'multichoice': '✅',
-            'truefalse': '✔️',
-            'shortanswer': '✏️',
-            'numerical': '🔢',
-            'essay': '📝',
-            'matching': '🔗',
-            'unknown': '❓'
-        };
-        return icons[type] || icons['unknown'];
+        return (TIPOS[type] || TIPOS.unknown).icon;
+    }
+
+    getTypeLabel(type) {
+        return (TIPOS[type] || {label: type}).label;
+    }
+
+    // Crea un elemento: atributos (class, value, checked, on<evento>) e hijos (nodos o texto).
+    el(tag, attrs = {}, ...hijos) {
+        const e = document.createElement(tag);
+        Object.entries(attrs).forEach(([k, v]) => {
+            if (k === 'class') e.className = v;
+            else if (k === 'value' || k === 'checked') e[k] = v;
+            else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+            else e.setAttribute(k, v);
+        });
+        hijos.forEach(h => e.append(h));
+        return e;
     }
 
     async loadQuestion(filepath) {
@@ -217,7 +261,8 @@ class MxvizApp {
 
     renderQuestion(question) {
         // Header
-        document.getElementById('question-type').textContent = question.type;
+        document.getElementById('question-type').textContent = this.getTypeLabel(question.type);
+        document.getElementById('question-type').title = question.type;
         document.getElementById('question-name').value = question.name || '';
 
         // Content
@@ -232,14 +277,8 @@ class MxvizApp {
             textFormatElem.value = question.questiontext_format || 'html';
         }
 
-        // Answers
-        const answersContainer = document.getElementById('answers-container');
-        answersContainer.innerHTML = '';
-        if (question.answers && question.answers.length > 0) {
-            question.answers.forEach((answer, index) => {
-                this.renderAnswer(answer, index);
-            });
-        }
+        // Answers (según el tipo)
+        this.renderAnswers(question);
 
         // Tags
         this.renderTags(question.tags || []);
@@ -254,23 +293,115 @@ class MxvizApp {
         this.updatePreview();
     }
 
-    renderAnswer(answer, index) {
-        const answersContainer = document.getElementById('answers-container');
-        const answerDiv = document.createElement('div');
-        answerDiv.className = 'answer-item';
-        answerDiv.dataset.index = index;
+    renderAnswers(question) {
+        const modo = question.answer_mode || 'none';
+        const meta = MODOS[modo];
+        document.getElementById('answers-edit-section').classList.toggle('sin-respuestas', !meta);
+        document.getElementById('answers-preview-section').classList.toggle('sin-respuestas', !meta);
+        const container = document.getElementById('answers-container');
+        container.innerHTML = '';
+        if (!meta) return;
 
-        answerDiv.innerHTML = `
-            <div class="answer-header">
-                <label>Puntos:</label>
-                <input type="number" class="answer-fraction" value="${answer.fraction}" step="1" min="0" max="100"/>
-                <button class="answer-delete" onclick="app.removeAnswer(${index})">🗑️ Eliminar</button>
-            </div>
-            <textarea class="answer-text" rows="2" placeholder="Texto de la respuesta">${answer.text || ''}</textarea>
-            <textarea class="answer-feedback" rows="2" placeholder="Retroalimentación (opcional)">${answer.feedback || ''}</textarea>
-        `;
+        document.getElementById('answers-label').textContent = meta.titulo;
+        document.getElementById('answers-preview-label').textContent = meta.titulo;
+        const boton = document.getElementById('add-answer-btn');
+        boton.style.display = meta.agregar ? '' : 'none';
+        if (meta.agregar) boton.textContent = meta.agregar;
 
-        answersContainer.appendChild(answerDiv);
+        if (modo === 'truefalse') {
+            container.append(this.renderTrueFalse(question.answers || []));
+            return;
+        }
+        const items = modo === 'pairs' ? question.subquestions : modo === 'groups' ? question.choices : question.answers;
+        (items || []).forEach(item => container.append(this.renderItem(modo, item)));
+    }
+
+    renderItem(modo, item) {
+        const fila = this.el('div', {class: 'answer-item', 'data-modo': modo});
+        const cabecera = this.el('div', {class: 'answer-header'});
+        const borrar = this.el('button', {class: 'answer-delete', type: 'button', onclick: () => fila.remove()}, '🗑️ Eliminar');
+        const area = (campo, valor, placeholder, filas = 2) => this.el('textarea', {
+            class: `answer-${campo}`, 'data-campo': campo, rows: filas, placeholder, value: valor || ''});
+        const numero = (campo, valor, etiqueta, extra = {}) => [
+            this.el('label', {}, etiqueta),
+            this.el('input', {type: 'number', class: `answer-${campo}`, 'data-campo': campo, value: valor ?? '', ...extra}),
+        ];
+
+        if (modo === 'choices' || modo === 'numerical' || modo === 'formulas') {
+            cabecera.append(...numero('fraction', item.fraction ?? '0', 'Puntos (%):', {step: 'any', min: '-100', max: '100'}));
+            if (modo !== 'choices') {
+                cabecera.append(...numero('tolerance', item.tolerance ?? '0', 'Tolerancia ±:', {step: 'any', min: '0'}));
+            }
+            cabecera.append(borrar);
+            const texto = modo === 'numerical' ? 'Valor numérico'
+                : modo === 'formulas' ? 'Fórmula, p. ej. {a} + {b}' : 'Texto de la respuesta';
+            fila.append(cabecera, area('text', item.text, texto), area('feedback', item.feedback, 'Retroalimentación (opcional)'));
+        } else if (modo === 'pairs') {
+            cabecera.append(this.el('span', {class: 'answer-hint'}, 'Con la pregunta vacía, la respuesta queda como distractor'), borrar);
+            fila.append(cabecera, area('text', item.text, 'Pregunta'),
+                this.el('input', {type: 'text', class: 'answer-answer', 'data-campo': 'answer', placeholder: 'Respuesta', value: item.answer || ''}));
+        } else if (modo === 'ordering') {
+            const mover = (subir) => {
+                const vecino = subir ? fila.previousElementSibling : fila.nextElementSibling;
+                if (vecino) (subir ? vecino.before(fila) : vecino.after(fila));
+            };
+            cabecera.append(
+                this.el('button', {class: 'btn btn-small', type: 'button', title: 'Subir', onclick: () => mover(true)}, '▲'),
+                this.el('button', {class: 'btn btn-small', type: 'button', title: 'Bajar', onclick: () => mover(false)}, '▼'),
+                borrar);
+            fila.append(cabecera, area('text', item.text, 'Elemento'));
+        } else if (modo === 'groups') {
+            cabecera.append(...numero('group', item.group || '1', 'Grupo:', {min: '1', step: '1'}));
+            if (this.currentQuestion && this.currentQuestion.type === 'ddwtos') {
+                cabecera.append(this.el('label', {class: 'answer-check'},
+                    this.el('input', {type: 'checkbox', 'data-campo': 'infinite', checked: !!item.infinite}), ' Ilimitada'));
+            }
+            cabecera.append(borrar);
+            fila.append(cabecera, area('text', item.text, 'Texto de la opción', 1));
+        }
+        return fila;
+    }
+
+    renderTrueFalse(answers) {
+        const porValor = {};
+        answers.forEach(a => { porValor[(a.text || '').toLowerCase()] = a; });
+        const fila = this.el('div', {class: 'answer-item', 'data-modo': 'truefalse'});
+        const correcta = this.el('select', {'data-campo': 'correcta'},
+            this.el('option', {value: 'true'}, 'Verdadero'), this.el('option', {value: 'false'}, 'Falso'));
+        correcta.value = parseFloat((porValor.true || {}).fraction) > 0 ? 'true' : 'false';
+        fila.append(this.el('div', {class: 'answer-header'}, this.el('label', {}, 'La afirmación es:'), correcta));
+        [['true', 'Verdadero'], ['false', 'Falso']].forEach(([valor, nombre]) => fila.append(
+            this.el('label', {class: 'answer-hint'}, `Retroalimentación si responde «${nombre}»:`),
+            this.el('textarea', {class: 'answer-feedback', 'data-tf': valor, rows: 2, value: (porValor[valor] || {}).feedback || ''})));
+        return fila;
+    }
+
+    // Lo editado en la sección de respuestas, con la forma que espera el servidor.
+    collectRespuestas() {
+        const modo = (this.currentQuestion && this.currentQuestion.answer_mode) || 'none';
+        const filas = [...document.querySelectorAll('#answers-container .answer-item')];
+        const campo = (fila, nombre) => {
+            const e = fila.querySelector(`[data-campo="${nombre}"]`);
+            return e ? (e.type === 'checkbox' ? e.checked : e.value) : undefined;
+        };
+        if (modo === 'truefalse') {
+            const fila = filas[0];
+            if (!fila) return {answers: []};
+            const correcta = campo(fila, 'correcta');
+            return {answers: ['true', 'false'].map(v => ({
+                text: v, fraction: v === correcta ? '100' : '0', feedback: fila.querySelector(`[data-tf="${v}"]`).value}))};
+        }
+        if (modo === 'pairs') return {subquestions: filas.map(f => ({text: campo(f, 'text'), answer: campo(f, 'answer')}))};
+        if (modo === 'groups') {
+            return {choices: filas.map(f => ({text: campo(f, 'text'), group: campo(f, 'group'), infinite: !!campo(f, 'infinite')}))};
+        }
+        if (!MODOS[modo]) return {};
+        return {answers: filas.map((f, i) => {
+            const a = {text: campo(f, 'text'), feedback: campo(f, 'feedback') ?? '', fraction: campo(f, 'fraction') ?? String(i + 1)};
+            const tolerancia = campo(f, 'tolerance');
+            if (tolerancia !== undefined) a.tolerance = tolerancia;
+            return a;
+        })};
     }
 
     renderTags(tags) {
@@ -291,77 +422,77 @@ class MxvizApp {
     renderTypeSpecificOptions(question) {
         const container = document.getElementById('type-specific-options');
         container.innerHTML = '';
+        const t = question.type;
+        const grupo = (etiqueta, control) => this.el('div', {class: 'form-group'}, this.el('label', {}, etiqueta), control);
+        const sel = (campo, etiqueta, opciones, defecto) => {
+            const s = this.el('select', {'data-campo': campo}, ...opciones.map(([v, n]) => this.el('option', {value: v}, n)));
+            s.value = question[campo] || defecto;
+            return grupo(etiqueta, s);
+        };
+        const num = (campo, etiqueta, defecto, min = '0') => grupo(etiqueta,
+            this.el('input', {type: 'number', 'data-campo': campo, min, value: question[campo] || defecto}));
+        const nota = (texto) => this.el('p', {class: 'type-note'}, texto);
+        const lista = (titulo, items) => this.el('div', {class: 'type-note'}, titulo,
+            this.el('ul', {}, ...items.map(i => this.el('li', {}, i))));
 
-        if (question.type === 'multichoice') {
-            container.innerHTML = `
-                <div class="form-group">
-                    <label for="single">Respuesta única:</label>
-                    <select id="single">
-                        <option value="1" ${question.single === '1' ? 'selected' : ''}>Sí</option>
-                        <option value="0" ${question.single === '0' ? 'selected' : ''}>No (múltiples respuestas)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="shuffleanswers">Mezclar respuestas:</label>
-                    <select id="shuffleanswers">
-                        <option value="1" ${question.shuffleanswers === '1' ? 'selected' : ''}>Sí</option>
-                        <option value="0" ${question.shuffleanswers === '0' ? 'selected' : ''}>No</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="answernumbering">Numeración:</label>
-                    <select id="answernumbering">
-                        <option value="abc" ${question.answernumbering === 'abc' ? 'selected' : ''}>a, b, c, ...</option>
-                        <option value="ABCD" ${question.answernumbering === 'ABCD' ? 'selected' : ''}>A, B, C, ...</option>
-                        <option value="123" ${question.answernumbering === '123' ? 'selected' : ''}>1, 2, 3, ...</option>
-                        <option value="none" ${question.answernumbering === 'none' ? 'selected' : ''}>Sin numeración</option>
-                    </select>
-                </div>
-            `;
-        } else if (question.type === 'shortanswer') {
-            container.innerHTML = `
-                <div class="form-group">
-                    <label for="usecase">Sensible a mayúsculas:</label>
-                    <select id="usecase">
-                        <option value="0" ${question.usecase === '0' ? 'selected' : ''}>No</option>
-                        <option value="1" ${question.usecase === '1' ? 'selected' : ''}>Sí</option>
-                    </select>
-                </div>
-            `;
-        } else if (question.type === 'essay') {
-            container.innerHTML = `
-                <div class="form-group">
-                    <label for="responseformat">Formato de respuesta:</label>
-                    <select id="responseformat">
-                        <option value="editor" ${question.responseformat === 'editor' ? 'selected' : ''}>Editor HTML</option>
-                        <option value="editorfilepicker" ${question.responseformat === 'editorfilepicker' ? 'selected' : ''}>Editor + archivos</option>
-                        <option value="plain" ${question.responseformat === 'plain' ? 'selected' : ''}>Texto plano</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="responsefieldlines">Líneas de respuesta:</label>
-                    <input type="number" id="responsefieldlines" value="${question.responsefieldlines || '15'}" min="1"/>
-                </div>
-            `;
+        // GIFT no guarda estas opciones: Moodle usa sus valores por defecto al importar.
+        const xml = question.source_format !== 'gift';
+        if (xml && t === 'multichoice') {
+            container.append(
+                sel('single', 'Respuesta única:', [['1', 'Sí'], ['0', 'No (múltiples respuestas)']], '1'),
+                sel('shuffleanswers', 'Mezclar respuestas:', SI_NO, '1'),
+                sel('answernumbering', 'Numeración:', [['abc', 'a, b, c, ...'], ['ABCD', 'A, B, C, ...'], ['123', '1, 2, 3, ...'],
+                    ['iii', 'i, ii, iii, ...'], ['IIII', 'I, II, III, ...'], ['none', 'Sin numeración']], 'abc'));
+        } else if (xml && t === 'shortanswer') {
+            container.append(sel('usecase', 'Distinguir mayúsculas:', [['0', 'No'], ['1', 'Sí']], '0'));
+        } else if (xml && ['matching', 'gapselect', 'ddwtos'].includes(t)) {
+            container.append(sel('shuffleanswers', 'Mezclar opciones:', SI_NO, '1'));
+        } else if (xml && t === 'essay') {
+            container.append(
+                sel('responseformat', 'Formato de respuesta:', [['editor', 'Editor HTML'], ['editorfilepicker', 'Editor + archivos'],
+                    ['plain', 'Texto plano'], ['monospaced', 'Texto plano, monoespaciado'], ['noinline', 'Sin texto (sólo archivos)']], 'editor'),
+                sel('responserequired', 'Respuesta obligatoria:', SI_NO, '1'),
+                num('responsefieldlines', 'Líneas de respuesta:', '15', '1'),
+                sel('attachments', 'Archivos adjuntos:', [['0', 'No'], ['1', '1'], ['2', '2'], ['3', '3'], ['-1', 'Ilimitados']], '0'),
+                grupo('Información para quien califica:',
+                    this.el('textarea', {'data-campo': 'graderinfo', class: 'editor-textarea', rows: 3, value: question.graderinfo || ''})));
+        } else if (t === 'randomsamatch') {
+            container.append(num('choose', 'Cantidad de preguntas a elegir:', '2', '2'),
+                sel('subcats', 'Incluir subcategorías:', SI_NO, '1'),
+                nota('Toma al azar preguntas de respuesta corta de la categoría y las presenta como emparejamiento.'));
+        }
+
+        if (question.source_format === 'gift' && question.embedded) {
+            container.append(nota('Palabra faltante: el _____ del enunciado marca dónde se muestran las opciones.'));
+        }
+        if (t === 'description') {
+            container.append(nota('Descripción: sólo texto, sin respuestas ni puntaje.'));
+        } else if (t === 'multianswer' || t === 'cloze') {
+            container.append(nota('Las respuestas van embebidas en el enunciado con la sintaxis cloze: '
+                + '{1:MULTICHOICE:=correcta~incorrecta}, {1:SHORTANSWER:=respuesta}, {1:NUMERICAL:=3:0.1}.'));
+        } else if (t === 'gapselect' || t === 'ddwtos') {
+            container.append(nota('En el enunciado, [[1]], [[2]]… marcan los huecos: el número es la posición de la opción '
+                + 'correcta en la lista (desde 1) y cada hueco ofrece las opciones de su grupo.'));
+        } else if (t === 'ordering') {
+            container.append(nota('El orden de la lista es el orden correcto; Moodle muestra los elementos mezclados.'));
+        } else if (t && t.startsWith('calculated')) {
+            container.append(nota('Las variables ({a}, {b}…) y sus conjuntos de valores se conservan tal cual; se editan en Moodle.'));
+            if ((question.datasets || []).length) {
+                container.append(lista('Variables:', question.datasets.map(d => `{${d.name}}: de ${d.min} a ${d.max}`)));
+            }
+        } else if (t === 'ddimageortext' || t === 'ddmarker') {
+            container.append(nota('La imagen de fondo, las zonas y los elementos se conservan tal cual; se editan en Moodle.'));
+            if ((question.drags || []).length) container.append(lista('Elementos para arrastrar:', question.drags));
+        } else if (!TIPOS[t]) {
+            container.append(nota(`Tipo «${t}» sin editor propio: se editan los campos comunes y el resto se conserva.`));
         }
     }
 
     addAnswer() {
-        const newAnswer = {
-            fraction: '0',
-            text: '',
-            feedback: '',
-            format: 'html'
-        };
-        const index = document.querySelectorAll('.answer-item').length;
-        this.renderAnswer(newAnswer, index);
-    }
-
-    removeAnswer(index) {
-        const answerItem = document.querySelector(`.answer-item[data-index="${index}"]`);
-        if (answerItem) {
-            answerItem.remove();
-        }
+        const modo = this.currentQuestion && this.currentQuestion.answer_mode;
+        if (!MODOS[modo] || modo === 'truefalse') return;
+        const vacio = {fraction: '0', text: '', feedback: '', tolerance: '0', group: '1', answer: ''};
+        document.getElementById('answers-container').append(this.renderItem(modo, vacio));
     }
 
     addTag(tagText) {
@@ -443,98 +574,61 @@ class MxvizApp {
     }
     
     updateAnswersPreview() {
-        const answersPreview = document.getElementById('answers-preview-container');
-        answersPreview.innerHTML = '';
-        
-        const answerItems = document.querySelectorAll('.answer-item');
-        if (answerItems.length === 0) {
-            answersPreview.innerHTML = '<p style="color: #999; font-style: italic;">No hay respuestas definidas</p>';
+        const cont = document.getElementById('answers-preview-container');
+        cont.innerHTML = '';
+        const modo = (this.currentQuestion && this.currentQuestion.answer_mode) || 'none';
+        if (!MODOS[modo]) return;
+        const datos = this.collectRespuestas();
+        const items = datos.answers || datos.subquestions || datos.choices || [];
+        if (items.length === 0) {
+            cont.append(this.el('p', {class: 'preview-empty'}, 'No hay respuestas definidas'));
             return;
         }
-        
-        answerItems.forEach((answerDiv, index) => {
-            const fraction = parseFloat(answerDiv.querySelector('.answer-fraction').value) || 0;
-            const text = answerDiv.querySelector('.answer-text').value;
-            const feedback = answerDiv.querySelector('.answer-feedback').value;
-            
-            const answerPreview = document.createElement('div');
-            answerPreview.className = 'answer-preview-item';
-            
-            // Determine class based on fraction
-            if (fraction >= 100) {
-                answerPreview.classList.add('correct');
-            } else if (fraction > 0) {
-                answerPreview.classList.add('partial');
-            } else {
-                answerPreview.classList.add('incorrect');
-            }
-            
-            // Radio button or checkbox based on question type
-            const inputType = this.currentQuestion && this.currentQuestion.single === '0' ? 'checkbox' : 'radio';
-            
-            answerPreview.innerHTML = `
-                <input type="${inputType}" name="answer_preview" class="answer-preview-radio" disabled>
-                <div class="answer-preview-content">
-                    <div class="answer-preview-text">${this.renderMarkdown(text) || '<em style="color: #999;">Respuesta vacía</em>'}</div>
-                    ${fraction > 0 ? `<div class="answer-preview-points">${fraction}% de los puntos</div>` : ''}
-                    ${feedback ? `<div class="answer-preview-feedback">${this.renderMarkdown(feedback)}</div>` : ''}
-                </div>
-            `;
-            
-            answersPreview.appendChild(answerPreview);
-        });
+        const md = (texto, clase = 'answer-preview-text') => {
+            const d = this.el('div', {class: clase});
+            d.innerHTML = this.renderMarkdown(texto) || '<em style="color: #999;">Vacío</em>';
+            return d;
+        };
+
+        if (modo === 'pairs') {
+            items.forEach(p => cont.append(this.el('div', {class: 'answer-preview-item pair'},
+                md(p.text), this.el('span', {class: 'pair-arrow'}, '→'), this.el('strong', {}, p.answer || '—'))));
+        } else if (modo === 'ordering') {
+            cont.append(this.el('ol', {class: 'ordering-preview'}, ...items.map(a => this.el('li', {}, md(a.text)))));
+        } else if (modo === 'groups') {
+            const grupos = {};
+            items.forEach((c, i) => { (grupos[c.group || '1'] = grupos[c.group || '1'] || []).push(`[[${i + 1}]] ${c.text}`); });
+            Object.keys(grupos).sort((a, b) => a - b).forEach(g => cont.append(this.el('div', {class: 'answer-preview-item'},
+                this.el('strong', {}, `Grupo ${g}: `), grupos[g].join(' · '))));
+        } else {
+            const multiple = (document.getElementById('single') || {}).value === '0';
+            items.forEach(a => {
+                const fraccion = parseFloat(a.fraction) || 0;
+                const clase = fraccion >= 100 ? 'correct' : fraccion > 0 ? 'partial' : 'incorrect';
+                const texto = modo === 'truefalse' ? md(a.text === 'true' ? 'Verdadero' : 'Falso')
+                    : modo === 'choices' ? md(a.text)
+                    : this.el('div', {class: 'answer-preview-text'}, `${a.text}` + (parseFloat(a.tolerance) ? ` ± ${a.tolerance}` : ''));
+                const contenido = this.el('div', {class: 'answer-preview-content'}, texto);
+                if (fraccion > 0) contenido.append(this.el('div', {class: 'answer-preview-points'}, `${fraccion}% de los puntos`));
+                if (a.feedback) contenido.append(md(a.feedback, 'answer-preview-feedback'));
+                cont.append(this.el('div', {class: `answer-preview-item ${clase}`},
+                    this.el('input', {type: multiple ? 'checkbox' : 'radio', class: 'answer-preview-radio', disabled: ''}), contenido));
+            });
+        }
     }
-    
+
     updateTypeSpecificPreview() {
         const container = document.getElementById('type-specific-options-preview');
         container.innerHTML = '';
-        
-        if (!this.currentQuestion) return;
-        
-        if (this.currentQuestion.type === 'multichoice') {
-            const single = document.getElementById('single')?.value;
-            const shuffle = document.getElementById('shuffleanswers')?.value;
-            const numbering = document.getElementById('answernumbering')?.value;
-            
-            container.innerHTML = `
-                <div class="preview-item">
-                    <span class="preview-label">Tipo de respuesta:</span>
-                    <span class="preview-value">${single === '1' ? 'Respuesta única' : 'Múltiples respuestas'}</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">Mezclar respuestas:</span>
-                    <span class="preview-value">${shuffle === '1' ? 'Sí' : 'No'}</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">Numeración:</span>
-                    <span class="preview-value">${this.getNumberingLabel(numbering)}</span>
-                </div>
-            `;
-        } else if (this.currentQuestion.type === 'shortanswer') {
-            const usecase = document.getElementById('usecase')?.value;
-            container.innerHTML = `
-                <div class="preview-item">
-                    <span class="preview-label">Sensible a mayúsculas:</span>
-                    <span class="preview-value">${usecase === '1' ? 'Sí' : 'No'}</span>
-                </div>
-            `;
-        } else if (this.currentQuestion.type === 'essay') {
-            const format = document.getElementById('responseformat')?.value;
-            const lines = document.getElementById('responsefieldlines')?.value;
-            
-            container.innerHTML = `
-                <div class="preview-item">
-                    <span class="preview-label">Formato de respuesta:</span>
-                    <span class="preview-value">${this.getResponseFormatLabel(format)}</span>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-label">Líneas de respuesta:</span>
-                    <span class="preview-value">${lines || '15'}</span>
-                </div>
-            `;
-        }
+        document.querySelectorAll('#type-specific-options [data-campo]').forEach(e => {
+            const etiqueta = e.closest('.form-group')?.querySelector('label')?.textContent || e.dataset.campo;
+            const valor = e.tagName === 'SELECT' ? e.options[e.selectedIndex]?.text : e.value;
+            container.append(this.el('div', {class: 'preview-item'},
+                this.el('span', {class: 'preview-label'}, etiqueta), ' ', this.el('span', {class: 'preview-value'}, valor || '—')));
+        });
+        document.querySelectorAll('#type-specific-options .type-note').forEach(n => container.append(n.cloneNode(true)));
     }
-    
+
     updateTagsPreview() {
         const tagsPreview = document.getElementById('tags-preview-container');
         const tags = this.collectTags();
@@ -626,29 +720,14 @@ class MxvizApp {
                 generalfeedback: document.getElementById('general-feedback').value,
                 defaultgrade: document.getElementById('default-grade').value,
                 penalty: document.getElementById('penalty').value,
-                answers: this.collectAnswers(),
                 tags: this.collectTags(),
             };
 
-            // Agregar opciones específicas por tipo
-            if (this.currentQuestion.type === 'multichoice') {
-                const singleElem = document.getElementById('single');
-                const shuffleElem = document.getElementById('shuffleanswers');
-                const numberingElem = document.getElementById('answernumbering');
-                
-                if (singleElem) questionData.single = singleElem.value;
-                if (shuffleElem) questionData.shuffleanswers = shuffleElem.value;
-                if (numberingElem) questionData.answernumbering = numberingElem.value;
-            } else if (this.currentQuestion.type === 'shortanswer') {
-                const usecaseElem = document.getElementById('usecase');
-                if (usecaseElem) questionData.usecase = usecaseElem.value;
-            } else if (this.currentQuestion.type === 'essay') {
-                const formatElem = document.getElementById('responseformat');
-                const linesElem = document.getElementById('responsefieldlines');
-                
-                if (formatElem) questionData.responseformat = formatElem.value;
-                if (linesElem) questionData.responsefieldlines = linesElem.value;
-            }
+            // Respuestas y opciones propias del tipo
+            Object.assign(questionData, this.collectRespuestas());
+            document.querySelectorAll('#type-specific-options [data-campo]').forEach(e => {
+                questionData[e.dataset.campo] = e.type === 'checkbox' ? (e.checked ? '1' : '0') : e.value;
+            });
 
             // Enviar al servidor
             const response = await fetch(`/api/question/${this.currentFilepath}`, {
@@ -665,27 +744,11 @@ class MxvizApp {
                 this.showStatus('Error: ' + result.error, 'error');
             } else {
                 this.showStatus('✅ Guardado exitosamente', 'success');
+                await this.loadTree();  // la cantidad de opciones o el nombre pueden haber cambiado
             }
         } catch (error) {
             this.showStatus('Error guardando: ' + error.message, 'error');
         }
-    }
-
-    collectAnswers() {
-        const answers = [];
-        document.querySelectorAll('.answer-item').forEach(answerDiv => {
-            const fraction = answerDiv.querySelector('.answer-fraction').value;
-            const text = answerDiv.querySelector('.answer-text').value;
-            const feedback = answerDiv.querySelector('.answer-feedback').value;
-
-            answers.push({
-                fraction: fraction,
-                text: text,
-                feedback: feedback,
-                format: 'html'
-            });
-        });
-        return answers;
     }
 
     collectTags() {

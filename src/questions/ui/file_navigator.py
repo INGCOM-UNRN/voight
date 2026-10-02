@@ -49,7 +49,7 @@ class FileNavigator:
                     'path': rel_path,
                     'question_type': info.get('type', 'unknown'),
                     'question_name': info.get('name', entry),
-                    'options': self._count_options(full_path),
+                    'options': info.get('options'),
                 })
 
         return items
@@ -67,52 +67,46 @@ class FileNavigator:
             pass
         return count
 
-    def _count_options(self, filepath):
-        """Opciones de la pregunta que muestra el editor (la primera del archivo), con el
-        criterio de health: respuestas en opción múltiple y respuesta corta, pares en
-        emparejamiento. None en los tipos sin opciones o si el archivo no se puede leer."""
-        from questions.core.banco import parse_archivo
-
-        try:
-            resultado = parse_archivo(filepath)
-        except Exception:
-            return None
-        if not resultado.get('success'):
-            return None
-        for p in resultado['questions']:
-            tipo = p.get('type')
-            if tipo == 'Category':
-                continue
-            if tipo in ('MC', 'Short'):
-                return len(p.get('choices', []))
-            if tipo == 'Matching':
-                return len(p.get('matchPairs', []))
-            return None
-        return None
-
     def _get_question_info(self, filepath):
-        """Extrae tipo y nombre de la pregunta sin parsear todo el árbol."""
-        info = {}
+        """Nombre, tipo (de Moodle) y cantidad de opciones de la pregunta que muestra el
+        editor: la primera del archivo que no es una categoría.
+
+        Las opciones se cuentan con el criterio de health: respuestas en opción múltiple y
+        respuesta corta, pares en emparejamiento; None en los demás tipos o si el archivo
+        no se puede leer.
+        """
+        info = {'options': None}
         try:
-            with open(filepath, encoding='utf-8', errors='replace') as f:
-                head = f.read(4096)
             if filepath.lower().endswith('.gift'):
-                m = re.search(r'::(.*?)::', head, re.DOTALL)
-                info['name'] = m.group(1).strip() if m else ''
-                if '{T' in head or re.search(r'\{\s*(TRUE|T)\b', head, re.IGNORECASE):
-                    info['type'] = 'truefalse'
-                elif '->' in head:
-                    info['type'] = 'matching'
-                else:
-                    info['type'] = 'multichoice'
+                from questions.core.parser import GiftParser
+                from questions.ui.parsers import _TIPOS_A_EDITOR
+
+                with open(filepath, encoding='utf-8') as f:
+                    preguntas = GiftParser()._manual_parse(f.read())
+                q = next((p for p in preguntas if p.type != 'Category'), None)
+                if q is None:
+                    return info
+                info['name'] = q.title or ''
+                info['type'] = _TIPOS_A_EDITOR.get(q.type, 'description')
+                if q.type in ('MC', 'Short'):
+                    info['options'] = len(q.choices)
+                elif q.type == 'Matching':
+                    info['options'] = len(q.match_pairs)
             else:
                 import xml.etree.ElementTree as ET
-                root = ET.parse(filepath).getroot()
-                q = root.find('.//question')
-                if q is not None:
-                    info['type'] = q.get('type', 'unknown')
-                    name = q.find('name/text')
-                    info['name'] = (name.text or '').strip() if name is not None else ''
+
+                raiz = ET.parse(filepath).getroot()
+                candidatas = [raiz] if raiz.tag == 'question' else raiz.iter('question')
+                q = next((p for p in candidatas if p.get('type') != 'category'), None)
+                if q is None:
+                    return info
+                info['type'] = q.get('type', 'unknown')
+                name = q.find('name/text')
+                info['name'] = (name.text or '').strip() if name is not None else ''
+                if info['type'] in ('multichoice', 'shortanswer'):
+                    info['options'] = len(q.findall('answer'))
+                elif info['type'] == 'matching':
+                    info['options'] = len(q.findall('subquestion'))
         except Exception:
             pass
         return info

@@ -1276,3 +1276,79 @@ body {
     color: white;
     border-color: white;
 }
+
+/* Respuestas según el tipo de pregunta */
+.sin-respuestas {
+    display: none !important;
+}
+
+.answer-tolerance,
+.answer-group {
+    width: 80px;
+}
+
+.answer-header .answer-delete {
+    margin-left: auto;
+}
+
+.answer-hint {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0;
+}
+
+.answer-answer {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.answer-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.type-note {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    background: var(--bg-color);
+    border-left: 3px solid var(--primary-color);
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.type-note ul {
+    margin: 0.25rem 0 0 1.25rem;
+}
+
+.answer-preview-item.pair {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pair-arrow {
+    color: var(--text-muted);
+}
+
+.ordering-preview {
+    padding-left: 1.5rem;
+}
+
+.preview-empty {
+    color: #999;
+    font-style: italic;
+}
+
+.answer-header input[type="number"] {
+    width: 90px;
+    flex: 0 0 auto;
+}
+
+.answer-header label {
+    white-space: nowrap;
+}
