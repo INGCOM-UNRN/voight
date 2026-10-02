@@ -58,6 +58,48 @@ def _extraer_ultimo_grupo_llaves(texto: str):
     return None
 
 
+_CODIGO = re.compile(r"```.*?```|`[^`\n]*`", re.DOTALL)
+
+
+def _extraer_grupo_intermedio(texto: str):
+    r"""Formato «palabra faltante»: el bloque de respuestas en medio del enunciado
+    (`El {=gato ~perro} maúlla.`).
+
+    Sólo cuenta un grupo {..} fuera del código (``` y `) que empiece con = o ~, como los
+    que Moodle acepta en ese formato (opción múltiple y respuesta corta); ignora \{ \}.
+    Devuelve (antes, contenido, después) o None.
+    """
+    enmascarado = _CODIGO.sub(lambda m: " " * len(m.group(0)), texto)
+    n = len(enmascarado)
+    i = 0
+    while i < n:
+        c = enmascarado[i]
+        if c == "\\":
+            i += 2
+            continue
+        if c == "{":
+            profundidad, j = 0, i
+            while j < n:
+                if enmascarado[j] == "\\":
+                    j += 2
+                    continue
+                if enmascarado[j] == "{":
+                    profundidad += 1
+                elif enmascarado[j] == "}":
+                    profundidad -= 1
+                    if profundidad == 0:
+                        break
+                j += 1
+            if j >= n:
+                return None
+            contenido = texto[i + 1:j]
+            if contenido.lstrip()[:1] in ("=", "~"):
+                return texto[:i], contenido, texto[j + 1:]
+            i = j
+        i += 1
+    return None
+
+
 class GiftSemantics:
     """Semantic actions for the GIFT parser."""
     

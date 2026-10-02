@@ -13,7 +13,7 @@ from questions.core.gift_model import (  # noqa: F401
 )
 from questions.core.metadatos import leer_clasificacion
 from questions.core.gift_semantics import (  # noqa: F401
-    GiftSemantics, _llaves_balanceadas, _extraer_ultimo_grupo_llaves, corta_en_blanco,
+    GiftSemantics, _llaves_balanceadas, _extraer_ultimo_grupo_llaves, _extraer_grupo_intermedio, corta_en_blanco,
 )
 
 
@@ -135,6 +135,18 @@ class GiftParser:
         # previo contiene más llaves abiertas propias (cloze), caemos al
         # comportamiento clásico de primera-llave.
         partes = _extraer_ultimo_grupo_llaves(text)
+        intermedio = _extraer_grupo_intermedio(text) if partes is None else None
+        if intermedio is not None:
+            # Palabra faltante: El {=gato ~perro} maúlla.
+            antes, bloque, despues = intermedio
+            question = self._parse_answers(bloque.strip(), semantics)
+            question.title = title
+            question.stem = self._parse_stem(antes.strip(), despues.strip(), semantics)
+            question.id = question_id
+            question.tags = tags
+            question.has_embedded_answers = bool(despues.strip())
+            question.metadata = leer_clasificacion(" ".join(str(c) for c in comments), tags)
+            return question
         if partes is None:
             # Description (no answer block)
             stem = semantics._parse_formatted_text(text)
@@ -254,9 +266,9 @@ class GiftParser:
             global_feedback = semantics._parse_formatted_text(gf_match.group(1))
             block = block[:gf_match.start()]
 
-        # Primary answer without prefix (GIFT: {#23.5} o {#23.5:0.1 ~...})
+        # Primary answer without prefix (GIFT: {#23.5}, {#23.5:0.1 ~...} o el rango {#1..5})
         primaria = None
-        m_primaria = re.match(r'^\s*([+-]?\d+(?:\.\d+)?(?::\s*[+-]?\d+(?:\.\d+)?)?)\s*(?=[=~]|$)', block, re.DOTALL)
+        m_primaria = re.match(r'^\s*([+-]?\d+(?:\.\d+)?(?:(?::|\.\.)\s*[+-]?\d+(?:\.\d+)?)?)\s*(?=[=~]|$)', block, re.DOTALL)
         if m_primaria:
             primaria = m_primaria.group(1).strip()
             block = block[m_primaria.end():]

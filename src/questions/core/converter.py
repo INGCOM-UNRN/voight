@@ -204,8 +204,7 @@ def _pregunta_a_xml(q: Question, defaultgrade: float = 1.0) -> ET.Element:
             raw = (_ft_text(c.text) or "").strip()
             if raw.endswith("%") and ":" not in raw:
                 continue  # residuo de peso porcentual, no un valor numérico
-            m = re.match(r'^([+-]?\d+(?:\.\d+)?)\s*:\s*([+-]?\d+(?:\.\d+)?)$', raw)
-            numero, tolerancia = (m.group(1), m.group(2)) if m else (raw or "0", "")
+            numero, tolerancia = valor_y_tolerancia(raw)
             frac = c.weight if c.weight is not None else (100.0 if c.is_correct else 0.0)
             ans = respuesta(numero, frac)
             if tolerancia:
@@ -234,6 +233,21 @@ def _serializar_quiz(quiz: ET.Element) -> str:
 
     xml = ET.tostring(quiz, encoding="unicode").replace(_CD_OPEN, "").replace(_CD_CLOSE, "")
     return format_xml_content(xml)
+
+
+def valor_y_tolerancia(raw: str) -> tuple:
+    """(valor, tolerancia) de una respuesta numérica de GIFT: `3:0.5`, el rango `1..5`
+    (como Moodle, el punto medio ± la mitad del intervalo) o un número solo (tolerancia "")."""
+    raw = (raw or "").strip()
+    numero = r"[+-]?\d+(?:\.\d+)?"
+    m = re.match(rf"^({numero})\s*:\s*({numero})$", raw)
+    if m:
+        return m.group(1), m.group(2)
+    m = re.match(rf"^({numero})\s*\.\.\s*({numero})$", raw)
+    if m:
+        bajo, alto = sorted((float(m.group(1)), float(m.group(2))))
+        return f"{(bajo + alto) / 2:g}", f"{(alto - bajo) / 2:g}"
+    return raw or "0", ""
 
 
 def question_to_gift(q: Question, escapar_codigo: bool = True) -> str:
