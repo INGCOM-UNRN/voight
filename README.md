@@ -165,11 +165,13 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | Comando | Descripción |
 |:--|:--|
 | `moodle-toolbox doctor` | Verifica el estado del entorno de MOODLE-TOOLBOX (Python, LanguageTool, gcc y el motor de síntesis). |
-| `moodle-toolbox health` | Audita la salud, porcentajes de opciones, feedback y enlaces en el banco de preguntas. |
-| `moodle-toolbox ai` | Procesamiento de preguntas usando IA (Gemini). |
-| `moodle-toolbox validate` | Valida archivos o directorios de preguntas GIFT. |
-| `moodle-toolbox format` | Formatea archivos GIFT y ajusta bloques de código. |
-| `moodle-toolbox split` | Divide archivos GIFT con múltiples preguntas en archivos individuales. |
+| `moodle-toolbox health` | Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces. |
+| `moodle-toolbox ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini). |
+| `moodle-toolbox validate` | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
+| `moodle-toolbox dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
+| `moodle-toolbox verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
+| `moodle-toolbox format` | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵). |
+| `moodle-toolbox split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
 | `moodle-toolbox unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | `moodle-toolbox synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | `moodle-toolbox ui` | Abre el editor web local (cerebro) sobre DIRECTORIO. |
@@ -180,12 +182,13 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | `moodle-toolbox analyze` | Análisis y estadísticas de preguntas. |
 | `moodle-toolbox tree` | Organiza bancos en árboles de directorios por categoría. |
 | `moodle-toolbox xml` | Herramientas para archivos XML de Moodle. |
+| `moodle-toolbox moodle` | Operaciones sobre un sitio Moodle (servicio web). |
 
 Ayuda de cada comando: `moodle-toolbox <comando> -h`.
 
 ### Salida JSON de `moodle-toolbox`
 
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `moodle-toolbox doctor`, `moodle-toolbox health`, `moodle-toolbox validate`, `moodle-toolbox synth`, `moodle-toolbox spellcheck`, `moodle-toolbox languagetool`, `moodle-toolbox grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `moodle-toolbox doctor`, `moodle-toolbox health`, `moodle-toolbox validate`, `moodle-toolbox dedup`, `moodle-toolbox verify`, `moodle-toolbox format`, `moodle-toolbox synth`, `moodle-toolbox spellcheck`, `moodle-toolbox languagetool`, `moodle-toolbox grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 
