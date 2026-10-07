@@ -335,7 +335,7 @@ voight verify preguntas/ -r --sanitizar --estilo --json
 Correcciones puntuales, en GIFT, Moodle XML y Markdown; todas aceptan `-r` y `-n/--dry-run`:
 
 - `fix code-lang`: agrega la etiqueta de lenguaje a los bloques ``` que no la tienen (detecta C o Java; `--lenguaje` fija uno).
-- `fix code-format`: formatea el código C y Java con clang-format (el instalado o `uvx clang-format`), estilo LLVM con sangría de 4 (`--estilo` para otro).
+- `fix code-format`: formatea el código C y Java con clang-format (el instalado o `uvx clang-format`), estilo LLVM con sangría de 4 (`--estilo` para otro; `--estilo allman` u otro estilo de llaves las aplica sobre ese estilo).
 - `fix code-chars --to-fullwidth|--to-normal` y `fix code-indent`: caracteres fullwidth y marcas del código.
 - `fix slugify`, `fix name-from-title`, `fix title-from-name`: nombres de archivo y títulos.
 - `fix extension`: corrige la extensión según el contenido: un `.xml` con preguntas GIFT pasa a `.gift` y un `.gift` con Moodle XML, a `.xml`. Si el destino ya existe no lo pisa (lo informa y sale con 1); los archivos que no parecen GIFT ni Moodle XML quedan como están. `--json` lista los renombrados, los conflictos y los no reconocidos.
