@@ -83,16 +83,23 @@ def _canonizar_marcas(texto: str) -> str:
     return "".join(_VARIANTES_A_CANONICA.get(c, c) for c in texto)
 
 
-def _marcar(texto: str, espacios: bool, saltos: bool, primera_es_linea: bool) -> str:
+def _marcar(texto: str, espacios: bool, saltos: bool, primera_es_linea: bool, bloque: bool = False) -> str:
     """Marca la indentación con `·` y los saltos con `↵` (idempotente).
 
-    La última línea no lleva `↵`: es la que cierra el bloque. Con `primera_es_linea`
+    En un bloque ``` (`bloque`) todas las líneas de código llevan `↵`, también la última
+    (la que precede a la guarda de cierre). En `<pre>` y en el código en línea la última
+    línea no lo lleva: es la que cierra la sección. Con `primera_es_linea`
     en falso (código en línea) la primera línea empieza a mitad de un párrafo y su
     indentación no se toca.
     """
     lineas = texto.split("\n")
     # Un bloque ``` termina en "\n```": el último elemento vacío es la línea del cierre.
     ultima = len(lineas) - 2 if len(lineas) > 1 and lineas[-1] == "" else len(lineas) - 1
+    # En un bloque ```, el último elemento vacío es la línea de la guarda de cierre: la
+    # última línea de código queda antes y también lleva `↵`.
+    cierre = len(lineas) - 1 if bloque and len(lineas) > 1 and lineas[-1] == "" else None
+    if cierre is not None:
+        ultima = cierre
     salida = []
     for i, linea in enumerate(lineas):
         if espacios and (i > 0 or primera_es_linea):
@@ -100,7 +107,8 @@ def _marcar(texto: str, espacios: bool, saltos: bool, primera_es_linea: bool) ->
             sangria = linea[: len(linea) - len(cuerpo)]
             linea = sangria.replace("\t", "    ").replace(" ", MARCA_ESPACIO) + cuerpo
         # Una última línea en blanco también lleva `↵` (en GIFT cortaría la pregunta).
-        lleva_salto = i < ultima or (primera_es_linea and i == ultima > 0 and not linea.strip(" \t" + MARCA_ESPACIO))
+        lleva_salto = i < ultima or (cierre is None and primera_es_linea and i == ultima > 0
+                                     and not linea.strip(" \t" + MARCA_ESPACIO))
         if saltos and lleva_salto and not linea.endswith(MARCA_SALTO):
             linea += MARCA_SALTO
         salida.append(linea)
@@ -148,6 +156,7 @@ def transformar_fragmento(
     html: bool = False,
     multilinea: bool = True,
     escapes: bool = True,
+    bloque: bool = False,
 ) -> str:
     """Transforma el contenido de UNA sección de código.
 
@@ -158,7 +167,8 @@ def transformar_fragmento(
     proteger y `< > &` se vuelven a escapar al restaurar. `multilinea` en falso
     indica código en línea (su primera línea no es una línea propia). `escapes` en
     falso indica que el código de un GIFT viene crudo (sin `\\{`, `\\\\`…), como el
-    que devuelve un LLM: entonces no se desescapa.
+    que devuelve un LLM: entonces no se desescapa. `bloque` indica un bloque ```: su
+    última línea de código también lleva `↵`.
     """
     gift = contexto == "gift"
     desescapar = gift and escapes
@@ -180,7 +190,7 @@ def transformar_fragmento(
     else:
         codigo = _canonizar_marcas(codigo)
     if espacios or saltos:
-        codigo = _marcar(codigo, espacios, saltos, primera_es_linea=multilinea)
+        codigo = _marcar(codigo, espacios, saltos, primera_es_linea=multilinea, bloque=bloque)
     if gift:
         codigo = _proteger_lineas_vacias(codigo)
     return codigo
@@ -191,7 +201,8 @@ def transformar_secciones(
     funcion: Callable[..., str],
     contexto: str = "xml",
 ) -> tuple[str, int]:
-    """Aplica `funcion(codigo, html=..., multilinea=...)` a cada sección de código del texto.
+    """Aplica `funcion(codigo, html=..., multilinea=..., bloque=...)` a cada sección de código
+    del texto (`bloque` es verdadero en los bloques ```).
 
     Devuelve el texto nuevo y la cantidad de secciones que cambiaron.
     """
@@ -201,22 +212,22 @@ def transformar_secciones(
         nonlocal cambios
         if m.group("fence"):
             original = m.group("bloque")
-            nuevo = funcion(original, html=False, multilinea=True)
+            nuevo = funcion(original, html=False, multilinea=True, bloque=True)
             salida = f"```{m.group('lang')}\n{nuevo}```"
         elif m.group("abre"):
             original = m.group("html")
             interno = re.fullmatch(r"(<code\b[^>]*>)(.*)(</code>)", original, re.S | re.I)
             if interno:
-                nuevo = interno.group(1) + funcion(interno.group(2), html=True, multilinea=True) + interno.group(3)
+                nuevo = interno.group(1) + funcion(interno.group(2), html=True, multilinea=True, bloque=False) + interno.group(3)
             elif "<" in original:
                 return m.group(0)  # otras etiquetas adentro (resaltado de sintaxis): no se toca
             else:
                 es_pre = m.group("tag").lower() == "pre"
-                nuevo = funcion(original, html=True, multilinea=es_pre)
+                nuevo = funcion(original, html=True, multilinea=es_pre, bloque=False)
             salida = m.group("abre") + nuevo + m.group("cierra")
         else:
             original = m.group("linea")
-            nuevo = funcion(original, html=False, multilinea=False)
+            nuevo = funcion(original, html=False, multilinea=False, bloque=False)
             salida = f"`{nuevo}`"
         if salida != m.group(0):
             cambios += 1
@@ -246,10 +257,10 @@ def transformar_codigo(
 ) -> tuple[str, int]:
     """Transforma todas las secciones de código de un texto (ver `transformar_fragmento`)."""
 
-    def funcion(codigo: str, html: bool, multilinea: bool) -> str:
+    def funcion(codigo: str, html: bool, multilinea: bool, bloque: bool = False) -> str:
         return transformar_fragmento(
             codigo, contexto=contexto, fullwidth=fullwidth, espacios=espacios,
-            saltos=saltos, html=html, multilinea=multilinea, escapes=escapes,
+            saltos=saltos, html=html, multilinea=multilinea, escapes=escapes, bloque=bloque,
         )
 
     return transformar_secciones(texto, funcion, contexto)
@@ -260,7 +271,7 @@ def usa_convencion(texto: str, contexto: str = "xml") -> tuple[bool, bool]:
     convención después de transformarlo."""
     hallado = {"fullwidth": False, "marcas": False}
 
-    def revisar(codigo: str, html: bool, multilinea: bool) -> str:
+    def revisar(codigo: str, html: bool, multilinea: bool, bloque: bool = False) -> str:
         if any(c in _A_NORMAL and c not in _VARIANTES_ESPACIO and c != MARCA_ESPACIO for c in codigo):
             hallado["fullwidth"] = True
         if any(c in codigo for c in (MARCA_ESPACIO, MARCA_SALTO) + tuple(_VARIANTES_ESPACIO)):

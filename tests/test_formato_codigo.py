@@ -12,7 +12,7 @@ def test_formatea_c_protegido_y_conserva_las_marcas():
     gift = "::P::[markdown]Ver\n```c\nint main（）｛int x＝1；if（x）｛return x；｝↵\n｝\n```\n{=a ~b}"
     nuevo, cambios = formatear_texto(gift, "gift", COMANDO)
     assert cambios == 1
-    assert "int main（） ｛↵\n····int x ＝ 1；↵\n····if （x） ｛↵\n········return x；↵\n····｝↵\n｝\n```" in nuevo
+    assert "int main（） ｛↵\n····int x ＝ 1；↵\n····if （x） ｛↵\n········return x；↵\n····｝↵\n｝↵\n```" in nuevo
 
 
 def test_formatea_java_en_xml_sin_proteger():

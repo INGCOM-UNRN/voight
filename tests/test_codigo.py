@@ -114,7 +114,7 @@ def test_xml_cdata_y_text_vacio():
     fw, cambios = transformar_archivo(xml, "xml", fullwidth=True)
     assert cambios == 2
     ET.fromstring(fw)
-    assert "if （a ⩵ b） ｛↵\n····f（）；↵\n｝\n```" in fw
+    assert "if （a ⩵ b） ｛↵\n····f（）；↵\n｝↵\n```" in fw
     # El texto después de <text/> también se procesa (la respuesta).
     assert "`a ⩵ b`" in fw
     assert transformar_archivo(fw, "xml", fullwidth=True) == (fw, 0)
@@ -131,7 +131,7 @@ def test_gift_y_xml_producen_el_mismo_codigo():
     codigo = "```c\nwhile (i != 0) {\n\ti--;\n}\n```"
     gift, _ = transformar_archivo(f"::P:: {codigo}\n{{=a ~b}}", "gift", fullwidth=True)
     xml, _ = transformar_archivo(_xml(codigo), "xml", fullwidth=True)
-    esperado = "while （i !＝ 0） ｛↵\n····i--；↵\n｝\n"
+    esperado = "while （i !＝ 0） ｛↵\n····i--；↵\n｝↵\n"
     assert esperado in gift
     assert esperado in xml
 
@@ -208,3 +208,15 @@ def test_backticks_sin_cerrar():
     assert backticks_sin_cerrar("```c\nint a;\n")
     assert backticks_sin_cerrar("```c\nint a;\n```\n```\nint b;\n")
     assert backticks_sin_cerrar("usa `x y listo")
+
+
+def test_bloque_lleva_salto_tambien_en_la_ultima_linea():
+    from voight.core.codigo import transformar_codigo
+
+    texto = "```c\nint x;\nreturn x;\n```\nY `a = 1;` en <pre>a\nb</pre>"
+    protegido, _ = transformar_codigo(texto, fullwidth=True)
+    assert "```c\nint x；↵\nreturn x；↵\n```" in protegido
+    # El código en línea y <pre> no llevan la marca en su última línea.
+    assert "`a ＝ 1；`" in protegido and "<pre>a↵\nb</pre>" in protegido
+    assert transformar_codigo(protegido, fullwidth=True)[0] == protegido
+    assert transformar_codigo(protegido, fullwidth=False)[0] == texto

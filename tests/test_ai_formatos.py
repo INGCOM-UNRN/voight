@@ -110,7 +110,7 @@ def test_xml_conserva_metadatos_y_convencion_del_codigo(tmp_path):
     assert pregunta.findtext("name/text") == "Punteros en C"
     assert pregunta.findtext("penalty") == "0.5" and pregunta.findtext("defaultgrade") == "2.0000000"
     assert pregunta.findtext("idnumber") == "C-7" and pregunta.findtext("tags/tag/text") == "punteros"
-    assert "int x ＝ 5；↵\nprintf（＂%d＂, x）；\n```" in pregunta.findtext("questiontext/text")
+    assert "int x ＝ 5；↵\nprintf（＂%d＂, x）；↵\n```" in pregunta.findtext("questiontext/text")
     respuestas = pregunta.findall("answer")
     assert [a.findtext("text") for a in respuestas] == ["5", "0", "un valor indeterminado"]
     assert [a.get("fraction") for a in respuestas] == ["100", "0", "0"]

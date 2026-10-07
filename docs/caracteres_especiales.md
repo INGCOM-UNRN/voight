@@ -47,14 +47,14 @@ Al restaurar, **toda** la tabla fullwidth (U+FF01–U+FF5E) vuelve a ASCII, incl
 | Marca | Significado |
 | :-: | :-- |
 | `·` (U+00B7) | un espacio de indentación (un tabulador son cuatro `·`) |
-| `↵` (U+21B5) | fin de línea: va al final de cada línea del código, salvo la última |
+| `↵` (U+21B5) | fin de línea: va al final de cada línea del código; en un bloque ``` también en la última (la que precede al cierre), en `<pre>` y en el código en línea no |
 
 ```c
 #include <stdio.h>↵
 ↵
 int main（） ｛↵
 ····printf（＂%d＼n＂, 42）；↵
-｝
+｝↵
 ```
 
 - Una línea en blanco dentro del código queda como `↵`: en GIFT es obligatorio (sin la

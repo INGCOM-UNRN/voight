@@ -93,7 +93,7 @@ def test_comando_format_procesa_gift_y_xml(tmp_path):
     assert res.exit_code == 0, res.output
     assert "2 modificados" in res.output
     xml = (tmp_path / "b.xml").read_text(encoding="utf-8")
-    assert "＃include ＜stdio.h＞↵\nint a ＝ 1 ＆＆ 2；\n```" in xml
+    assert "＃include ＜stdio.h＞↵\nint a ＝ 1 ＆＆ 2；↵\n```" in xml
     res = runner.invoke(cli, ["format", str(tmp_path), "--fullwidth"])
     assert "0 modificados" in res.output
     res = runner.invoke(cli, ["format", str(tmp_path), "--normal"])

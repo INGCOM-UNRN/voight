@@ -59,7 +59,8 @@ def formatear_texto(texto: str, contexto: str, comando: List[str], estilo: str =
             return m.group(0)
         formateado = formateado.rstrip("\n") + "\n"
         if fullwidth:
-            nuevo = transformar_fragmento(formateado, contexto=contexto, fullwidth=True, espacios=marcas, saltos=marcas)
+            nuevo = transformar_fragmento(formateado, contexto=contexto, fullwidth=True, espacios=marcas, saltos=marcas,
+                                          bloque=True)
         elif contexto == "gift":
             nuevo = _proteger_lineas_vacias(_escapar_gift(formateado))
         else:

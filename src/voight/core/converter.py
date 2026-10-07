@@ -353,7 +353,7 @@ def _seguro_para_gift(gift: str) -> str:
     """
     from voight.core.codigo import MARCA_SALTO, transformar_secciones
 
-    def proteger(codigo: str, html: bool, multilinea: bool) -> str:
+    def proteger(codigo: str, html: bool, multilinea: bool, bloque: bool = False) -> str:
         lineas = codigo.split("\n")
         ultima = len(lineas) - 1
         for i, linea in enumerate(lineas):
