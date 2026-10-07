@@ -91,7 +91,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight verify`: Compila y ejecuta el código C y Java de las preguntas y avisa si la salida coincide con un distractor en lugar de la correcta, si no compila, falla o tiene comportamiento indefinido (`--sanitizar`); `--estilo` revisa el código C con las reglas de la cátedra.
 
 ### 2. Formateo y Corrección (GIFT y XML)
-- `voight format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. Ver [caracteres especiales](./docs/caracteres_especiales.md).
+- `voight format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. `--gaff` formatea el código C de los bloques con gaff (estilo de la cátedra): restaura los caracteres normales, aplica `gaff fix` y lo vuelve a proteger como estaba. Ver [caracteres especiales](./docs/caracteres_especiales.md).
 - `voight format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
 - `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
 - `voight fix code-format`: Formatea el código C y Java con clang-format.

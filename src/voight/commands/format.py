@@ -27,6 +27,11 @@ def format_cmd(
     marcas: bool = typer.Option(
         True, "--marcas/--sin-marcas", "--marks/--no-marks", help="Con --fullwidth, agregar las marcas · y ↵ (por defecto, sí)."
     ),
+    gaff: bool = typer.Option(
+        False, "--gaff",
+        help="Formatear el código C de los bloques ``` con gaff (estilo de la cátedra): restaura los caracteres "
+             "normales, aplica `gaff fix` y vuelve a proteger el código como estaba.",
+    ),
     correct_first: bool = typer.Option(
         False, "--correct-first", help="Ordena las opciones de opción múltiple por porcentaje (la correcta primero)."
     ),
@@ -45,6 +50,13 @@ def format_cmd(
     """
     if fullwidth and normal:
         fail("--fullwidth y --normal son excluyentes.")
+    comando_gaff = None
+    if gaff:
+        from voight.core.formato_codigo import comando_gaff as buscar_gaff
+
+        comando_gaff = buscar_gaff()
+        if comando_gaff is None:
+            fail("--gaff necesita gaff instalado (uv tool install git+https://github.com/INGCOM-UNRN-P1/gaff).")
     opciones = con_configuracion(ctx, paths, "format", {
         "fullwidth": fullwidth, "marcas": marcas, "correct_first": correct_first})
     # --normal explícito gana sobre fullwidth = true del .questions.toml.
@@ -85,6 +97,13 @@ def format_cmd(
             #    texto pegado a la apertura, «```c int x;» se tomaría como etiqueta).
             if formato == "xml":
                 modified, _ = aislar_guardas_archivo(modified)
+
+            # 0b. --gaff: el código C de cada bloque se restaura, se formatea con gaff y se
+            #     vuelve a proteger con la convención que tenía.
+            if comando_gaff and formato in ("gift", "xml"):
+                from voight.core.formato_codigo import formatear_archivo_gaff
+
+                modified, _ = formatear_archivo_gaff(modified, formato, comando_gaff)
 
             # 1. Código: fullwidth/normal y marcas (antes del formato: en GIFT, el código
             #    protegido ya no confunde la detección del bloque de respuestas).
