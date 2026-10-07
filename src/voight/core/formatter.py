@@ -10,7 +10,7 @@ múltiple por porcentaje (la correcta primero). La transformación del código
 import re
 import xml.etree.ElementTree as ET
 
-from voight.core.codigo import transformar_archivo, transformar_codigo
+from voight.core.codigo import aislar_guardas, transformar_archivo, transformar_codigo
 from voight.core.gift_semantics import _extraer_ultimo_grupo_llaves, corta_en_blanco
 
 
@@ -203,7 +203,8 @@ def _desescapar_marcado(m: re.Match) -> str:
 
 
 def format_xml_content(content: str, correct_first: bool = False) -> str:
-    """Formatea un archivo Moodle XML: sangría de 2 espacios y `<text>` en CDATA.
+    """Formatea un archivo Moodle XML: sangría de 2 espacios, `<text>` en CDATA y cada
+    guarda ``` sola en su línea (el texto pegado antes sube y el de después baja).
 
     Conserva los comentarios. Con `correct_first`, en las preguntas de opción múltiple
     las respuestas quedan ordenadas por fracción (la correcta primero).
@@ -233,7 +234,7 @@ def format_xml_content(content: str, correct_first: bool = False) -> str:
 
     for texto in raiz.iter("text"):
         if texto.text and texto.text.strip():
-            texto.text = _CD_ABRE + texto.text + _CD_CIERRA
+            texto.text = _CD_ABRE + aislar_guardas(texto.text)[0] + _CD_CIERRA
 
     ET.indent(raiz, space="  ")
     # `<text></text>` como en las exportaciones de Moodle 4 (no `<text />`).

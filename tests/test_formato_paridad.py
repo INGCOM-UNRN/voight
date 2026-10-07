@@ -139,3 +139,13 @@ def test_ensure_cdata_no_se_come_los_text_vacios():
     salida, cambios = ensure_cdata_in_text_blocks(xml)
     assert cambios == 1
     assert salida == "<q><a><text/></a><b><text><![CDATA[x &lt; y]]></text></b></q>"
+
+
+def test_formato_xml_deja_las_guardas_solas_en_su_linea():
+    from voight.core.formatter import format_xml_content
+
+    xml = ('<quiz><question type="essay"><questiontext format="markdown"><text><![CDATA['
+           'Dado el código ```c int x = 1;\nreturn x;``` y luego texto]]></text></questiontext></question></quiz>')
+    salida = format_xml_content(xml)
+    assert "Dado el código\n```c\nint x = 1;\nreturn x;\n```\ny luego texto" in salida
+    assert format_xml_content(salida) == salida

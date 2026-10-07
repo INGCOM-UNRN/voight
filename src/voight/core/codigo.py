@@ -344,6 +344,75 @@ def transformar_archivo(
 
 
 # ---------------------------------------------------------------------------
+# Guardas ``` solas en su línea
+# ---------------------------------------------------------------------------
+
+_GUARDA = re.compile(r"`{3,}")
+# Etiquetas que se reconocen aunque la guarda tenga código pegado a continuación
+# («```c int x;»). Con el resto de la línea vacío, cualquier palabra cuenta como etiqueta.
+_LENGUAJES = {
+    "c", "h", "cpp", "c++", "java", "python", "py", "bash", "sh", "shell", "console",
+    "text", "txt", "plain", "plaintext", "gift", "xml", "html", "json", "yaml", "sql",
+    "js", "javascript", "make", "makefile", "asm", "diff",
+}
+_ETIQUETA = re.compile(r"[A-Za-z][\w+#.-]*")
+
+
+def aislar_guardas(texto: str) -> tuple:
+    """Deja cada guarda ``` sola en su línea. (texto, líneas cambiadas).
+
+    El texto pegado antes de una guarda sube a su propia línea y el que la sigue baja a
+    la siguiente: «Dado el código ```c» queda «Dado el código» y «```c»; «return 0;```
+    y luego» queda «return 0;», «```» y «y luego». La guarda que abre conserva su
+    etiqueta de lenguaje; la que cierra no lleva nada. Apertura y cierre se alternan de
+    izquierda a derecha, como en el resto del módulo.
+    """
+    if "```" not in texto:
+        return texto, 0
+    salida: list = []
+    abierto = False
+    cambios = 0
+    for linea in texto.split("\n"):
+        if "```" not in linea:
+            salida.append(linea)
+            continue
+        piezas: list = []
+        resto = linea
+        while True:
+            m = _GUARDA.search(resto)
+            if not m:
+                if resto.strip() or not piezas:
+                    piezas.append(resto)
+                break
+            antes, guarda, despues = resto[:m.start()], m.group(), resto[m.end():]
+            if antes.strip():
+                piezas.append(antes.rstrip())
+            if abierto:
+                piezas.append(guarda)
+            else:
+                etiqueta = ""
+                m_et = _ETIQUETA.match(despues)
+                if m_et:
+                    tras = despues[m_et.end():]
+                    if not tras.strip() or (m_et.group().lower() in _LENGUAJES and tras[:1].isspace()):
+                        etiqueta, despues = m_et.group(), tras
+                piezas.append(guarda + etiqueta)
+            abierto = not abierto
+            resto = despues.lstrip()
+            if not resto:
+                break
+        if piezas != [linea]:
+            cambios += 1
+        salida.extend(piezas)
+    return "\n".join(salida), cambios
+
+
+def aislar_guardas_archivo(contenido: str) -> tuple:
+    """`aislar_guardas` en cada `<text>` de un Moodle XML. (contenido, cambios)."""
+    return transformar_textos_xml(contenido, aislar_guardas)
+
+
+# ---------------------------------------------------------------------------
 # Lenguaje de los bloques ```
 # ---------------------------------------------------------------------------
 

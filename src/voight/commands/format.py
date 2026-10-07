@@ -6,7 +6,7 @@ import click
 import typer
 
 from voight.core.banco import expandir_rutas, filtrar_desde, formato_de
-from voight.core.codigo import transformar_archivo
+from voight.core.codigo import aislar_guardas_archivo, transformar_archivo
 from voight.core.formatter import format_content
 
 from voight.commands.common import LLM_OPTION, con_configuracion, emitir_json, fail
@@ -80,6 +80,11 @@ def format_cmd(
             content = f.read_text(encoding='utf-8')
             formato = formato_de(f) or "md"
             modified = content
+
+            # 0. XML: cada guarda ``` sola en su línea, antes de transformar el código (con
+            #    texto pegado a la apertura, «```c int x;» se tomaría como etiqueta).
+            if formato == "xml":
+                modified, _ = aislar_guardas_archivo(modified)
 
             # 1. Código: fullwidth/normal y marcas (antes del formato: en GIFT, el código
             #    protegido ya no confunde la detección del bloque de respuestas).
