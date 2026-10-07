@@ -1,5 +1,5 @@
 [project]
-name = "questions"
+name = "voight"
 version = "0.2.0"
 description = "Herramientas para gestionar preguntas de Moodle (GIFT, XML)"
 readme = "README.md"
@@ -34,8 +34,10 @@ dependencies = [
 ]
 
 [project.scripts]
-questions = "questions.cli:main"
-moodle-toolbox = "questions.cli:main"
+voight = "voight.cli:main"
+# Nombres anteriores (deprecados): avisan y siguen funcionando.
+questions = "voight.cli:main"
+moodle-toolbox = "voight.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/INGCOM-UNRN/moodle-toolbox"
@@ -77,7 +79,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/questions"]
+packages = ["src/voight"]
 
 [tool.pytest.ini_options]
 addopts = "-rs"
@@ -91,8 +93,8 @@ source = ["questions"]
 allow-direct-references = true
 
 [tool.mypy]
-# Chequeo de tipos del núcleo (src/questions/core): `uvx mypy`. Las dependencias
+# Chequeo de tipos del núcleo (src/voight/core): `uvx mypy`. Las dependencias
 # opcionales (google-genai, anthropic, textual…) no siempre están instaladas.
 python_version = "3.11"
-files = ["src/questions/core"]
+files = ["src/voight/core"]
 ignore_missing_imports = true

@@ -1,4 +1,4 @@
-from questions.core.converter import convert_html_tags_to_markdown
+from voight.core.converter import convert_html_tags_to_markdown
 
 def test_convert_html_tags_to_markdown():
     html = "<code>code</code> <p>para</p> <strong>bold</strong>"

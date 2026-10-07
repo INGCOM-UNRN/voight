@@ -1,4 +1,4 @@
-from questions.core.parser import parse_gift_file
+from voight.core.parser import parse_gift_file
 
 def test_parse_simple_gift(tmp_path):
     gift_content = "::Title:: Question {=Ans ~Wrong}"
@@ -25,7 +25,7 @@ def test_parse_multiple_questions(tmp_path):
 
 
 def test_palabra_faltante():
-    from questions.core.parser import parse_gift
+    from voight.core.parser import parse_gift
 
     q = parse_gift("::MW:: El {=gato ~perro #no} maúlla.")["questions"][0]
     assert q["type"] == "MC" and q["stem"]["text"] == "El _____ maúlla."
@@ -38,14 +38,14 @@ def test_palabra_faltante():
 
 
 def test_numerica_con_rango():
-    from questions.core.parser import parse_gift
+    from voight.core.parser import parse_gift
 
     q = parse_gift("::N:: Entre uno y cinco {#1..5}")["questions"][0]
     assert q["type"] == "Numerical" and q["choices"][0]["text"]["text"] == "1..5"
 
 
 def test_rango_numerico_a_xml():
-    from questions.core.converter import gift_to_xml, valor_y_tolerancia
+    from voight.core.converter import gift_to_xml, valor_y_tolerancia
 
     assert valor_y_tolerancia("1..5") == ("3", "2")
     assert valor_y_tolerancia("3:0.5") == ("3", "0.5")

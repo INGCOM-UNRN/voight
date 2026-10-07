@@ -1,7 +1,7 @@
 """Contrato GIFT que consume scorm-tools (MOODLE-D0903): tipos y claves estables."""
 
-from questions.core.gift_model import GIFT_CONTRACT_VERSION
-from questions.core.parser import parse_gift
+from voight.core.gift_model import GIFT_CONTRACT_VERSION
+from voight.core.parser import parse_gift
 
 BANCO = """
 ::mc:: ¿2+2? {=4#bien ~3#mal ~5}

@@ -1,10 +1,10 @@
 """Tests para las mejoras QoL de MOODLE-TOOLBOX."""
 
-from questions.core.duplicates import detectar_preguntas_duplicadas
-from questions.core.accessibility import validar_accesibilidad_imagenes
-from questions.core.catalog import exportar_catalogo_markdown
-from questions.core.latex_fixer import corregir_delimitadores_latex
-from questions.core.simulator import simular_examen_aleatorio
+from voight.core.duplicates import detectar_preguntas_duplicadas
+from voight.core.accessibility import validar_accesibilidad_imagenes
+from voight.core.catalog import exportar_catalogo_markdown
+from voight.core.latex_fixer import corregir_delimitadores_latex
+from voight.core.simulator import simular_examen_aleatorio
 
 
 def test_duplicates_detector():

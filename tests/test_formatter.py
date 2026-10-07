@@ -1,4 +1,4 @@
-from questions.core.formatter import format_gift_content, fix_code_indentation, convert_markdown_code_blocks
+from voight.core.formatter import format_gift_content, fix_code_indentation, convert_markdown_code_blocks
 
 def test_format_gift_content():
     content = "::Title::Question{=Ans~Wrong}"

@@ -1,4 +1,4 @@
-"""`questions dedup`: eliminar duplicados (GIFT y XML), log de eliminaciones y TUI de revisión."""
+"""`voight dedup`: eliminar duplicados (GIFT y XML), log de eliminaciones y TUI de revisión."""
 
 import asyncio
 import contextlib
@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.lector import leer_archivos, unidades_de
-from questions.core.converter import gift_to_xml
-from questions.core.deduplicar import Revision, agrupar, aplicar, registrar
+from voight.cli import cli
+from voight.core.lector import leer_archivos, unidades_de
+from voight.core.converter import gift_to_xml
+from voight.core.deduplicar import Revision, agrupar, aplicar, registrar
 
 runner = CliRunner()
 
@@ -135,7 +135,7 @@ def test_revision_manual(tmp_path):
 
 def _tui(raiz, log, teclas):
     pytest.importorskip("textual", reason="TUI: requiere el extra opcional 'tui' (uv sync --extra tui)")
-    from questions.tui.dedup import DedupApp
+    from voight.tui.dedup import DedupApp
 
     archivos, unidades = _leer(raiz)
     app = DedupApp(archivos, Revision(agrupar(unidades, 0.9)), 0.9, log, log.parent / "respaldos")
@@ -169,7 +169,7 @@ def test_tui_salir_o_cancelar_no_elimina_nada(tmp_path):
 
 
 def test_confirmar_con_jev_descarta_los_que_piden_otra_cosa(tmp_path):
-    from questions.core.deduplicar import confirmar_con_jev
+    from voight.core.deduplicar import confirmar_con_jev
 
     raiz = _banco(tmp_path, {
         "a.gift": COMPLETA,

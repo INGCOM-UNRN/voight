@@ -1,10 +1,10 @@
-# Moodle Toolbox (Questions CLI)
+# voight — bancos de preguntas de Moodle
 
 > 📖 **Manual de Usuario:** Para una guía exhaustiva de comandos, banderas, arquitectura y ejemplos, consultá el [Manual de Uso](MANUAL.md).
 
 Conjunto de herramientas unificadas en Python para gestionar preguntas de Moodle en formatos XML y GIFT. Facilita la conversión, análisis, limpieza, mantenimiento y generación de preguntas mediante IA.
 
-Todas las herramientas anteriores han sido consolidadas en un único comando raíz: `questions`.
+Todas las herramientas anteriores han sido consolidadas en un único comando raíz: `voight` (antes `questions` y `moodle-toolbox`, que siguen funcionando con un aviso y se van a retirar).
 
 ---
 
@@ -33,19 +33,19 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
-- `ai`: el extra opcional `ai` (`uv tool install "questions[ai] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`).
+- `ai`: el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`).
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
-- `moodle-toolbox doctor` informa cuáles de estos requisitos están presentes.
+- `voight doctor` informa cuáles de estos requisitos están presentes.
 
 ### Integración en el Ecosistema
-- CLI `moodle-toolbox` (y alias `questions`). Subcomando `doctor`.
+- CLI `voight` (los nombres anteriores `questions` y `moodle-toolbox` son alias deprecados). Subcomando `doctor`.
 
 ---
 
 ### Contrato de datos GIFT (consumidores por formato)
 
 `scorm-tools from-gift` consume bancos GIFT producidos aquí. La frontera es el
-formato, no el código, y su versión es `questions.core.gift_model.GIFT_CONTRACT_VERSION`
+formato, no el código, y su versión es `voight.core.gift_model.GIFT_CONTRACT_VERSION`
 (hoy `1.1.0`). El contrato cubre los tipos `MC`, `TF`, `Short` y `Numerical`,
 con retroalimentación por opción y global; está fijado por
 `tests/test_contrato_gift.py`. Un cambio incompatible sube la versión mayor y
@@ -54,18 +54,17 @@ debe coordinarse con scorm-tools.
 ## 🚀 Instalación y Uso
 
 Este proyecto utiliza [uv](https://docs.astral.sh/uv/) para la gestión de dependencias y ejecución.
-Se instala siempre desde el repositorio: el nombre `questions` en PyPI pertenece a
-otro proyecto, así que instalarlo por nombre traería un paquete ajeno.
+Se instala siempre desde el repositorio, no por nombre desde PyPI.
 
 ```bash
-# Instalación como herramienta (comandos `questions` y `moodle-toolbox`)
+# Instalación como herramienta (comando `voight`)
 uv tool install git+https://github.com/INGCOM-UNRN/moodle-toolbox
-# con el editor web opcional (`questions ui`)
-uv tool install "questions[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+# con el editor web opcional (`voight ui`)
+uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
 # con las interfaces de terminal (`dedup --tui`, `health --tui`, `ai --mode classify --revisar`)
-uv tool install "questions[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
-# con los proveedores de IA (Gemini y Claude) para `questions ai`
-uv tool install "questions[ai,tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+# con los proveedores de IA (Gemini y Claude) para `voight ai`
+uv tool install "voight[ai,tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
 ```
 
 Para desarrollo:
@@ -76,57 +75,57 @@ git clone https://github.com/INGCOM-UNRN/moodle-toolbox.git
 cd moodle-toolbox
 
 # Ejecutar la ayuda principal
-uv run questions --help
+uv run voight --help
 ```
 
 ## 📦 Comandos Disponibles
 
-El CLI `questions` se organiza en subcomandos especializados:
+El CLI `voight` se organiza en subcomandos especializados:
 
 ### 1. Validación y Análisis (GIFT y XML)
-- `questions validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
-- `questions analyze stats`: Genera estadísticas completas sobre un repositorio de preguntas (por formato, tipo, categoría y tags).
-- `questions analyze similar`: Encuentra preguntas similares usando TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; escala a miles de preguntas.
-- `questions dedup`: Elimina preguntas duplicadas según un umbral de similitud configurable (`-s`, por defecto 0.95), en GIFT y XML. Sólo considera duplicadas las del mismo tipo, con la misma respuesta correcta y enunciados que también superan el umbral; conserva la más completa. Simula por defecto (`--aplicar` elimina) y registra cada eliminación con la ruta completa en `dedup.log`; guarda una copia de los originales y `--restaurar ultimo` lo deshace. `--confirmar-jev` confirma cada par con Jev y `--tui` abre una interfaz de terminal para revisar los grupos lado a lado y decidir cuáles eliminar (extra `tui`).
-- `questions health`: Reporte de salud del banco (archivos o directorios, GIFT y XML): claves de corrección y porcentajes que Moodle acepta, feedback general y por opción, cantidad de opciones, longitud relativa de las respuestas, señales de redacción (posición de la correcta, «todas las anteriores», negaciones sin resaltar, distractores débiles), distribución de Bloom y dificultad con el blueprint por categoría, campos de Moodle inconsistentes, código sin proteger o sin lenguaje, enlaces y HTML obsoleto. Separa errores de advertencias y sale con código 1 si hay errores (`--estricto`: también con advertencias). `--csv` exporta una fila por pregunta y `--tui` recorre los hallazgos y aplica los arreglos automáticos.
-- `questions verify`: Compila y ejecuta el código C y Java de las preguntas y avisa si la salida coincide con un distractor en lugar de la correcta, si no compila, falla o tiene comportamiento indefinido (`--sanitizar`); `--estilo` revisa el código C con las reglas de la cátedra.
+- `voight validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
+- `voight analyze stats`: Genera estadísticas completas sobre un repositorio de preguntas (por formato, tipo, categoría y tags).
+- `voight analyze similar`: Encuentra preguntas similares usando TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; escala a miles de preguntas.
+- `voight dedup`: Elimina preguntas duplicadas según un umbral de similitud configurable (`-s`, por defecto 0.95), en GIFT y XML. Sólo considera duplicadas las del mismo tipo, con la misma respuesta correcta y enunciados que también superan el umbral; conserva la más completa. Simula por defecto (`--aplicar` elimina) y registra cada eliminación con la ruta completa en `dedup.log`; guarda una copia de los originales y `--restaurar ultimo` lo deshace. `--confirmar-jev` confirma cada par con Jev y `--tui` abre una interfaz de terminal para revisar los grupos lado a lado y decidir cuáles eliminar (extra `tui`).
+- `voight health`: Reporte de salud del banco (archivos o directorios, GIFT y XML): claves de corrección y porcentajes que Moodle acepta, feedback general y por opción, cantidad de opciones, longitud relativa de las respuestas, señales de redacción (posición de la correcta, «todas las anteriores», negaciones sin resaltar, distractores débiles), distribución de Bloom y dificultad con el blueprint por categoría, campos de Moodle inconsistentes, código sin proteger o sin lenguaje, enlaces y HTML obsoleto. Separa errores de advertencias y sale con código 1 si hay errores (`--estricto`: también con advertencias). `--csv` exporta una fila por pregunta y `--tui` recorre los hallazgos y aplica los arreglos automáticos.
+- `voight verify`: Compila y ejecuta el código C y Java de las preguntas y avisa si la salida coincide con un distractor en lugar de la correcta, si no compila, falla o tiene comportamiento indefinido (`--sanitizar`); `--estilo` revisa el código C con las reglas de la cátedra.
 
 ### 2. Formateo y Corrección (GIFT y XML)
-- `questions format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. Ver [caracteres especiales](./docs/caracteres_especiales.md).
-- `questions format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
-- `questions fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
-- `questions fix code-format`: Formatea el código C y Java con clang-format.
-- `questions fix code-indent`: Marca la indentación del código con `·`.
-- `questions fix code-chars`: Convierte los caracteres del código entre normal y fullwidth.
-- `questions fix slugify`: Normaliza nombres de archivos (minúsculas, sin acentos).
-- `questions fix name-from-title`: Renombra archivos según el título de la pregunta.
-- `questions fix title-from-name`: Actualiza el título interno según el nombre del archivo.
-- `questions fix extension`: Corrige la extensión según el contenido (`.xml` con GIFT adentro pasa a `.gift` y viceversa); no pisa archivos existentes.
+- `voight format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. Ver [caracteres especiales](./docs/caracteres_especiales.md).
+- `voight format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
+- `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
+- `voight fix code-format`: Formatea el código C y Java con clang-format.
+- `voight fix code-indent`: Marca la indentación del código con `·`.
+- `voight fix code-chars`: Convierte los caracteres del código entre normal y fullwidth.
+- `voight fix slugify`: Normaliza nombres de archivos (minúsculas, sin acentos).
+- `voight fix name-from-title`: Renombra archivos según el título de la pregunta.
+- `voight fix title-from-name`: Actualiza el título interno según el nombre del archivo.
+- `voight fix extension`: Corrige la extensión según el contenido (`.xml` con GIFT adentro pasa a `.gift` y viceversa); no pisa archivos existentes.
 
 ### 3. Conversión
-- `questions convert html-to-md`: Convierte etiquetas HTML a Markdown en archivos XML o GIFT.
-- `questions convert xml-to-gift`: Convierte Moodle XML a GIFT (soporta categorías, selección múltiple con pesos, V/F, emparejamiento, numérica con tolerancia, ensayo y descripción).
-- `questions convert gift-to-xml`: Convierte GIFT a Moodle XML con bloques CDATA correctos. Ambos conversores viajan sobre el modelo unificado de preguntas del parser PEG y son estables en round-trip.
+- `voight convert html-to-md`: Convierte etiquetas HTML a Markdown en archivos XML o GIFT.
+- `voight convert xml-to-gift`: Convierte Moodle XML a GIFT (soporta categorías, selección múltiple con pesos, V/F, emparejamiento, numérica con tolerancia, ensayo y descripción).
+- `voight convert gift-to-xml`: Convierte GIFT a Moodle XML con bloques CDATA correctos. Ambos conversores viajan sobre el modelo unificado de preguntas del parser PEG y son estables en round-trip.
 
 ### 4. Árboles de Directorios (absorbe moodle-reorganizer)
-- `questions tree export banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta).
-- `questions tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías.
+- `voight tree export banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta).
+- `voight tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías.
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
-- `questions ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "questions[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`.
+- `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`.
 
 ### 6. Mantenimiento XML
-- `questions xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
-- `questions xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
-- `questions xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
+- `voight xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
+- `voight xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
+- `voight xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
 
 ### 7. Inteligencia Artificial (Gemini o Claude)
-- `questions ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini o Claude (`--proveedor`). El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.
-- `questions ai --mode classify`: Clasifica cada pregunta con Jev (TypeSafe): nivel de Bloom (B1–B6) y dificultad (1–5) del enunciado y de las respuestas, escritos como comentario en GIFT y XML (y como tags de Moodle con `--tags`). `--calibrar` mide la concordancia con una clasificación docente y `--revisar` abre una interfaz de terminal para corregir las de poca confianza. Requiere `TYPESAFE_API_KEY`.
+- `voight ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini o Claude (`--proveedor`). El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.
+- `voight ai --mode classify`: Clasifica cada pregunta con Jev (TypeSafe): nivel de Bloom (B1–B6) y dificultad (1–5) del enunciado y de las respuestas, escritos como comentario en GIFT y XML (y como tags de Moodle con `--tags`). `--calibrar` mide la concordancia con una clasificación docente y `--revisar` abre una interfaz de terminal para corregir las de poca confianza. Requiere `TYPESAFE_API_KEY`.
 
 ### 8. Moodle e integración
-- `questions moodle subir`: Sube un banco a un curso de Moodle por servicio web (requiere el plugin `local_questions_importer_ws` en el sitio).
-- `.questions.toml`: valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
+- `voight moodle subir`: Sube un banco a un curso de Moodle por servicio web (requiere el plugin `local_questions_importer_ws` en el sitio).
+- `.voight.toml` (se sigue leyendo `.questions.toml`): valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
 - `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/moodle-toolbox@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
 
 ## 📚 Documentación Detallada

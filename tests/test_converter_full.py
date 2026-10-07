@@ -1,6 +1,6 @@
 
-from questions.core.converter import gift_to_xml, xml_to_gift
-from questions.core.parser import GiftParser
+from voight.core.converter import gift_to_xml, xml_to_gift
+from voight.core.parser import GiftParser
 
 
 GIFT_COMPLETO = '''$CATEGORY: $course$/Matematicas/Algebra

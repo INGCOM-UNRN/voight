@@ -2,7 +2,7 @@
 
 import pytest
 
-from questions.core.formato_codigo import comando_clang_format, formatear_archivo, formatear_texto
+from voight.core.formato_codigo import comando_clang_format, formatear_archivo, formatear_texto
 
 COMANDO = comando_clang_format()
 pytestmark = pytest.mark.skipif(COMANDO is None, reason="requiere clang-format o uvx")

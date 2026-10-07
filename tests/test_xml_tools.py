@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from questions.core.xml_tools import ensure_cdata_in_text_blocks, remove_tags_from_xml
+from voight.core.xml_tools import ensure_cdata_in_text_blocks, remove_tags_from_xml
 
 def test_ensure_cdata():
     xml_content = "<question><text>Content</text></question>"

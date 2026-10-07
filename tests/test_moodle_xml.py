@@ -6,12 +6,12 @@ import random
 
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.banco import buscar_archivos, parse_archivo
-from questions.core.converter import gift_to_xml
-from questions.core.moodle_xml import parse_xml
-from questions.core.parser import parse_gift
-from questions.core.validator import AnalizadorBanco
+from voight.cli import cli
+from voight.core.banco import buscar_archivos, parse_archivo
+from voight.core.converter import gift_to_xml
+from voight.core.moodle_xml import parse_xml
+from voight.core.parser import parse_gift
+from voight.core.validator import AnalizadorBanco
 
 runner = CliRunner()
 

@@ -1,6 +1,6 @@
 """Regresiones de la deuda listada en el documento de mejoras (parser, conversor, contrato)."""
 
-from questions.core.parser import parse_gift
+from voight.core.parser import parse_gift
 
 
 def test_emparejamiento_con_guiones_mayor_y_escapes():
@@ -19,7 +19,7 @@ def test_numerica_respeta_escapes_en_el_feedback():
 def test_respuesta_corta_conserva_el_credito_parcial():
     import xml.etree.ElementTree as ET
 
-    from questions.core.converter import gift_to_xml
+    from voight.core.converter import gift_to_xml
 
     xml = gift_to_xml("::C:: Capital de Francia {=París =%50%Paris}")
     fracciones = [a.get("fraction") for a in ET.fromstring(xml).find("question").findall("answer")]
@@ -29,7 +29,7 @@ def test_respuesta_corta_conserva_el_credito_parcial():
 def test_gift_a_xml_conserva_lineas_en_blanco_del_codigo_y_es_valido():
     import xml.etree.ElementTree as ET
 
-    from questions.core.converter import gift_to_xml
+    from voight.core.converter import gift_to_xml
 
     # Con la llave abierta, el parser mantiene la línea en blanco dentro de la pregunta.
     xml = gift_to_xml("::C:: Ver\n```c\nint main() {\n    int a = 1 < 2 && 3;\n\n    return a;\n}\n```\n{=x ~y}")
@@ -59,9 +59,9 @@ int a = 1;
 
 
 def test_xml_a_gift_sobre_el_modelo_es_gift_valido_y_sin_perdidas():
-    from questions.core.codigo import transformar_codigo
-    from questions.core.converter import xml_to_gift
-    from questions.core.moodle_xml import parse_xml
+    from voight.core.codigo import transformar_codigo
+    from voight.core.converter import xml_to_gift
+    from voight.core.moodle_xml import parse_xml
 
     gift = xml_to_gift(XML_PARRAFOS)
     assert gift.startswith("// [id:L-1] [tag:enlace]\n::Linkage::[markdown]")
@@ -79,7 +79,7 @@ def test_xml_a_gift_sobre_el_modelo_es_gift_valido_y_sin_perdidas():
 
 
 def test_xml_a_gift_conserva_el_html_con_su_prefijo():
-    from questions.core.converter import xml_to_gift
+    from voight.core.converter import xml_to_gift
 
     xml = ('<quiz><question type="truefalse"><name><text>VF</text></name><questiontext format="html">'
            '<text><![CDATA[<p>¿<b>Cierto</b>?</p>]]></text></questiontext>'
@@ -92,7 +92,7 @@ def test_verdadero_falso_en_el_orden_de_moodle():
     """{T#mal#bien}: la primera retro es para quien responde mal (Moodle, qformat_gift)."""
     import xml.etree.ElementTree as ET
 
-    from questions.core.converter import gift_to_xml, xml_to_gift
+    from voight.core.converter import gift_to_xml, xml_to_gift
 
     v = parse_gift("::V:: ¿Sí? {T#Repasá#Bien ####general}")["questions"][0]
     assert v["trueFeedback"]["text"] == "Bien" and v["falseFeedback"]["text"] == "Repasá"
@@ -112,7 +112,7 @@ def test_verdadero_falso_en_el_orden_de_moodle():
 def test_validate_y_analyze_salen_con_1_ante_hallazgos(tmp_path):
     from click.testing import CliRunner
 
-    from questions.cli import cli
+    from voight.cli import cli
 
     runner = CliRunner()
     (tmp_path / "ok.gift").write_text("::A:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
@@ -129,7 +129,7 @@ def test_validate_y_analyze_salen_con_1_ante_hallazgos(tmp_path):
 
 
 def test_split_gift_conserva_la_categoria_en_cada_archivo(tmp_path):
-    from questions.core.splitter import split_file
+    from voight.core.splitter import split_file
 
     banco = tmp_path / "banco.gift"
     banco.write_text("$CATEGORY: $course$/C/Punteros\n\n// [tag:p]\n::Uno:: ¿1? {T}\n\n::Dos:: ¿2? {F}\n\n"
@@ -144,7 +144,7 @@ def test_split_gift_conserva_la_categoria_en_cada_archivo(tmp_path):
 def test_html_a_markdown_cambia_solo_los_campos_convertidos():
     import xml.etree.ElementTree as ET
 
-    from questions.core.converter import html_a_markdown_xml
+    from voight.core.converter import html_a_markdown_xml
 
     xml = ('<quiz><question type="multichoice"><questiontext format="html"><text>&lt;p&gt;¿Qué hace '
            '&lt;code&gt;x++&lt;/code&gt;?&lt;/p&gt;</text></questiontext>'
@@ -163,7 +163,7 @@ def test_html_a_markdown_cambia_solo_los_campos_convertidos():
 
 def test_similitud_detecta_identicas_en_un_conjunto_chico():
     """Con el IDF sin suavizar, dos preguntas idénticas entre tres daban coseno 0."""
-    from questions.core.validator import AnalizadorBanco
+    from voight.core.validator import AnalizadorBanco
 
     analizador = AnalizadorBanco(similarity_threshold=0.9)
     texto = "Punteros qué guarda un puntero en lenguaje C una dirección un entero nada"

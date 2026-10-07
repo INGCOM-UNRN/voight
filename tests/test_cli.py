@@ -1,5 +1,5 @@
 from click.testing import CliRunner
-from questions.cli import cli
+from voight.cli import cli
 
 def test_cli_help():
     runner = CliRunner()

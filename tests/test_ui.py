@@ -2,7 +2,7 @@ import pytest
 
 flask = pytest.importorskip("flask", reason="editor web: requiere el extra opcional 'ui' (uv sync --extra ui)")
 
-from questions.ui.app import create_app  # noqa: E402
+from voight.ui.app import create_app  # noqa: E402
 
 
 @pytest.fixture()

@@ -1,4 +1,4 @@
-"""`questions verify`: compilar y ejecutar el código de las preguntas (requiere gcc / javac)."""
+"""`voight verify`: compilar y ejecutar el código de las preguntas (requiere gcc / javac)."""
 
 import json
 import shutil
@@ -6,9 +6,9 @@ import shutil
 import pytest
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.verificar import candidatos, comparar, extraer_codigo, normalizar, preparar_c, preparar_java, verificar
-from questions.core.gift_model import Choice, FormattedText
+from voight.cli import cli
+from voight.core.verificar import candidatos, comparar, extraer_codigo, normalizar, preparar_c, preparar_java, verificar
+from voight.core.gift_model import Choice, FormattedText
 
 runner = CliRunner()
 con_gcc = pytest.mark.skipif(not shutil.which("gcc"), reason="requiere gcc")
@@ -16,7 +16,7 @@ con_javac = pytest.mark.skipif(not (shutil.which("javac") and shutil.which("java
 
 
 def _q(gift):
-    from questions.core.parser import GiftParser
+    from voight.core.parser import GiftParser
     return GiftParser()._manual_parse(gift)[0]
 
 
@@ -78,7 +78,7 @@ def test_cli_verify_json_y_codigo_de_salida(tmp_path):
 
 
 def test_estilo_con_un_verificador(tmp_path):
-    from questions.core.verificar import revisar_estilo
+    from voight.core.verificar import revisar_estilo
 
     class Observacion:
         def __init__(self, codigo, linea):
@@ -95,7 +95,7 @@ def test_estilo_con_un_verificador(tmp_path):
 
 
 def test_cli_estilo_sin_ripley_explica_como_instalarlo(tmp_path, monkeypatch):
-    import questions.core.verificar as verificar_mod
+    import voight.core.verificar as verificar_mod
 
     monkeypatch.setattr(verificar_mod, "verificador_de_estilo", lambda: None)
     (tmp_path / "a.gift").write_text("::A:: q {=a ~b}\n", encoding="utf-8")

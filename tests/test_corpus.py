@@ -40,8 +40,8 @@ def test_corpus_salud():
 
 def test_el_corpus_ejercita_lo_que_dice():
     """Si el corpus deja de tener sus casos difíciles, los invariantes no prueban nada."""
-    from questions.core.hallazgos import archivos_de, hallazgos
-    from questions.core.moodle_health import auditar_archivos
+    from voight.core.hallazgos import archivos_de, hallazgos
+    from voight.core.moodle_health import auditar_archivos
 
     resultado = auditar_archivos(inv.archivos([CORPUS]))
     claves = {h["clave"] for h in hallazgos(resultado)}

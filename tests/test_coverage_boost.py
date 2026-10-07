@@ -1,7 +1,7 @@
 """Tests adicionales para maximizar la cobertura en MOODLE-TOOLBOX."""
 
 from click.testing import CliRunner
-from questions.cli import cli
+from voight.cli import cli
 
 runner = CliRunner()
 

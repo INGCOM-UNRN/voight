@@ -6,6 +6,10 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **nombre**: la herramienta se llama **voight** (por el test Voight-Kampff): paquete `voight`, comando `voight`, configuración `.voight.toml` y `~/.voight/.env`, variables `VOIGHT_DEBUG` y `VOIGHT_PROVEEDOR`, hooks `voight-*`. Los nombres anteriores siguen funcionando: los comandos `questions` y `moodle-toolbox` avisan que se van a retirar; `.questions.toml`, `~/.questions`, `QUESTIONS_DEBUG`, `QUESTIONS_PROVEEDOR` y los hooks `questions-*` se siguen leyendo.
+
 ### Agregado
 
 - **paridad GIFT/XML**: `validate`, `analyze stats` y `analyze similar` recorren repositorios con archivos `.gift` y `.xml` (y mezclados) sobre un parser de Moodle XML al modelo unificado; los duplicados se detectan también entre formatos.
@@ -16,7 +20,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 - **dedup**: elimina preguntas duplicadas (GIFT y XML) según un umbral configurable (`-s`, 0.95 por defecto). Sólo son duplicadas las del mismo tipo, con la misma respuesta correcta y con enunciados que también superan el umbral; conserva la más completa (o la primera) sin encadenar parecidos. Simula salvo `--aplicar`, que registra cada eliminación con las rutas completas en `--log` (TSV). `--tui` (extra `tui`, Textual) permite revisar los grupos lado a lado, con las diferencias resaltadas, y decidir cuáles eliminar.
 - **ai --mode classify**: clasifica cada pregunta (GIFT o XML) con Jev de TypeSafe: nivel de Bloom (choice B1–B6) y dificultad del enunciado y de las respuestas (scores 1–5), en una solicitud por pregunta sin la retroalimentación. Escribe un comentario por pregunta (`// [bloom:B3-aplicar] [dificultad-enunciado:3.7/5] …` o `<!-- … -->`), saltea las ya clasificadas salvo `--reclasificar`, `--tags` agrega tags de Moodle y `config set-typesafe-key` guarda la clave.
 - **health**: separa errores (lo que Moodle no importaría o importaría mal) de advertencias; sale con código 1 si hay errores y `--estricto` también falla con advertencias.
-- **código**: un único módulo (`questions.core.codigo`) para fullwidth y marcas en GIFT y XML, con la forma normal de GIFT escapada y las variantes históricas (U+2007, U+037E) llevadas a `·` y `；`.
+- **código**: un único módulo (`voight.core.codigo`) para fullwidth y marcas en GIFT y XML, con la forma normal de GIFT escapada y las variantes históricas (U+2007, U+037E) llevadas a `·` y `；`.
 - **verify**: compila y ejecuta el código C y Java de las preguntas (gcc, javac) y compara la salida con la clave: avisa si la salida coincide con un distractor, si el código no compila, falla, no termina o tiene comportamiento indefinido (`--sanitizar`). `--estilo` revisa el código C con las reglas de la cátedra (ripley).
 - **health**: distribución de Bloom y dificultad, blueprint categoría × Bloom y categorías sin niveles altos (de los comentarios de `classify`); señales de redacción (posición de la correcta, «todas/ninguna de las anteriores», negaciones sin resaltar, distractores débiles); campos de Moodle inconsistentes en una categoría (penalización, puntaje, numeración, mezcla); líneas `//` que GIFT descarta y bloques ``` sin lenguaje; `--csv` con una fila por pregunta y todas sus señales; `--json` y `--md` juntos escriben ambos.
 - **health --tui**: interfaz de terminal para recorrer los hallazgos, ver cada pregunta en su archivo, abrirla en `$EDITOR` y aplicar los arreglos automáticos (proteger el código, etiquetar el lenguaje, limpiar HTML) a un archivo o a todos los del hallazgo.
@@ -59,7 +63,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Cambiado
 
-- `GiftAnalyzer` pasa a llamarse `AnalizadorBanco` (queda el alias); el lector de unidades vive en `questions.core.lector` (reexportado desde `questions.core.ai`).
+- `GiftAnalyzer` pasa a llamarse `AnalizadorBanco` (queda el alias); el lector de unidades vive en `voight.core.lector` (reexportado desde `voight.core.ai`).
 - El contrato del modelo de preguntas pasa a 1.1.0: claves `metadata` (clasificación, con su `confianza`) y `moodle` (penalización, puntaje, mezcla, numeración, respuesta única).
 - `health` lee y resuelve cada archivo una sola vez (≈13 % más rápido en bancos de miles de archivos).
 - Se quitan los `main()` con argparse de `parser.py` y `validator.py` y `estandarizar_nombre_pregunta`, que no usaba ningún comando.

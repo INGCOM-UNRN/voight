@@ -8,10 +8,10 @@ import xml.etree.ElementTree as ET
 import pytest
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core import clasificacion as cl
-from questions.core.moodle_xml import parse_moodle_xml
-from questions.core.parser import GiftParser, parse_gift
+from voight.cli import cli
+from voight.core import clasificacion as cl
+from voight.core.moodle_xml import parse_moodle_xml
+from voight.core.parser import GiftParser, parse_gift
 
 runner = CliRunner()
 
@@ -197,7 +197,7 @@ def test_cli_classify_dry_run_sin_clave(tmp_path, monkeypatch):
 
 
 def test_cliente_jev_usa_la_cache(monkeypatch):
-    from questions.core.cache import Cache
+    from voight.core.cache import Cache
 
     llamadas = []
 
@@ -253,7 +253,7 @@ def _leer_revision(tmp_path):
     import contextlib
     import io
 
-    from questions.core.lector import leer_archivos, unidades_de
+    from voight.core.lector import leer_archivos, unidades_de
 
     ruta = tmp_path / "banco.gift"
     if not ruta.exists():
@@ -264,7 +264,7 @@ def _leer_revision(tmp_path):
 
 
 def test_para_revisar_corregir_y_guardar(tmp_path):
-    from questions.core.clasificacion import corregida, guardar_correcciones, leer_referencias, para_revisar
+    from voight.core.clasificacion import corregida, guardar_correcciones, leer_referencias, para_revisar
 
     ruta, archivos, unidades = _leer_revision(tmp_path)
     revisar = para_revisar(unidades)
@@ -284,7 +284,7 @@ def test_para_revisar_corregir_y_guardar(tmp_path):
     # Releída, la corregida a mano ya no se pide revisar ni se reclasifica.
     _, archivos, unidades = _leer_revision(tmp_path)
     assert [u.pregunta.title for u in para_revisar(unidades)] == ["A"]
-    from questions.core.clasificacion import _pendientes
+    from voight.core.clasificacion import _pendientes
 
     assert [u.pregunta.title for u in _pendientes(archivos, reclasificar=True)] == ["A", "B"]
 
@@ -295,8 +295,8 @@ def test_tui_de_revision(tmp_path):
     import pytest
 
     pytest.importorskip("textual", reason="TUI: requiere el extra opcional 'tui' (uv sync --extra tui)")
-    from questions.core.clasificacion import leer_referencias, para_revisar
-    from questions.tui.clasificacion import ClasificacionApp
+    from voight.core.clasificacion import leer_referencias, para_revisar
+    from voight.tui.clasificacion import ClasificacionApp
 
     ruta, archivos, unidades = _leer_revision(tmp_path)
     csv = tmp_path / "ref.csv"
@@ -324,8 +324,8 @@ def test_tui_de_revision_salir_no_guarda(tmp_path):
     import pytest
 
     pytest.importorskip("textual", reason="TUI: requiere el extra opcional 'tui' (uv sync --extra tui)")
-    from questions.core.clasificacion import para_revisar
-    from questions.tui.clasificacion import ClasificacionApp
+    from voight.core.clasificacion import para_revisar
+    from voight.tui.clasificacion import ClasificacionApp
 
     ruta, archivos, unidades = _leer_revision(tmp_path)
     app = ClasificacionApp(archivos, para_revisar(unidades))

@@ -15,8 +15,8 @@ def test_el_paquete_no_importa_tatsu():
         """
         import sys
         sys.modules["tatsu"] = None  # cualquier `import tatsu` falla
-        import questions.core.parser as p
-        from questions.core.parser import GiftParser
+        import voight.core.parser as p
+        from voight.core.parser import GiftParser
         GiftParser()._manual_parse("::t:: 2+2? {=4 ~5}")
         """
     )
@@ -35,7 +35,7 @@ def test_ninguna_fuente_del_paquete_menciona_tatsu():
 
 
 def test_el_parser_se_instancia_sin_compilar_una_gramatica():
-    from questions.core.parser import GiftParser
+    from voight.core.parser import GiftParser
 
     parser = GiftParser()
     assert not hasattr(parser, "_parser")
@@ -46,7 +46,7 @@ def test_el_doctor_informa_los_requisitos_reales_de_synth_y_ai():
     motor de síntesis ni la API key; en cambio verificaba tatsu, que nadie usaba."""
     import json
     from click.testing import CliRunner
-    from questions.cli import cli
+    from voight.cli import cli
 
     res = CliRunner().invoke(cli, ["doctor", "--json"])
     componentes = {c["componente"] for c in json.loads(res.output)["componentes"]}

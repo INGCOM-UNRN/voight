@@ -8,8 +8,8 @@ from click.testing import CliRunner
 # myst-tools llega con el extra `languagetool` (uv sync --extra languagetool).
 pytest.importorskip("myst_tools", reason="requiere el extra languagetool (myst-tools)")
 
-from questions.cli import cli  # noqa: E402
-from questions.core.languagetool_checker import (
+from voight.cli import cli  # noqa: E402
+from voight.core.languagetool_checker import (
     enmascarar_gift_xml,
     consultar_languagetool,
     analizar_archivo_banco,

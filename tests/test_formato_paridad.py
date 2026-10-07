@@ -4,12 +4,12 @@ import xml.etree.ElementTree as ET
 
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.formatter import format_gift_content, format_xml_content
-from questions.core.moodle_xml import parse_xml
-from questions.core.parser import parse_gift
-from questions.core.splitter import split_file
-from questions.core.xml_tools import ensure_cdata_in_text_blocks
+from voight.cli import cli
+from voight.core.formatter import format_gift_content, format_xml_content
+from voight.core.moodle_xml import parse_xml
+from voight.core.parser import parse_gift
+from voight.core.splitter import split_file
+from voight.core.xml_tools import ensure_cdata_in_text_blocks
 
 runner = CliRunner()
 

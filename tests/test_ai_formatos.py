@@ -1,4 +1,4 @@
-"""`questions ai` sobre GIFT y Moodle XML con un modelo simulado (sin red).
+"""`voight ai` sobre GIFT y Moodle XML con un modelo simulado (sin red).
 
 El modelo siempre recibe GIFT compacto; la respuesta vuelve a cada archivo con su
 convención y, en XML, sobre el <question> original.
@@ -9,10 +9,10 @@ import xml.etree.ElementTree as ET
 
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core import ai
-from questions.core.moodle_xml import parse_xml
-from questions.core.parser import parse_gift
+from voight.cli import cli
+from voight.core import ai
+from voight.core.moodle_xml import parse_xml
+from voight.core.parser import parse_gift
 
 runner = CliRunner()
 
@@ -237,7 +237,7 @@ def test_cache_evita_volver_a_consultar_al_modelo(tmp_path):
 def test_estimacion_de_tokens_y_costo(tmp_path):
     from click.testing import CliRunner
 
-    from questions.cli import cli
+    from voight.cli import cli
 
     (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
     res = CliRunner().invoke(cli, ["ai", str(tmp_path), "--dry-run", "--precio-entrada", "1", "--precio-salida", "5"])
@@ -282,7 +282,7 @@ def test_distractors_rechaza_si_cambia_las_opciones_originales(tmp_path):
 
 
 def test_necesita_distractores():
-    from questions.core.parser import GiftParser
+    from voight.core.parser import GiftParser
 
     def modelo(gift):
         return GiftParser()._manual_parse(gift)[0]

@@ -2,13 +2,13 @@
 
 import xml.etree.ElementTree as ET
 
-from questions.core.codigo import (
+from voight.core.codigo import (
     diagnosticar_codigo,
     transformar_archivo,
     transformar_codigo,
     transformar_fragmento,
 )
-from questions.core.parser import parse_gift
+from voight.core.parser import parse_gift
 
 GIFT = """::P::[markdown]¿Qué imprime?
 ```c
@@ -164,7 +164,7 @@ def test_el_fuente_no_depende_de_caracteres_que_nfc_altera():
     import unicodedata
     from pathlib import Path
 
-    import questions.core.codigo as codigo
+    import voight.core.codigo as codigo
 
     fuente = Path(codigo.__file__).read_text(encoding="utf-8")
     assert unicodedata.normalize("NFC", fuente) == fuente
@@ -172,7 +172,7 @@ def test_el_fuente_no_depende_de_caracteres_que_nfc_altera():
 
 
 def test_detectar_y_etiquetar_lenguaje():
-    from questions.core.codigo import detectar_lenguaje, etiquetar_lenguaje, etiquetar_lenguaje_archivo
+    from voight.core.codigo import detectar_lenguaje, etiquetar_lenguaje, etiquetar_lenguaje_archivo
 
     assert detectar_lenguaje("＃include ＜stdio.h＞") == "c"
     assert detectar_lenguaje('System.out.println（＂a＂）；') == "java"
@@ -187,7 +187,7 @@ def test_detectar_y_etiquetar_lenguaje():
 
 
 def test_etiquetar_lenguaje_no_toma_un_cierre_por_apertura():
-    from questions.core.codigo import etiquetar_lenguaje
+    from voight.core.codigo import etiquetar_lenguaje
 
     # El cierre del primer bloque seguido de texto que termina en ':' (señal de Python) y
     # otro bloque: antes se etiquetaba el cierre como ```python y se rompían ambos.
@@ -200,7 +200,7 @@ def test_etiquetar_lenguaje_no_toma_un_cierre_por_apertura():
 
 
 def test_backticks_sin_cerrar():
-    from questions.core.codigo import backticks_sin_cerrar
+    from voight.core.codigo import backticks_sin_cerrar
 
     assert not backticks_sin_cerrar("```c\nchar c = '`';\n```\n¿Qué guarda?")
     assert not backticks_sin_cerrar("```c\nint a;\n```\n```c\nint b;\n```")

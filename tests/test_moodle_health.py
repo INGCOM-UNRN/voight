@@ -1,4 +1,4 @@
-from questions.core.moodle_health import (
+from voight.core.moodle_health import (
     verificar_porcentajes_opciones,
     auditar_retroalimentaciones,
     limpiar_html_y_estilos_obsoletos,

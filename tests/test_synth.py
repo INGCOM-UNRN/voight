@@ -4,8 +4,8 @@ import shutil
 import pytest
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.synth import (
+from voight.cli import cli
+from voight.core.synth import (
     plantillas_disponibles,
     sintetizar,
     exportar_gift,

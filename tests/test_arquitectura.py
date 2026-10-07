@@ -1,7 +1,7 @@
 """Lector único y separación de GIFT consistente en todos los comandos."""
 
 
-from questions.core.parser import parse_gift
+from voight.core.parser import parse_gift
 
 # La línea en blanco está dentro de las llaves: no termina la pregunta.
 CON_BLANCO = (
@@ -18,7 +18,7 @@ def _preguntas(texto: str) -> list:
 
 
 def test_tree_export_no_parte_preguntas_con_lineas_en_blanco(tmp_path):
-    from questions.core.tree import gift_export
+    from voight.core.tree import gift_export
 
     banco = tmp_path / "banco.gift"
     banco.write_text(CON_BLANCO, encoding="utf-8")
@@ -32,7 +32,7 @@ def test_tree_export_no_parte_preguntas_con_lineas_en_blanco(tmp_path):
 
 
 def test_unify_no_parte_preguntas_con_lineas_en_blanco(tmp_path):
-    from questions.core.unifier import unificar
+    from voight.core.unifier import unificar
 
     (tmp_path / "arbol" / "Funciones").mkdir(parents=True)
     (tmp_path / "arbol" / "Funciones" / "a.gift").write_text(CON_BLANCO.split("\n\n", 1)[1], encoding="utf-8")
@@ -44,7 +44,7 @@ def test_unify_no_parte_preguntas_con_lineas_en_blanco(tmp_path):
 
 
 def test_una_pregunta_sin_cerrar_no_se_traga_el_resto():
-    from questions.core.formatter import _bloques_gift
+    from voight.core.formatter import _bloques_gift
 
     texto = ("::Rota:: ¿Qué imprime `if (x) {`? {\n=algo\n~otra\n\n"
              "// [tag:java]\n// CAT: Clases\n::Sana:: ¿Sí? {T}\n\n"
@@ -58,7 +58,7 @@ def test_una_pregunta_sin_cerrar_no_se_traga_el_resto():
 
 
 def test_unify_protege_las_barras_del_codigo_respetando_los_escapes():
-    from questions.core.tree import _protect_backslashes_in_code as proteger
+    from voight.core.tree import _protect_backslashes_in_code as proteger
 
     assert proteger("en C termina con `\\\\0`.") == "en C termina con `＼0`."          # \\ es una barra
     assert proteger('`printf("\\n")`') == '`printf("＼n")`'                          # barra cruda
@@ -68,7 +68,7 @@ def test_unify_protege_las_barras_del_codigo_respetando_los_escapes():
 
 
 def test_health_lee_cada_archivo_una_vez_con_los_mismos_resultados(tmp_path):
-    from questions.core.moodle_health import auditar_archivos
+    from voight.core.moodle_health import auditar_archivos
 
     crlf = tmp_path / "crlf.gift"
     crlf.write_bytes("::A:: ¿Sí?\r\n{T}\r\n\r\n::B:: ¿No? {F}\r\n".encode("utf-8"))
@@ -83,7 +83,7 @@ def test_health_lee_cada_archivo_una_vez_con_los_mismos_resultados(tmp_path):
 
 
 def test_xml_a_gift_protege_el_cloze_como_las_demas_preguntas():
-    from questions.core.converter import xml_to_gift
+    from voight.core.converter import xml_to_gift
 
     xml = ("<quiz><question type=\"cloze\"><name><text>Completar</text></name>"
            "<questiontext format=\"html\"><text><![CDATA[<p>Completá:</p>\n<pre>\nint f(void) {\n"

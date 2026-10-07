@@ -4,9 +4,9 @@ import asyncio
 
 import pytest
 
-from questions.core.banco import expandir_rutas, parse_archivo
-from questions.core.hallazgos import ARREGLOS, archivos_de, arreglar, elementos, hallazgos
-from questions.core.moodle_health import auditar_archivos
+from voight.core.banco import expandir_rutas, parse_archivo
+from voight.core.hallazgos import ARREGLOS, archivos_de, arreglar, elementos, hallazgos
+from voight.core.moodle_health import auditar_archivos
 
 # `=` en el código sin proteger: GIFT lo toma como respuesta correcta.
 SIN_PROTEGER = "::Asignación:: ¿Qué imprime `int x = 3; printf(\"%d\", x);`?\n{=3 #Bien ~0 #No ~x #No}\n"
@@ -59,7 +59,7 @@ def test_arreglar_quita_el_hallazgo_sin_cambiar_la_pregunta(tmp_path):
 def _tui(raiz, teclas, elegir=None):
     """Corre la TUI con esas teclas; `elegir` (una clave) selecciona antes ese hallazgo."""
     pytest.importorskip("textual", reason="TUI: requiere el extra opcional 'tui' (uv sync --extra tui)")
-    from questions.tui.health import HealthApp
+    from voight.tui.health import HealthApp
 
     app = HealthApp(lambda: _auditar(raiz))
 

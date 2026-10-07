@@ -13,7 +13,7 @@ def cache_aislada(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def configuracion_limpia():
     """El .questions.toml se cachea por ruta: cada test empieza sin lo leído por otro."""
-    from questions.core.configuracion import limpiar_cache
+    from voight.core.configuracion import limpiar_cache
 
     limpiar_cache()
     yield

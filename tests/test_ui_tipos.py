@@ -4,8 +4,8 @@ import pytest
 
 flask = pytest.importorskip("flask", reason="editor web: requiere el extra opcional 'ui' (uv sync --extra ui)")
 
-from questions.core.moodle_xml import parse_xml  # noqa: E402
-from questions.ui.app import create_app  # noqa: E402
+from voight.core.moodle_xml import parse_xml  # noqa: E402
+from voight.ui.app import create_app  # noqa: E402
 
 
 def _xml(cuerpo: str, tipo: str, nombre: str = "P", previo: str = "") -> str:

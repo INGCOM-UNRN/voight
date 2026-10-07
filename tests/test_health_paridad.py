@@ -4,9 +4,9 @@ import json
 
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.converter import gift_to_xml
-from questions.core.moodle_health import (
+from voight.cli import cli
+from voight.core.converter import gift_to_xml
+from voight.core.moodle_health import (
     auditar_archivos,
     auditar_feedback,
     auditar_longitudes,
@@ -15,7 +15,7 @@ from questions.core.moodle_health import (
     generar_reporte_markdown,
     limpiar_html_archivo,
 )
-from questions.core.parser import parse_gift
+from voight.core.parser import parse_gift
 
 runner = CliRunner()
 

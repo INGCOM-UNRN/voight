@@ -1,4 +1,4 @@
-from questions.core.validator import GiftAnalyzer
+from voight.core.validator import GiftAnalyzer
 
 def test_analyzer_basic(tmp_path):
     f1 = tmp_path / "q1.gift"
@@ -26,6 +26,6 @@ def test_analyzer_duplicates(tmp_path):
 
 
 def test_alias_gift_analyzer():
-    from questions.core.validator import AnalizadorBanco
+    from voight.core.validator import AnalizadorBanco
 
     assert GiftAnalyzer is AnalizadorBanco

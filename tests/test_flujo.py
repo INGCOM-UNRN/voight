@@ -2,7 +2,7 @@
 
 from click.testing import CliRunner
 
-from questions.cli import cli
+from voight.cli import cli
 
 runner = CliRunner()
 
@@ -34,14 +34,17 @@ def test_hooks_de_pre_commit_ejecutan_comandos_reales(tmp_path):
 
     texto = (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text(encoding="utf-8")
     hooks = dict(re.findall(r"^- id: (\S+)\n(?:  .*\n)*?  entry: (.+)$", texto, re.MULTILINE))
-    assert set(hooks) == {"questions-format", "questions-health", "questions-health-estricto", "questions-validate"}
+    nombres = {"format", "health", "health-estricto", "validate"}
+    # voight-* y los ids anteriores questions-* (deprecados) corren lo mismo.
+    assert set(hooks) == {f"voight-{n}" for n in nombres} | {f"questions-{n}" for n in nombres}
+    assert all(hooks[f"questions-{n}"] == hooks[f"voight-{n}"] for n in nombres)
     sano = tmp_path / "sano.gift"
     sano.write_text("::P::\n¿Cuál?\n{\n    =a #bien\n    ~b #no\n    ~c #no\n    ####general\n}\n", encoding="utf-8")
     roto = tmp_path / "roto.gift"
     roto.write_text("::P:: ¿Cuál? {~a ~b ~c}\n", encoding="utf-8")  # sin correcta, sin formato
     for hook, entry in hooks.items():
         argumentos = shlex.split(entry)
-        assert argumentos[0] == "questions"
+        assert argumentos[0] == "voight"
         assert runner.invoke(cli, argumentos[1:] + [str(sano)]).exit_code == 0, hook
         assert runner.invoke(cli, argumentos[1:] + [str(roto)]).exit_code == 1, hook
 
@@ -83,7 +86,7 @@ def test_configuracion_de_dedup_y_format(tmp_path):
 
 
 def test_configuracion_contexto_de_classify(tmp_path, monkeypatch):
-    import questions.core.clasificacion as cl
+    import voight.core.clasificacion as cl
 
     monkeypatch.setattr(cl, "resolver_clave", lambda: None)
     raiz = _banco_con_config(tmp_path, '[ai]\ncontexto = "Programación 1 (C)"\n')
@@ -147,7 +150,7 @@ def test_accion_de_github_declara_sus_entradas_y_salidas():
     entradas = re.findall(r"^  (\w+):\n    description:", accion.split("\noutputs:")[0], re.M)
     assert entradas == ["rutas", "desde", "estricto", "comentar", "version", "token"]
     assert re.findall(r"^  (\w+):\n", accion.split("\noutputs:")[1].split("\nruns:")[0], re.M) == ["ok", "errores", "advertencias"]
-    assert "using: composite" in accion and "questions health" in accion
+    assert "using: composite" in accion and "voight health" in accion
     # Las entradas llegan al script por variables de entorno, nunca interpoladas en el código.
     script = accion.split("      run: |\n", 1)[1]
     assert "${{" not in script
@@ -158,7 +161,7 @@ def test_accion_de_github_declara_sus_entradas_y_salidas():
 def test_dry_run_en_todos_los_comandos_que_escriben(tmp_path):
     import hashlib
 
-    from questions.core.converter import gift_to_xml
+    from voight.core.converter import gift_to_xml
 
     raiz = tmp_path / "banco"
     raiz.mkdir()
@@ -194,7 +197,7 @@ def test_alias_en_ingles_de_las_opciones():
     for comando in (["health"], ["dedup"], ["ai"], ["format"], ["verify"], ["synth"], ["fix", "code-chars"]):
         ayuda = runner.invoke(cli, comando + ["--help"], terminal_width=200).output
         assert ayuda, comando
-    fuentes = "".join(p.read_text(encoding="utf-8") for p in Path("src/questions/commands").glob("*.py"))
+    fuentes = "".join(p.read_text(encoding="utf-8") for p in Path("src/voight/commands").glob("*.py"))
     # Toda opción larga en castellano de esta lista lleva su alias inglés al lado.
     for es, en in [("aplicar", "apply"), ("conservar", "keep"), ("estricto", "strict"), ("contexto", "context"),
                    ("reclasificar", "reclassify"), ("desde", "since"), ("sin-cache", "no-cache")]:
@@ -219,7 +222,7 @@ def test_alias_en_ingles_funcionan(tmp_path):
 def test_barra_de_progreso_solo_en_terminal(monkeypatch):
     import io
 
-    from questions.core import progreso
+    from voight.core import progreso
 
     with progreso.barra(10, "x") as avance:  # en los tests stderr no es una terminal
         avance()

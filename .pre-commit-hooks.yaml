@@ -5,35 +5,65 @@
 #     - repo: https://github.com/INGCOM-UNRN/moodle-toolbox
 #       rev: <tag o commit>
 #       hooks:
-#         - id: questions-format
-#         - id: questions-health
+#         - id: voight-format
+#         - id: voight-health
 #
 # Todos reciben sólo los archivos .gift/.xml del commit.
+#
+# Los ids questions-* son los nombres anteriores: siguen funcionando, pero se van a retirar.
+
+- id: voight-format
+  name: formato estándar de GIFT y Moodle XML
+  description: Falla si algún archivo no tiene el formato estándar (voight format lo corrige).
+  entry: voight format --check
+  language: python
+  files: \.(gift|xml)$
+
+- id: voight-health
+  name: salud del banco (errores)
+  description: Falla ante errores que Moodle no importaría o importaría mal (porcentajes, preguntas partidas, código que rompe GIFT).
+  entry: voight health --max-items 20
+  language: python
+  files: \.(gift|xml)$
+
+- id: voight-health-estricto
+  name: salud del banco (errores y advertencias)
+  description: Como voight-health, pero también falla ante advertencias (feedback, opciones, longitud de las respuestas).
+  entry: voight health --estricto --max-items 20
+  language: python
+  files: \.(gift|xml)$
+
+- id: voight-validate
+  name: validación de GIFT y Moodle XML
+  description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
+  entry: voight validate
+  language: python
+  files: \.(gift|xml)$
 
 - id: questions-format
-  name: formato estándar de GIFT y Moodle XML
-  description: Falla si algún archivo no tiene el formato estándar (questions format lo corrige).
-  entry: questions format --check
+  name: (deprecado, usar voight-*) formato estándar de GIFT y Moodle XML
+  description: Falla si algún archivo no tiene el formato estándar (voight format lo corrige).
+  entry: voight format --check
   language: python
   files: \.(gift|xml)$
 
 - id: questions-health
-  name: salud del banco (errores)
+  name: (deprecado, usar voight-*) salud del banco (errores)
   description: Falla ante errores que Moodle no importaría o importaría mal (porcentajes, preguntas partidas, código que rompe GIFT).
-  entry: questions health --max-items 20
+  entry: voight health --max-items 20
   language: python
   files: \.(gift|xml)$
 
 - id: questions-health-estricto
-  name: salud del banco (errores y advertencias)
-  description: Como questions-health, pero también falla ante advertencias (feedback, opciones, longitud de las respuestas).
-  entry: questions health --estricto --max-items 20
+  name: (deprecado, usar voight-*) salud del banco (errores y advertencias)
+  description: Como voight-health, pero también falla ante advertencias (feedback, opciones, longitud de las respuestas).
+  entry: voight health --estricto --max-items 20
   language: python
   files: \.(gift|xml)$
 
 - id: questions-validate
-  name: validación de GIFT y Moodle XML
+  name: (deprecado, usar voight-*) validación de GIFT y Moodle XML
   description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
-  entry: questions validate
+  entry: voight validate
   language: python
   files: \.(gift|xml)$

@@ -3,8 +3,8 @@
 from pathlib import Path
 from click.testing import CliRunner
 
-from questions.cli import cli
-from questions.core.unifier import unificar
+from voight.cli import cli
+from voight.core.unifier import unificar
 
 runner = CliRunner()
 

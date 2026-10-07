@@ -1,4 +1,4 @@
-from questions.core.naming import slugify, get_question_title, set_question_title
+from voight.core.naming import slugify, get_question_title, set_question_title
 
 def test_slugify():
     assert slugify("Hola Mundo") == "hola_mundo"
@@ -35,7 +35,7 @@ def test_get_set_xml_title(tmp_path):
 
 
 def test_formato_por_contenido():
-    from questions.core.banco import formato_por_contenido
+    from voight.core.banco import formato_por_contenido
 
     assert formato_por_contenido('<?xml version="1.0"?>\n<quiz></quiz>') == "xml"
     assert formato_por_contenido("﻿<!-- generado -->\n<quiz>\n</quiz>") == "xml"
@@ -51,8 +51,8 @@ def test_formato_por_contenido():
 def test_fix_extension(tmp_path):
     from click.testing import CliRunner
 
-    from questions.cli import cli
-    from questions.core.converter import gift_to_xml
+    from voight.cli import cli
+    from voight.core.converter import gift_to_xml
 
     runner = CliRunner()
     (tmp_path / "gift_disfrazado.xml").write_text("::A:: ¿x? {T}\n", encoding="utf-8")
@@ -75,7 +75,7 @@ def test_fix_extension_no_pisa(tmp_path):
 
     from click.testing import CliRunner
 
-    from questions.cli import cli
+    from voight.cli import cli
 
     (tmp_path / "p.xml").write_text("::A:: ¿x? {T}\n", encoding="utf-8")
     (tmp_path / "p.gift").write_text("::B:: ¿y? {F}\n", encoding="utf-8")

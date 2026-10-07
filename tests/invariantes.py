@@ -10,11 +10,11 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 
-from questions.core.banco import expandir_rutas, formato_de
-from questions.core.converter import gift_to_xml, xml_to_gift
-from questions.core.formatter import format_content
-from questions.core.moodle_xml import parse_xml
-from questions.core.parser import parse_gift
+from voight.core.banco import expandir_rutas, formato_de
+from voight.core.converter import gift_to_xml, xml_to_gift
+from voight.core.formatter import format_content
+from voight.core.moodle_xml import parse_xml
+from voight.core.parser import parse_gift
 
 
 # Tipos que existen en GIFT y en Moodle XML (cloze y los de plugins sólo en XML).
@@ -98,8 +98,8 @@ def conversion_conserva_las_preguntas(rutas) -> List[str]:
 
 def unificar_y_exportar_conserva_las_preguntas(raiz: Path, tmp: Path) -> List[str]:
     """unify de un árbol GIFT y tree export del resultado no pierden ni parten preguntas."""
-    from questions.core.tree import gift_export
-    from questions.core.unifier import unificar
+    from voight.core.tree import gift_export
+    from voight.core.unifier import unificar
 
     gifts = [r for r in archivos([raiz]) if formato_de(r) == "gift"]
     if not gifts:
@@ -125,8 +125,8 @@ def unificar_y_exportar_conserva_las_preguntas(raiz: Path, tmp: Path) -> List[st
 
 def salud_coincide_con_sus_elementos(rutas) -> List[str]:
     """Cada hallazgo del resumen de health tiene tantos elementos navegables como dice."""
-    from questions.core.hallazgos import elementos, hallazgos
-    from questions.core.moodle_health import auditar_archivos
+    from voight.core.hallazgos import elementos, hallazgos
+    from voight.core.moodle_health import auditar_archivos
 
     resultado = auditar_archivos(archivos(rutas))
     return [f"health: {h['clave']} dice {h['cantidad']} y tiene {len(elementos(resultado, h['clave']))} elementos"

@@ -1,4 +1,4 @@
-"""`questions moodle subir` contra un Moodle simulado (servidor HTTP local)."""
+"""`voight moodle subir` contra un Moodle simulado (servidor HTTP local)."""
 
 import json
 import threading
@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 from click.testing import CliRunner
 
-from questions.cli import cli
+from voight.cli import cli
 
 runner = CliRunner()
 
@@ -83,6 +83,6 @@ def test_subir_informa_el_error_de_moodle_y_dry_run_no_contacta(tmp_path, moodle
     assert res.exit_code == 1 and "Sin permiso para importar preguntas (nopermissions)" in res.output
 
     monkeypatch.delenv("MOODLE_TOKEN", raising=False)
-    monkeypatch.setattr("questions.core.moodle_ws.resolver_token", lambda token=None: token)
+    monkeypatch.setattr("voight.core.moodle_ws.resolver_token", lambda token=None: token)
     res = runner.invoke(cli, ["moodle", "subir", str(banco), "--url", url, "--curso", "7"])
     assert res.exit_code == 1 and "Falta el token" in res.output

@@ -2,7 +2,7 @@
 
 import pytest
 
-import questions.cli as mod
+import voight.cli as mod
 
 
 def _romper(monkeypatch, error=None):

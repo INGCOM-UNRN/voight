@@ -145,7 +145,7 @@ source ./install_tools.sh
 Toda herramienta del ecosistema cuenta con el subcomando unificado `doctor`. Ejecutalo para auditar el estado del entorno:
 
 ````{code-block} bash
-questions doctor
+voight doctor
 ````
 
 #### Comprobaciones Ejecutadas por el Diagnóstico:
@@ -172,11 +172,11 @@ A continuación se detallan los subcomandos principales disponibles en `question
 
 | Sintaxis del Comando | Descripción y Efecto |
 | :--- | :--- |
-| `questions convert banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
-| `questions convert banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
-| `questions validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
-| `questions spellcheck banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
-| `questions format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
+| `voight convert banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
+| `voight convert banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
+| `voight validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
+| `voight spellcheck banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
+| `voight format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
 
 ````{tip}
 Podés agregar el flag `--json` a la mayoría de los comandos para exportar resultados en formato estructurado o `--md` para generar reportes Markdown para el informe de entrega.
@@ -211,7 +211,7 @@ Dado el siguiente código en C:
 Ejecutá el análisis desde tu terminal:
 
 ````{code-block} bash
-questions convert banco.gift -o banco.xml
+voight convert banco.gift -o banco.xml
 ````
 
 ### Salida Obtenida en Consola
@@ -238,13 +238,13 @@ Convertir preguntas de GIFT a XML para importar en el aula virtual.
 
 **Instrucción de ejecución:**
 ```bash
-questions convert preguntas.gift -o preguntas.xml
+voight convert preguntas.gift -o preguntas.xml
 ```
 ````
 
 ````{solution} Desafío 1
 ```bash
-questions convert preguntas.gift -o preguntas.xml
+voight convert preguntas.gift -o preguntas.xml
 # Verificá que la operación concluya exitosamente con código de salida 0.
 ```
 ````
@@ -254,13 +254,13 @@ Verificar que ninguna pregunta tenga respuestas que no sumen 100%.
 
 **Instrucción de ejecución:**
 ```bash
-questions validate preguntas.xml
+voight validate preguntas.xml
 ```
 ````
 
 ````{solution} Desafío 2
 ```bash
-questions validate preguntas.xml
+voight validate preguntas.xml
 # Revisá el archivo generado o el informe en terminal para confirmar la resolución del problema.
 ```
 ````
@@ -270,13 +270,13 @@ Auditar ortografía en los textos de retroalimentación pedagógica.
 
 **Instrucción de ejecución:**
 ```bash
-questions spellcheck preguntas.gift --lang es-AR
+voight spellcheck preguntas.gift --lang es-AR
 ```
 ````
 
 ````{solution} Desafío 3
 ```bash
-questions spellcheck preguntas.gift --lang es-AR
+voight spellcheck preguntas.gift --lang es-AR
 # Comprobá que la salida confirme la ausencia de advertencias o errores pendientes.
 ```
 ````
@@ -344,7 +344,7 @@ Podés encadenar `moodle-toolbox` con otras herramientas del ecosistema en una �
 
 ````{code-block} bash
 # Pipeline de integración típico
-questions convert banco.gift -o banco.xml && questions spellcheck banco.xml --premium
+voight convert banco.gift -o banco.xml && voight spellcheck banco.xml --premium
 ````
 
 ---

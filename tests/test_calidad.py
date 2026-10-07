@@ -1,7 +1,7 @@
 """Calidad del banco: metadatos de clasificación, blueprint y señales de redacción en health."""
 
-from questions.core.moodle_xml import parse_xml
-from questions.core.parser import parse_gift
+from voight.core.moodle_xml import parse_xml
+from voight.core.parser import parse_gift
 
 
 def test_metadatos_de_clasificacion_en_gift_y_xml():
@@ -18,7 +18,7 @@ def test_metadatos_de_clasificacion_en_gift_y_xml():
 
 
 def test_health_clasificacion_y_blueprint(tmp_path):
-    from questions.core.moodle_health import auditar_archivos, generar_reporte_markdown
+    from voight.core.moodle_health import auditar_archivos, generar_reporte_markdown
 
     gift = "$CATEGORY: $course$/C/Punteros\n\n"
     for i in range(5):
@@ -42,8 +42,8 @@ def test_health_clasificacion_y_blueprint(tmp_path):
 
 
 def test_health_redaccion():
-    from questions.core.moodle_health import auditar_redaccion
-    from questions.core.parser import parse_gift as p
+    from voight.core.moodle_health import auditar_redaccion
+    from voight.core.parser import parse_gift as p
 
     gift = (
         "::A:: ¿Cuál es correcta? {=uno ~dos ~Todas las anteriores}\n\n"
@@ -61,7 +61,7 @@ def test_health_redaccion():
 
 
 def test_moodle_xml_expone_los_campos_de_moodle():
-    from questions.core.moodle_xml import parse_xml
+    from voight.core.moodle_xml import parse_xml
 
     xml = ('<quiz><question type="multichoice"><name><text>x</text></name><questiontext><text>q</text></questiontext>'
            '<penalty>0.3333333</penalty><defaultgrade>1</defaultgrade><shuffleanswers>0</shuffleanswers>'
@@ -70,7 +70,7 @@ def test_moodle_xml_expone_los_campos_de_moodle():
 
 
 def test_health_metadatos_de_moodle_por_categoria(tmp_path):
-    from questions.core.moodle_health import auditar_archivos
+    from voight.core.moodle_health import auditar_archivos
 
     def pregunta(nombre, penalty, grade):
         return (f'<question type="multichoice"><name><text>{nombre}</text></name><questiontext><text>q</text>'
@@ -90,7 +90,7 @@ def test_health_csv_una_fila_por_pregunta(tmp_path):
 
     from click.testing import CliRunner
 
-    from questions.cli import cli
+    from voight.cli import cli
 
     (tmp_path / "b.gift").write_text(
         "$CATEGORY: $course$/C\n\n// [bloom:B3-aplicar] [dificultad-enunciado:2.5/5]\n"

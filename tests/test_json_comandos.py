@@ -8,7 +8,7 @@ import pytest
 
 from click.testing import CliRunner
 
-from questions.cli import cli
+from voight.cli import cli
 
 runner = CliRunner()
 GIFT = "$CATEGORY: Mate/Algebra\n::P1:: ¿2+2? {=4 ~3 ~5}\n"

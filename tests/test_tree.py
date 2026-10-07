@@ -1,5 +1,5 @@
 
-from questions.core import tree
+from voight.core import tree
 
 
 GIFT_BANCO = '''$CATEGORY: $course$/Tema1/Subtema

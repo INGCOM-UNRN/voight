@@ -1,16 +1,16 @@
 # Mantenimiento XML
 
-Documentación para las herramientas de limpieza y mantenimiento de archivos XML de Moodle integradas en el comando `questions xml`.
+Documentación para las herramientas de limpieza y mantenimiento de archivos XML de Moodle integradas en el comando `voight xml`.
 
 ## Comandos Incluidos
 
-1. [`questions xml cdata`](#questions-xml-cdata)
-2. [`questions xml clean-tags`](#questions-xml-clean-tags)
-3. [`questions xml rename`](#questions-xml-rename)
+1. [`voight xml cdata`](#questions-xml-cdata)
+2. [`voight xml clean-tags`](#questions-xml-clean-tags)
+3. [`voight xml rename`](#questions-xml-rename)
 
 ---
 
-## `questions xml cdata`
+## `voight xml cdata`
 
 ### Descripción
 
@@ -20,10 +20,10 @@ Asegura que todos los bloques `<text>` con contenido tengan su contenido envuelt
 
 ```bash
 # Procesar directorio recursivamente
-uv run questions xml cdata ./preguntas
+uv run voight xml cdata ./preguntas
 
 # Procesar solo en el directorio actual (no recursivo)
-uv run questions xml cdata ./preguntas --no-recursive
+uv run voight xml cdata ./preguntas --no-recursive
 ```
 
 ### Ejemplo de Transformación
@@ -40,7 +40,7 @@ uv run questions xml cdata ./preguntas --no-recursive
 
 ---
 
-## `questions xml clean-tags`
+## `voight xml clean-tags`
 
 ### Descripción
 
@@ -50,12 +50,12 @@ Elimina recursivamente la sección `<tags>` de todos los archivos XML de pregunt
 
 ```bash
 # Procesar directorio recursivamente
-uv run questions xml clean-tags ./preguntas
+uv run voight xml clean-tags ./preguntas
 ```
 
 ---
 
-## `questions xml rename`
+## `voight xml rename`
 
 ### Descripción
 
@@ -72,7 +72,7 @@ Renombra archivos XML usando el nombre de la pregunta contenida en el XML. Sanit
 
 ```bash
 # Renombrar todos los archivos en un directorio
-uv run questions xml rename ./preguntas/*.xml
+uv run voight xml rename ./preguntas/*.xml
 ```
 
 ---
@@ -83,13 +83,13 @@ uv run questions xml rename ./preguntas/*.xml
 
 ```bash
 # 1. Asegurar CDATA en todos los bloques de texto
-uv run questions xml cdata ./banco
+uv run voight xml cdata ./banco
 
 # 2. Eliminar tags obsoletos
-uv run questions xml clean-tags ./banco
+uv run voight xml clean-tags ./banco
 
 # 3. Renombrar archivos descriptivamente
-uv run questions xml rename ./banco/*.xml
+uv run voight xml rename ./banco/*.xml
 ```
 
 ---

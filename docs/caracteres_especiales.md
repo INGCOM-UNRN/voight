@@ -8,9 +8,9 @@ blanco termina la pregunta**. Además, Moodle descarta la indentación al import
 Por eso, dentro de las secciones de código, los caracteres que chocan se reemplazan
 por sus formas *fullwidth* (se ven casi iguales) y los espacios y saltos se marcan.
 La transformación es **la misma para GIFT y Moodle XML**: un banco puede pasar de un
-formato al otro sin romperse. La implementa `questions.core.codigo` y la usan
-`questions format --fullwidth/--normal`, `questions fix code-chars` y
-`questions fix code-indent`; `questions health` informa el código que falta proteger.
+formato al otro sin romperse. La implementa `voight.core.codigo` y la usan
+`voight format --fullwidth/--normal`, `voight fix code-chars` y
+`voight fix code-indent`; `voight health` informa el código que falta proteger.
 
 ## Secciones de código
 
@@ -62,8 +62,8 @@ int main（） ｛↵
   restaurar a caracteres normales en GIFT.
 - Al restaurar sólo se quita el `↵` que precede a un salto real. Uno a mitad de línea
   (por ejemplo la salida `hola↵mundo` en una opción) es contenido del autor.
-- `questions format --fullwidth --sin-marcas` aplica sólo los símbolos;
-  `questions fix code-indent` sólo la indentación con `·` (con `--saltos`, también `↵`).
+- `voight format --fullwidth --sin-marcas` aplica sólo los símbolos;
+  `voight fix code-indent` sólo la indentación con `·` (con `--saltos`, también `↵`).
 
 ## Variantes históricas
 
@@ -80,6 +80,6 @@ Unicode NFC lo convierte silenciosamente en un `;` común. `；` no tiene ese pr
 
 ## Forma normal en GIFT
 
-`questions format --normal` (o `fix code-chars --to-normal`) restaura el código a
+`voight format --normal` (o `fix code-chars --to-normal`) restaura el código a
 ASCII y, en GIFT, escapa con `\` lo que GIFT interpretaría (`\{`, `\=`, `\#`, `\~`,
 `\:`, `\\`): el resultado sigue siendo GIFT válido y Moodle muestra el código original.

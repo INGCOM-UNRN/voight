@@ -2,7 +2,7 @@
 
 Como dependencia obligatoria arrastraba a toda instalación cryptography,
 urllib3, pyasn1, idna y anyio, con avisos de seguridad conocidos, aunque solo
-`questions ai` la usa.
+`voight ai` la usa.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def test_el_modulo_ai_se_importa_aunque_falte_google_genai(monkeypatch):
     import importlib.util
     import sys
 
-    import questions.core.ai as original
+    import voight.core.ai as original
 
     # Una copia aislada del módulo: recargar el real dejaría clases viejas (Unidad…) en
     # los módulos que ya lo importaron y rompería los tests que corren después.

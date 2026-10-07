@@ -1,6 +1,6 @@
-name: Salud del banco de preguntas (moodle-toolbox)
+name: Salud del banco de preguntas (voight)
 description: >
-  Corre `questions health` sobre un banco de preguntas GIFT / Moodle XML, publica el informe en el
+  Corre `voight health` sobre un banco de preguntas GIFT / Moodle XML, publica el informe en el
   resumen del job y como comentario del pull request, y falla si hay errores (o advertencias, con
   estricto).
 author: Programación I - UNRN Andina
@@ -46,7 +46,7 @@ runs:
   steps:
     - uses: astral-sh/setup-uv@v5
 
-    - name: Instalar moodle-toolbox
+    - name: Instalar voight
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -75,7 +75,7 @@ runs:
         read -r -a rutas <<< "$RUTAS"
 
         codigo=0
-        questions health "${rutas[@]}" "${argumentos[@]}" > "$RUNNER_TEMP/salud.json" || codigo=$?
+        voight health "${rutas[@]}" "${argumentos[@]}" > "$RUNNER_TEMP/salud.json" || codigo=$?
 
         if [ -s "$RUNNER_TEMP/salud.json" ] && python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$RUNNER_TEMP/salud.json" 2>/dev/null; then
           python3 - "$RUNNER_TEMP/salud.json" >> "$GITHUB_OUTPUT" <<'PY'

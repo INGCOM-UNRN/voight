@@ -2,20 +2,20 @@
 
 Este documento detalla el uso de las herramientas de validación y formateo integradas en el CLI `questions`.
 
-## 1. Validación GIFT (`questions validate`)
+## 1. Validación GIFT (`voight validate`)
 
 Diseñado para asegurar la integridad estructural y el cumplimiento de las convenciones del repositorio.
 
 ### Uso
 ```bash
 # Validar un directorio completo (recursivo por defecto)
-uv run questions validate ./preguntas
+uv run voight validate ./preguntas
 
 # Validar y generar un informe detallado en un archivo
-uv run questions validate ./preguntas --output informe.txt
+uv run voight validate ./preguntas --output informe.txt
 
 # Validación de un archivo único
-uv run questions validate pregunta.gift
+uv run voight validate pregunta.gift
 ```
 
 ### Qué valida:
@@ -26,17 +26,17 @@ uv run questions validate pregunta.gift
 
 ---
 
-## 2. Formateo GIFT (`questions format`)
+## 2. Formateo GIFT (`voight format`)
 
 Estandariza la apariencia visual de los archivos GIFT para mejorar su legibilidad.
 
 ### Uso
 ```bash
 # Formatear archivos (sobrescribe los originales)
-uv run questions format ./preguntas
+uv run voight format ./preguntas
 
 # Simulación (dry-run) para ver qué se cambiaría
-uv run questions format ./preguntas --dry-run
+uv run voight format ./preguntas --dry-run
 ```
 
 ### Estándar de Formato Aplicado:
@@ -47,20 +47,20 @@ uv run questions format ./preguntas --dry-run
 
 ---
 
-## 3. Corrección de Bloques de Código (`questions fix`)
+## 3. Corrección de Bloques de Código (`voight fix`)
 
 Especialmente útil para preguntas que contienen código fuente.
 
 ### Indentación de Código
 ```bash
 # Reemplaza 4 espacios por caracteres especiales (····) dentro de bloques ```
-uv run questions fix code-indent ./preguntas
+uv run voight fix code-indent ./preguntas
 ```
 
 ### Conversión de Caracteres
 ```bash
 # Convierte { } = # etc. a sus versiones fullwidth (｛ ｝ ＝ ＃) en bloques de código
-uv run questions fix code-chars ./preguntas --to-fullwidth
+uv run voight fix code-chars ./preguntas --to-fullwidth
 ```
 
 ---
@@ -76,6 +76,6 @@ Si eres un modelo de lenguaje operando en este repositorio, sigue estas directri
 
 ### Flujo de Trabajo Sugerido
 1. Genera la pregunta.
-2. Ejecuta `uv run questions format <archivo>` para asegurar el estilo.
-3. Ejecuta `uv run questions validate <archivo>` para verificar errores estructurales.
+2. Ejecuta `uv run voight format <archivo>` para asegurar el estilo.
+3. Ejecuta `uv run voight validate <archivo>` para verificar errores estructurales.
 4. Si hay errores, corrígelos y repite la validación hasta obtener `✅ Archivo válido`.
