@@ -35,9 +35,6 @@ dependencies = [
 
 [project.scripts]
 voight = "voight.cli:main"
-# Nombres anteriores (deprecados): avisan y siguen funcionando.
-questions = "voight.cli:main"
-moodle-toolbox = "voight.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/INGCOM-UNRN/voight"
@@ -45,7 +42,7 @@ Repository = "https://github.com/INGCOM-UNRN/voight.git"
 Issues = "https://github.com/INGCOM-UNRN/voight/issues"
 
 [project.optional-dependencies]
-# `questions ai` (Gemini o Claude). Es opcional: los SDK arrastran muchas
+# `voight ai` (Gemini o Claude). Es opcional: los SDK arrastran muchas
 # dependencias (cryptography, urllib3, pyasn1, httpx2, …) que el resto del CLI no usa.
 ai = [
     "google-genai>=2.4.0",
@@ -55,7 +52,7 @@ ui = [
     "flask>=3.0",
     "markdown",
 ]
-# Interfaz de terminal para revisar duplicados (`questions dedup --tui`).
+# Interfaz de terminal para revisar duplicados (`voight dedup --tui`).
 tui = [
     "textual>=6.0",
 ]
@@ -86,7 +83,7 @@ addopts = "-rs"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["questions"]
+source = ["voight"]
 
 [tool.hatch.metadata]
 # Las dependencias del ecosistema son referencias directas a git (nunca por nombre en PyPI).

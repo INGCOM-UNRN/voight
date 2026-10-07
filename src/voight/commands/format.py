@@ -59,7 +59,7 @@ def format_cmd(
             fail("--gaff necesita gaff instalado (uv tool install git+https://github.com/INGCOM-UNRN-P1/gaff).")
     opciones = con_configuracion(ctx, paths, "format", {
         "fullwidth": fullwidth, "marcas": marcas, "correct_first": correct_first})
-    # --normal explícito gana sobre fullwidth = true del .questions.toml.
+    # --normal explícito gana sobre fullwidth = true del .voight.toml.
     fullwidth = bool(opciones["fullwidth"]) and not normal
     marcas, correct_first = opciones["marcas"], opciones["correct_first"]
     if not paths:

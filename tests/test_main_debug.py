@@ -13,7 +13,7 @@ def _romper(monkeypatch, error=None):
 
 def test_main_resume_el_error_y_sale_con_1(monkeypatch, capsys):
     _romper(monkeypatch)
-    monkeypatch.delenv("QUESTIONS_DEBUG", raising=False)
+    monkeypatch.delenv("VOIGHT_DEBUG", raising=False)
     monkeypatch.delenv("P1_DEPURAR", raising=False)
     with pytest.raises(SystemExit) as e:
         mod.main()
@@ -21,10 +21,10 @@ def test_main_resume_el_error_y_sale_con_1(monkeypatch, capsys):
     assert "falla interna" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("variable", ["QUESTIONS_DEBUG", "P1_DEPURAR"])
+@pytest.mark.parametrize("variable", ["VOIGHT_DEBUG", "P1_DEPURAR"])
 def test_main_con_la_variable_de_depuracion_propaga_el_traceback(monkeypatch, variable):
     _romper(monkeypatch)
-    monkeypatch.delenv("QUESTIONS_DEBUG", raising=False)
+    monkeypatch.delenv("VOIGHT_DEBUG", raising=False)
     monkeypatch.delenv("P1_DEPURAR", raising=False)
     monkeypatch.setenv(variable, "1")
     with pytest.raises(ValueError):
@@ -33,7 +33,7 @@ def test_main_con_la_variable_de_depuracion_propaga_el_traceback(monkeypatch, va
 
 def test_main_explica_en_espanol_los_errores_de_datos(monkeypatch, capsys):
     _romper(monkeypatch, FileNotFoundError(2, "No such file or directory", "banco.xml"))
-    monkeypatch.delenv("QUESTIONS_DEBUG", raising=False)
+    monkeypatch.delenv("VOIGHT_DEBUG", raising=False)
     monkeypatch.delenv("P1_DEPURAR", raising=False)
     with pytest.raises(SystemExit) as e:
         mod.main()

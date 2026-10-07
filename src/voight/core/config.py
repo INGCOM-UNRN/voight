@@ -4,10 +4,7 @@ from typing import Optional
 
 from dotenv import load_dotenv, set_key
 
-# ~/.voight; si no existe y queda ~/.questions (nombre anterior), se usa ese.
 CONFIG_DIR = Path.home() / ".voight"
-if not CONFIG_DIR.exists() and (Path.home() / ".questions").exists():
-    CONFIG_DIR = Path.home() / ".questions"
 ENV_FILE = CONFIG_DIR / ".env"
 
 def get_api_key() -> Optional[str]:
@@ -80,7 +77,7 @@ def get_anthropic_key():
 
 def get_proveedor() -> str:
     """Proveedor por defecto de `voight ai`: gemini (histórico) o claude."""
-    return (_leer("VOIGHT_PROVEEDOR") or _leer("QUESTIONS_PROVEEDOR") or "gemini").lower()
+    return (_leer("VOIGHT_PROVEEDOR") or "gemini").lower()
 
 
 def save_anthropic_key(api_key: str):

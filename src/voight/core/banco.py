@@ -47,7 +47,7 @@ def buscar_archivos(directorio: str | Path, recursivo: bool = True,
     directorio = Path(directorio)
     patron = "**/*" if recursivo else "*"
     extensiones = tuple(e.lower() for e in extensiones)
-    config = cargar([directorio])  # [general] ignorar del .questions.toml del banco
+    config = cargar([directorio])  # [general] ignorar del .voight.toml del banco
     return sorted(
         p for p in directorio.glob(patron)
         if p.is_file() and p.suffix.lower() in extensiones

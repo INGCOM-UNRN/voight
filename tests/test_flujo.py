@@ -34,10 +34,7 @@ def test_hooks_de_pre_commit_ejecutan_comandos_reales(tmp_path):
 
     texto = (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text(encoding="utf-8")
     hooks = dict(re.findall(r"^- id: (\S+)\n(?:  .*\n)*?  entry: (.+)$", texto, re.MULTILINE))
-    nombres = {"format", "health", "health-estricto", "validate"}
-    # voight-* y los ids anteriores questions-* (deprecados) corren lo mismo.
-    assert set(hooks) == {f"voight-{n}" for n in nombres} | {f"questions-{n}" for n in nombres}
-    assert all(hooks[f"questions-{n}"] == hooks[f"voight-{n}"] for n in nombres)
+    assert set(hooks) == {f"voight-{n}" for n in ("format", "health", "health-estricto", "validate")}
     sano = tmp_path / "sano.gift"
     sano.write_text("::P::\n¿Cuál?\n{\n    =a #bien\n    ~b #no\n    ~c #no\n    ####general\n}\n", encoding="utf-8")
     roto = tmp_path / "roto.gift"
@@ -50,7 +47,7 @@ def test_hooks_de_pre_commit_ejecutan_comandos_reales(tmp_path):
 
 
 def _banco_con_config(tmp_path, config: str):
-    (tmp_path / ".questions.toml").write_text(config, encoding="utf-8")
+    (tmp_path / ".voight.toml").write_text(config, encoding="utf-8")
     (tmp_path / "temas").mkdir()
     (tmp_path / "borradores").mkdir()
     (tmp_path / "temas" / "a.gift").write_text("::A:: ¿Cuál? {=a #bien ~b #no ~c #no ####g}\n", encoding="utf-8")
@@ -233,7 +230,7 @@ def test_barra_de_progreso_solo_en_terminal(monkeypatch):
         for _ in range(3):
             avance()
     assert avance.activa
-    monkeypatch.setenv("QUESTIONS_SIN_PROGRESO", "1")
+    monkeypatch.setenv("VOIGHT_SIN_PROGRESO", "1")
     assert progreso.mostrar_progreso() is False
 
 

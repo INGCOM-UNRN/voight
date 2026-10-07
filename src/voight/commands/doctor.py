@@ -1,4 +1,4 @@
-"""Comando doctor para diagnóstico del entorno de voight (questions)."""
+"""Comando doctor para diagnóstico del entorno de voight."""
 
 import json
 import shutil

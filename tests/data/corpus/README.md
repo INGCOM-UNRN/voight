@@ -9,6 +9,6 @@ preguntas rotas) para verificar invariantes en cada corrida del CI
 
 Para correr las mismas verificaciones sobre bancos reales, sin copiarlos al repositorio:
 
-    QUESTIONS_BANCOS=/ruta/al/banco1:/ruta/al/banco2 uv run pytest tests/test_corpus.py
+    VOIGHT_BANCOS=/ruta/al/banco1:/ruta/al/banco2 uv run pytest tests/test_corpus.py
 
 Los bancos sólo se leen; lo que se escribe va a un directorio temporal.

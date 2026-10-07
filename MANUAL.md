@@ -1,7 +1,7 @@
 # Manual de Uso y Referencia Técnica: voight
 
 > **VOIGHT** — Herramientas para gestionar preguntas de Moodle (GIFT, XML)
-> **Versión:** `0.1.0` · **CLI principal:** `voight` (alias deprecados: `questions`, `moodle-toolbox`) · **Plugin Ripley:** `voight`
+> **Versión:** `0.1.0` · **CLI principal:** `voight` · **Plugin Ripley:** `voight`
 
 ---
 
@@ -151,7 +151,7 @@ Procesa preguntas GIFT y Moodle XML con un LLM: Gemini (por defecto) o Claude (`
 - `distractors`: agrega distractores hasta `--opciones` (4 por defecto) en las preguntas que tienen menos o donde la correcta delata por su largo; no modifica los existentes.
 - `classify`: Bloom y dificultad con Jev (ver más abajo).
 
-Antes de llamar al modelo informa una estimación de tokens (y de costo, con `--precio-entrada` y `--precio-salida` en USD por millón de tokens); `--dry-run` sólo muestra eso y la primera solicitud. Las respuestas se guardan en una caché por contenido (`$XDG_CACHE_HOME/questions`): volver a correr sobre preguntas que no cambiaron no gasta tokens (`--sin-cache` la desactiva).
+Antes de llamar al modelo informa una estimación de tokens (y de costo, con `--precio-entrada` y `--precio-salida` en USD por millón de tokens); `--dry-run` sólo muestra eso y la primera solicitud. Las respuestas se guardan en una caché por contenido (`$XDG_CACHE_HOME/voight`): volver a correr sobre preguntas que no cambiaron no gasta tokens (`--sin-cache` la desactiva).
 
 El modelo siempre recibe **GIFT compacto**, el formato más corto y el que los LLM conocen mejor:
 
@@ -511,7 +511,7 @@ marcas = true
 
 ### pre-commit y acción de GitHub
 
-El repositorio publica hooks de [pre-commit](https://pre-commit.com) (`voight-format`, `voight-health`, `voight-health-estricto`, `voight-validate`; los ids `questions-*` anteriores siguen andando), que reciben sólo los `.gift`/`.xml` del commit:
+El repositorio publica hooks de [pre-commit](https://pre-commit.com) (`voight-format`, `voight-health`, `voight-health-estricto`, `voight-validate`), que reciben sólo los `.gift`/`.xml` del commit:
 
 ```yaml
 repos:
@@ -538,7 +538,7 @@ Y una acción de GitHub que corre `health` sobre lo que cambia en un pull reques
 `tests/test_corpus.py` verifica invariantes (format no cambia las preguntas y es idempotente, la conversión GIFT ↔ XML no las parte ni las pierde, unify y tree export tampoco, health es consistente) sobre un corpus sintético en cada corrida. Las mismas verificaciones corren sobre bancos reales, que sólo se leen, sin copiarlos al repositorio:
 
 ```bash
-QUESTIONS_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py
+VOIGHT_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py
 ```
 
 ### Integración con Dredd (`dredd-section`)

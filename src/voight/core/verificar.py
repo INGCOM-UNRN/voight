@@ -144,7 +144,7 @@ def _ejecutar(comando: list, cwd: Path, tiempo: int) -> subprocess.CompletedProc
 
 def compilar_y_ejecutar(lenguaje: str, codigo: str, sanitizar: bool = False) -> tuple:
     """(estado, salida, detalle) con estado en ok / no_compila / error_ejecucion / tiempo / ub / sin_compilador."""
-    with tempfile.TemporaryDirectory(prefix="questions-verify-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="voight-verify-") as tmp:
         dir_ = Path(tmp)
         if lenguaje == "c":
             if not shutil.which("gcc"):

@@ -5,7 +5,7 @@ author: "Cátedra de Algoritmos y Programación"
 date: "2026-08-31"
 ---
 
-(manual-moodle_toolbox)=
+(manual-voight)=
 # Moodle-Toolbox — Suite de Mantenimiento, Normalización y Conversión de Bancos GIFT/XML
 
 ````{abstract}
@@ -14,7 +14,7 @@ date: "2026-08-31"
 
 ---
 
-(manual-moodle_toolbox-proposito)=
+(manual-voight-proposito)=
 ## 1. Propósito y Filosofía Pedagógica
 
 La herramienta **`voight`** forma parte del ecosistema oficial de software de la cátedra. Su diseño sigue principios pedagógicos rigurosos:
@@ -26,7 +26,7 @@ La herramienta **`voight`** forma parte del ecosistema oficial de software de la
 
 ---
 
-(manual-moodle_toolbox-instalacion)=
+(manual-voight-instalacion)=
 ## 2. Instalación y Verificación del Entorno
 
 ````{important}
@@ -128,11 +128,11 @@ pipx install --editable .
 
 ### 2.3 Autocompletado en la Shell
 
-La interfaz CLI de `questions` cuenta con autocompletado nativo para comandos, flags y archivos. Para configurarlo permanentemente en tu shell:
+La interfaz CLI de `voight` cuenta con autocompletado nativo para comandos, flags y archivos. Para configurarlo permanentemente en tu shell:
 
 ````{code-block} bash
 # Configuración automática en Bash / Zsh / Fish
-questions --install-completion
+voight --install-completion
 
 # Para cargar el autocompletado en la sesión actual de inmediato:
 source ./install_tools.sh
@@ -165,15 +165,15 @@ voight doctor
 | `❌ typst no disponible` | Motor de PDF faltante | Descargá Typst vía `cargo install typst-cli` o gestor de paquetes. |
 | `❌ gdb no responde` | GDB sin interfaz MI/Python | Reinstalá `gdb` completo desde el repositorio oficial. |
 
-(manual-moodle_toolbox-comandos)=
+(manual-voight-comandos)=
 ## 3. Referencia Completa de Comandos CLI
 
-A continuación se detallan los subcomandos principales disponibles en `questions`:
+A continuación se detallan los subcomandos principales disponibles en `voight`:
 
 | Sintaxis del Comando | Descripción y Efecto |
 | :--- | :--- |
-| `voight convert banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
-| `voight convert banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
+| `voight convert gift-to-xml banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
+| `voight convert xml-to-gift banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
 | `voight health validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
 | `voight fix grammar banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
 | `voight fix format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
@@ -184,7 +184,7 @@ Podés agregar el flag `--json` a la mayoría de los comandos para exportar resu
 
 ---
 
-(manual-moodle_toolbox-tutorial)=
+(manual-voight-tutorial)=
 ## 4. Tutorial Paso a Paso con Ejemplos Reales
 
 ### Caso de Estudio
@@ -228,7 +228,7 @@ Prestá atención a la explicación pedagógica generada: la herramienta no solo
 
 ---
 
-(manual-moodle_toolbox-ejercicios)=
+(manual-voight-ejercicios)=
 ## 5. Ejercicios Prácticos y Desafíos
 
 Practicá el uso avanzado de **`voight`** resolviendo los siguientes ejercicios:
@@ -283,24 +283,25 @@ voight fix grammar preguntas.gift --lang es-AR
 
 ---
 
-(manual-moodle_toolbox-makefile)=
+(manual-voight-makefile)=
 ## 6. Integración en el Flujo de Trabajo y Makefile
 
 Para incorporar `voight` de forma automática a tu flujo de desarrollo, agregá la siguiente regla en el `Makefile` de tu proyecto:
 
 ````{code-block} makefile
-check-moodle_toolbox:
+check-banco:
 	@echo "=== Ejecutando verificación con voight ==="
-	questions check src/ include/
+	voight fix format --check banco/
+	voight health banco/
 
-.PHONY: check-moodle_toolbox
+.PHONY: check-banco
 ````
 
-Ejecutá `make check-moodle_toolbox` antes de cada commit para asegurar que tu código conserve el estado de aprobación.
+Ejecutá `make check-banco` antes de cada commit para asegurar que el banco conserve el formato estándar y no tenga errores que Moodle rechace.
 
 ---
 
-(manual-moodle_toolbox-arquitectura)=
+(manual-voight-arquitectura)=
 ## 7. Arquitectura Interna y Mecanismo Técnico
 
 La herramienta **`voight`** implementa un motor de alta precisión basado en:
@@ -311,7 +312,7 @@ La herramienta **`voight`** implementa un motor de alta precisión basado en:
 
 ---
 
-(manual-moodle_toolbox-ecosistema)=
+(manual-voight-ecosistema)=
 ## 8. Integración y Conexión con el Ecosistema
 
 ````{note}
@@ -344,15 +345,5 @@ Podés encadenar `voight` con otras herramientas del ecosistema en una única l�
 
 ````{code-block} bash
 # Pipeline de integración típico
-voight convert banco.gift -o banco.xml && voight fix grammar banco.xml --premium
+voight convert gift-to-xml banco.gift -o banco.xml && voight fix grammar banco.xml --premium
 ````
-
----
-
-(manual-moodle_toolbox-seccion-plugins)=
-## 9. Extensión, Desarrollo de Plugins y API Python
-
-Para crear tus propias reglas, conectores de evaluación o integrar `voight` programáticamente en pipelines de CI/CD:
-
-- 👉 **Consultá la guía completa:** [Guía de Extensión y Creación de Plugins](plugins.md)
-

@@ -28,7 +28,7 @@ class Avance:
 
 
 def mostrar_progreso() -> bool:
-    if os.environ.get("QUESTIONS_SIN_PROGRESO"):
+    if os.environ.get("VOIGHT_SIN_PROGRESO"):
         return False
     try:
         return sys.stderr.isatty()

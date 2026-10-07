@@ -4,9 +4,9 @@ Documentación para las herramientas de limpieza y mantenimiento de archivos XML
 
 ## Comandos Incluidos
 
-1. [`voight fix xml cdata`](#questions-xml-cdata)
-2. [`voight fix xml clean-tags`](#questions-xml-clean-tags)
-3. [`voight fix xml rename`](#questions-xml-rename)
+1. [`voight fix xml cdata`](#voight-fix-xml-cdata)
+2. [`voight fix xml clean-tags`](#voight-fix-xml-clean-tags)
+3. [`voight fix xml rename`](#voight-fix-xml-rename)
 
 ---
 

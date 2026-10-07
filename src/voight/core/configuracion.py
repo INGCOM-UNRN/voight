@@ -34,8 +34,6 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 NOMBRE = ".voight.toml"
-# Nombre anterior al cambio de questions a voight: se sigue leyendo.
-NOMBRE_ANTERIOR = ".questions.toml"
 
 
 @lru_cache(maxsize=64)
@@ -44,10 +42,9 @@ def _buscar(inicio: str) -> Optional[Path]:
     if actual.is_file():
         actual = actual.parent
     for directorio in (actual, *actual.parents):
-        for nombre in (NOMBRE, NOMBRE_ANTERIOR):
-            candidato = directorio / nombre
-            if candidato.is_file():
-                return candidato
+        candidato = directorio / NOMBRE
+        if candidato.is_file():
+            return candidato
         if (directorio / ".git").exists():
             return None
     return None

@@ -1,5 +1,5 @@
 """Invariantes que debe cumplir cualquier banco: los usan el corpus sintético y, con
-QUESTIONS_BANCOS, los bancos reales (que sólo se leen). Cada función devuelve la lista
+VOIGHT_BANCOS, los bancos reales (que sólo se leen). Cada función devuelve la lista
 de problemas encontrados (vacía si se cumple)."""
 
 from __future__ import annotations

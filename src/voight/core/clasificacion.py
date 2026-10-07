@@ -14,7 +14,7 @@ GIFT una línea `// [bloom:…] …`, en XML un `<!-- … -->` antes del `<quest
 reemplaza al reclasificar; con `tags` también como tags de Moodle.
 
 API: https://docs.typesafe.ai/api.md (la clave TYPESAFE_API_KEY se busca en el entorno,
-`.env.local`, `~/.env` y `~/.questions/.env`).
+`.env.local`, `~/.env` y `~/.voight/.env`).
 """
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ CON_OPCIONES = ("MC", "Matching")
 def resolver_clave() -> Optional[str]:
     if os.environ.get("TYPESAFE_API_KEY"):
         return os.environ["TYPESAFE_API_KEY"].strip()
-    for archivo in (Path.cwd() / ".env.local", Path.home() / ".env", Path.home() / ".questions" / ".env"):
+    for archivo in (Path.cwd() / ".env.local", Path.home() / ".env", Path.home() / ".voight" / ".env"):
         if archivo.exists():
             m = re.search(r"^\s*(?:export\s+)?TYPESAFE_API_KEY\s*=\s*['\"]?([^'\"\r\n]+)",
                           archivo.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
@@ -107,7 +107,7 @@ class ClienteJev:
         self.cache = cache
         self.clave = clave or resolver_clave()
         if not self.clave:
-            raise ValueError("No se encontró TYPESAFE_API_KEY (entorno, .env.local, ~/.env o ~/.questions/.env). "
+            raise ValueError("No se encontró TYPESAFE_API_KEY (entorno, .env.local, ~/.env o ~/.voight/.env). "
                              "Configurala con `voight config set-typesafe-key <KEY>`.")
         self.modelo = modelo
         self.reintentos = reintentos

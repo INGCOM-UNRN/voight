@@ -2,7 +2,7 @@
 
 Para los bancos reales, sin copiarlos al repositorio (sólo se leen):
 
-    QUESTIONS_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py
+    VOIGHT_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py
 """
 
 import os
@@ -13,7 +13,7 @@ import pytest
 import invariantes as inv
 
 CORPUS = Path(__file__).parent / "data" / "corpus"
-BANCOS = [Path(b) for b in os.environ.get("QUESTIONS_BANCOS", "").split(os.pathsep) if b.strip()]
+BANCOS = [Path(b) for b in os.environ.get("VOIGHT_BANCOS", "").split(os.pathsep) if b.strip()]
 
 
 def _sin_problemas(problemas):
@@ -60,7 +60,7 @@ def test_el_corpus_ejercita_lo_que_dice():
 
 # --- bancos reales (opcional) --------------------------------------------------
 
-reales = pytest.mark.skipif(not BANCOS, reason="QUESTIONS_BANCOS no está definido (bancos reales, opcional)")
+reales = pytest.mark.skipif(not BANCOS, reason="VOIGHT_BANCOS no está definido (bancos reales, opcional)")
 
 
 @reales

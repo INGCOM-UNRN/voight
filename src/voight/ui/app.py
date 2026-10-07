@@ -14,17 +14,17 @@ from voight.ui.file_navigator import FileNavigator
 
 def create_app(questions_dir: str) -> Flask:
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'questions-ui-local'
-    app.config['QUESTIONS_DIR'] = os.path.abspath(questions_dir)
+    app.config['SECRET_KEY'] = 'voight-ui-local'
+    app.config['BANCO_DIR'] = os.path.abspath(questions_dir)
 
     parser_xml = QuestionParser()
     parser_gift = GiftQuestionAdapter()
-    navigator = FileNavigator(app.config['QUESTIONS_DIR'])
+    navigator = FileNavigator(app.config['BANCO_DIR'])
 
     def _resolver(filepath: str) -> str:
         """Resuelve una ruta relativa dentro del directorio base (anti path-traversal)."""
-        full = os.path.realpath(os.path.join(app.config['QUESTIONS_DIR'], filepath))
-        base = os.path.realpath(app.config['QUESTIONS_DIR'])
+        full = os.path.realpath(os.path.join(app.config['BANCO_DIR'], filepath))
+        base = os.path.realpath(app.config['BANCO_DIR'])
         if not full.startswith(base + os.sep):
             raise ValueError('Ruta fuera del directorio de preguntas')
         return full
@@ -92,7 +92,7 @@ def run(questions_dir: str, host: str = '127.0.0.1', port: int = 5000, debug: bo
 ║  voight ui - Editor web de bancos (XML + GIFT)         ║
 ╚══════════════════════════════════════════════════════════╝
 
-📂 Directorio: {app.config['QUESTIONS_DIR']}
+📂 Directorio: {app.config['BANCO_DIR']}
 🌐 URL: http://{host}:{port}
 
 Presiona Ctrl+C para detener el servidor

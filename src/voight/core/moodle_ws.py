@@ -104,7 +104,7 @@ def preparar_xml(rutas: list, recursivo: bool = True) -> tuple:
         raise ValueError("No se encontraron archivos de preguntas (.gift / .xml).")
     if len(archivos) == 1 and archivos[0].suffix.lower() == ".xml":
         return archivos[0].name, archivos[0].read_bytes(), 1
-    with tempfile.TemporaryDirectory(prefix="questions-subir-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="voight-subir-") as tmp:
         gifts = [a for a in archivos if a.suffix.lower() == ".gift"]
         xmls = [a for a in archivos if a.suffix.lower() == ".xml"]
         partes = []

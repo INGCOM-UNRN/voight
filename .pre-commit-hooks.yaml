@@ -9,8 +9,6 @@
 #         - id: voight-health
 #
 # Todos reciben sólo los archivos .gift/.xml del commit.
-#
-# Los ids questions-* son los nombres anteriores: siguen funcionando, pero se van a retirar.
 
 - id: voight-format
   name: formato estándar de GIFT y Moodle XML
@@ -35,34 +33,6 @@
 
 - id: voight-validate
   name: validación de GIFT y Moodle XML
-  description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
-  entry: voight health validate
-  language: python
-  files: \.(gift|xml)$
-
-- id: questions-format
-  name: (deprecado, usar voight-*) formato estándar de GIFT y Moodle XML
-  description: Falla si algún archivo no tiene el formato estándar (voight fix format lo corrige).
-  entry: voight fix format --check
-  language: python
-  files: \.(gift|xml)$
-
-- id: questions-health
-  name: (deprecado, usar voight-*) salud del banco (errores)
-  description: Falla ante errores que Moodle no importaría o importaría mal (porcentajes, preguntas partidas, código que rompe GIFT).
-  entry: voight health --max-items 20
-  language: python
-  files: \.(gift|xml)$
-
-- id: questions-health-estricto
-  name: (deprecado, usar voight-*) salud del banco (errores y advertencias)
-  description: Como voight-health, pero también falla ante advertencias (feedback, opciones, longitud de las respuestas).
-  entry: voight health --estricto --max-items 20
-  language: python
-  files: \.(gift|xml)$
-
-- id: questions-validate
-  name: (deprecado, usar voight-*) validación de GIFT y Moodle XML
   description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
   entry: voight health validate
   language: python

@@ -56,7 +56,7 @@ def ai(
     precio_salida: Optional[float] = typer.Option(
         None, "--precio-salida", "--output-price", help="USD por millón de tokens de salida, para estimar el costo."),
     sin_cache: bool = typer.Option(
-        False, "--sin-cache", "--no-cache", help="No usar ni guardar respuestas en la caché (~/.cache/questions)."),
+        False, "--sin-cache", "--no-cache", help="No usar ni guardar respuestas en la caché (~/.cache/voight)."),
     dry_run: bool = typer.Option(
         False, "-n", "--dry-run",
         help="Mostrar lo que se enviaría (y cuánto se ahorra) sin llamar al modelo ni escribir archivos.",

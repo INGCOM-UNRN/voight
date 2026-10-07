@@ -1,6 +1,6 @@
 # Validación y Formateo de Preguntas
 
-Este documento detalla el uso de las herramientas de validación y formateo integradas en el CLI `questions`.
+Este documento detalla el uso de las herramientas de validación y formateo integradas en el CLI `voight`.
 
 ## 1. Validación GIFT (`voight health validate`)
 

@@ -2,8 +2,8 @@
 
 Volver a procesar un banco ya procesado no gasta tokens: la respuesta se guarda bajo
 el SHA-256 de todo lo que determina el resultado (modo, instrucción, modelo y texto
-enviado). Vive en $XDG_CACHE_HOME/questions (por defecto ~/.cache/questions) y se
-puede desactivar con QUESTIONS_SIN_CACHE=1 o con la opción --sin-cache de cada comando.
+enviado). Vive en $XDG_CACHE_HOME/voight (por defecto ~/.cache/voight) y se
+puede desactivar con VOIGHT_SIN_CACHE=1 o con la opción --sin-cache de cada comando.
 """
 from __future__ import annotations
 
@@ -16,12 +16,12 @@ from typing import Any, Optional
 
 def directorio_cache() -> Path:
     base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(base) / "questions"
+    return Path(base) / "voight"
 
 
 class Cache:
     def __init__(self, espacio: str, activa: bool = True, raiz: Optional[Path] = None):
-        self.activa = activa and not os.environ.get("QUESTIONS_SIN_CACHE")
+        self.activa = activa and not os.environ.get("VOIGHT_SIN_CACHE")
         self.dir = (raiz or directorio_cache()) / espacio
         self.aciertos = 0
 

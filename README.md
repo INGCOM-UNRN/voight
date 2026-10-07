@@ -4,7 +4,7 @@
 
 Conjunto de herramientas unificadas en Python para gestionar preguntas de Moodle en formatos XML y GIFT. Facilita la conversión, análisis, limpieza, mantenimiento y generación de preguntas mediante IA.
 
-Todas las herramientas anteriores han sido consolidadas en un único comando raíz: `voight` (antes `questions` y `moodle-toolbox`, que siguen funcionando con un aviso y se van a retirar).
+Todas las herramientas anteriores han sido consolidadas en un único comando raíz: `voight`.
 
 ---
 
@@ -38,7 +38,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 - `voight doctor` informa cuáles de estos requisitos están presentes.
 
 ### Integración en el Ecosistema
-- CLI `voight` (los nombres anteriores `questions` y `moodle-toolbox` son alias deprecados). Subcomando `doctor`.
+- CLI `voight`. Subcomando `doctor`.
 
 ---
 
@@ -127,7 +127,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 
 ### 8. Moodle e integración
 - `voight moodle subir`: Sube un banco a un curso de Moodle por servicio web (requiere el plugin `local_questions_importer_ws` en el sitio).
-- `.voight.toml` (se sigue leyendo `.questions.toml`): valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
+- `.voight.toml`: valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
 - `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/voight@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
 
 ## 📚 Documentación Detallada

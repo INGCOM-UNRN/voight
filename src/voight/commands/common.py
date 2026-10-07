@@ -43,7 +43,7 @@ def emitir_json(comando: str, datos: dict) -> None:
 
 
 def con_configuracion(ctx, rutas, seccion: str, valores: dict) -> dict:
-    """Completa `valores` (parámetro → valor recibido) con el .questions.toml del banco.
+    """Completa `valores` (parámetro → valor recibido) con el .voight.toml del banco.
 
     Sólo reemplaza los parámetros que el usuario no pasó (su valor viene del default de
     la opción). Las claves del archivo son los nombres de los parámetros, salvo que se

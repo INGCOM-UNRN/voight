@@ -148,23 +148,14 @@ app.add_typer(xml_viejo, name="xml", hidden=True)
 
 cli = typer.main.get_command(app)
 
-# Ejecutables anteriores al cambio de nombre: siguen funcionando, con aviso.
-_ALIAS_DEPRECADOS = {"questions", "moodle-toolbox"}
-
-
-def _avisar_alias_deprecado() -> None:
-    invocado = os.path.basename(sys.argv[0]) if sys.argv else ""
-    if invocado in _ALIAS_DEPRECADOS:
-        click.echo(f"Aviso: `{invocado}` ahora se llama `voight`; el nombre anterior se va a retirar.", err=True)
 cli.name = "voight"
 
 
 def main():
-    _avisar_alias_deprecado()
     try:
         cli()
     except Exception as e:
-        if os.environ.get("VOIGHT_DEBUG") or os.environ.get("QUESTIONS_DEBUG") or os.environ.get(VARIABLE_DEPURAR):
+        if os.environ.get("VOIGHT_DEBUG") or os.environ.get(VARIABLE_DEPURAR):
             raise
         # describir_error: los errores de datos (ruta inexistente, archivo que no es UTF-8…) en español.
         click.echo(f"Error: {describir_error(e)} (VOIGHT_DEBUG=1 o P1_DEPURAR=1 muestra el traceback "
