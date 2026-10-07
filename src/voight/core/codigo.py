@@ -348,13 +348,8 @@ def transformar_archivo(
 # ---------------------------------------------------------------------------
 
 _GUARDA = re.compile(r"`{3,}")
-# Etiquetas que se reconocen aunque la guarda tenga código pegado a continuación
-# («```c int x;»). Con el resto de la línea vacío, cualquier palabra cuenta como etiqueta.
-_LENGUAJES = {
-    "c", "h", "cpp", "c++", "java", "python", "py", "bash", "sh", "shell", "console",
-    "text", "txt", "plain", "plaintext", "gift", "xml", "html", "json", "yaml", "sql",
-    "js", "javascript", "make", "makefile", "asm", "diff",
-}
+# La marca de lenguaje va pegada a la guarda que abre («```c», «```python»): la palabra
+# pegada a la apertura siempre es la marca, aunque le siga código en la misma línea.
 _ETIQUETA = re.compile(r"[A-Za-z][\w+#.-]*")
 
 
@@ -365,9 +360,11 @@ def aislar_guardas(texto: str) -> tuple:
     la siguiente: «Dado el código ```c» queda «Dado el código» y «```c»; «return 0;```
     y luego» queda «return 0;», «```» y «y luego». La guarda que abre conserva su
     etiqueta de lenguaje; la que cierra no lleva nada. Apertura y cierre se alternan de
-    izquierda a derecha, como en el resto del módulo.
+    izquierda a derecha, como en el resto del módulo; si el texto tiene una cantidad
+    impar de guardas no se toca (no se sabe cuál abre y cuál cierra, y la marca de
+    lenguaje podría quedar tomada como texto pegado a un cierre).
     """
-    if "```" not in texto:
+    if "```" not in texto or len(_GUARDA.findall(texto)) % 2:
         return texto, 0
     salida: list = []
     abierto = False
@@ -393,9 +390,7 @@ def aislar_guardas(texto: str) -> tuple:
                 etiqueta = ""
                 m_et = _ETIQUETA.match(despues)
                 if m_et:
-                    tras = despues[m_et.end():]
-                    if not tras.strip() or (m_et.group().lower() in _LENGUAJES and tras[:1].isspace()):
-                        etiqueta, despues = m_et.group(), tras
+                    etiqueta, despues = m_et.group(), despues[m_et.end():]
                 piezas.append(guarda + etiqueta)
             abierto = not abierto
             resto = despues.lstrip()

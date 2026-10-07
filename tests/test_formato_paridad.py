@@ -149,3 +149,12 @@ def test_formato_xml_deja_las_guardas_solas_en_su_linea():
     salida = format_xml_content(xml)
     assert "Dado el código\n```c\nint x = 1;\nreturn x;\n```\ny luego texto" in salida
     assert format_xml_content(salida) == salida
+
+
+def test_aislar_guardas_conserva_la_marca_de_lenguaje():
+    from voight.core.codigo import aislar_guardas
+
+    # La palabra pegada a la apertura es la marca, aunque no sea un lenguaje conocido de antemano.
+    assert aislar_guardas("Ej. ```kotlin val x = 1\n```")[0] == "Ej.\n```kotlin\nval x = 1\n```"
+    # Con una cantidad impar de guardas no se sabe cuál abre: el texto queda igual.
+    assert aislar_guardas("texto ```c\nint x;") == ("texto ```c\nint x;", 0)
