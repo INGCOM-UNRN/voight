@@ -1,7 +1,6 @@
 """Navegador de archivos del editor web (XML y GIFT)."""
 
 import os
-import re
 
 FORMATOS = ('.xml', '.gift')
 
