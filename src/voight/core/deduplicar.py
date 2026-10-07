@@ -389,7 +389,7 @@ def confirmar_con_jev(grupos: List[Grupo], cliente, minimo: float = 0.5, concurr
     with ThreadPoolExecutor(max_workers=max(1, concurrencia)) as ejecutor:
         probabilidades = list(ejecutor.map(consultar, pares))
 
-    rechazadas = {id(u): p for (_, u, _), p in zip(pares, probabilidades) if p < minimo}
+    rechazadas = {id(u): p for (_, u, _), p in zip(pares, probabilidades, strict=False) if p < minimo}
     descartados = [
         {"conserva": str(g.conservada.archivo), "descartado": str(u.archivo), "similitud": round(s, 4),
          "probabilidad": round(rechazadas[id(u)], 3)}

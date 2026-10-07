@@ -57,7 +57,7 @@ class FileNavigator:
     def _count_questions(self, directory):
         count = 0
         try:
-            for root, dirs, files in os.walk(directory):
+            for _root, dirs, files in os.walk(directory):
                 dirs[:] = [d for d in dirs if not d.startswith('.')]
                 count += sum(
                     1 for f in files

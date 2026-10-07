@@ -106,7 +106,7 @@ def _pregunta(q: ET.Element) -> Question:
     elif qtype in ("shortanswer", "numerical"):
         pregunta.choices = [_opcion(a, True, formato) for a in respuestas]
         if qtype == "numerical":
-            for opcion, ans in zip(pregunta.choices, respuestas):
+            for opcion, ans in zip(pregunta.choices, respuestas, strict=False):
                 tolerancia = _texto(ans, "tolerance")
                 if tolerancia and opcion.text is not None:
                     opcion.text.text = f"{opcion.text.text}:{tolerancia}"

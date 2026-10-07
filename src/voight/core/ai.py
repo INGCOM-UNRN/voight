@@ -215,7 +215,7 @@ def separar_respuesta(texto: str, cantidad: int) -> Dict[int, List[str]]:
     marcas = list(_MARCADOR.finditer(texto))
     resultado: Dict[int, List[str]] = {}
     if marcas:
-        for actual, siguiente in zip(marcas, marcas[1:] + [None]):
+        for actual, siguiente in zip(marcas, marcas[1:] + [None], strict=False):
             numero = int(actual.group(1))
             bloque = _sin_cerco(texto[actual.end():siguiente.start() if siguiente else len(texto)])
             if bloque and 1 <= numero <= cantidad:
@@ -325,7 +325,7 @@ def agregar_distractores(original: Question, nueva: Question, objetivo: int) -> 
     tope = max(objetivo, len(original.choices) + 2) if len(original.choices) >= objetivo else objetivo
     completa = copy.deepcopy(original)
     vistos = set(originales)
-    for c, texto in zip(nueva.choices, nuevas):
+    for c, texto in zip(nueva.choices, nuevas, strict=False):
         if len(completa.choices) >= tope:
             break
         if texto and texto not in vistos and not c.is_correct and not (c.weight or 0) > 0:
@@ -363,7 +363,7 @@ def completar_feedback(original: Question, nueva: Question) -> tuple:
             if not _hay(getattr(completa, campo)) and _hay(getattr(nueva, campo)):
                 setattr(completa, campo, copy.deepcopy(getattr(nueva, campo)))
                 agregadas += 1
-    for c, n in zip(completa.choices, nueva.choices):
+    for c, n in zip(completa.choices, nueva.choices, strict=False):
         if not _hay(c.feedback) and _hay(n.feedback):
             c.feedback = copy.deepcopy(n.feedback)
             agregadas += 1
@@ -613,7 +613,7 @@ def agregar_feedback_xml(original: ET.Element, q: Question, unidad: Unidad) -> E
         if "false" in por_valor:
             completar(por_valor["false"], "feedback", q.false_feedback)
     else:
-        for a, c in zip(respuestas, q.choices):
+        for a, c in zip(respuestas, q.choices, strict=False):
             completar(a, "feedback", c.feedback)
     return el
 

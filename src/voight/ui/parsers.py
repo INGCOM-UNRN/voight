@@ -110,7 +110,7 @@ class QuestionParser:
         try:
             q = self._pregunta(self._leer(filepath).getroot())
         except ET.ParseError as e:
-            raise ValueError(f"Error al parsear XML: {e}")
+            raise ValueError(f"Error al parsear XML: {e}") from e
 
         tipo = q.get('type', 'unknown')
         modo = MODOS.get(tipo, 'none')
@@ -235,7 +235,7 @@ class QuestionParser:
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(f"Error guardando pregunta: {e}")
+            raise ValueError(f"Error guardando pregunta: {e}") from e
 
     @staticmethod
     def _texto(padre, ruta, valor, formato=None):

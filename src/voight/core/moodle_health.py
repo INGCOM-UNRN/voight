@@ -303,7 +303,7 @@ def auditar_redaccion(preguntas: Iterable[dict]) -> Dict[str, Any]:
             raras = sorted({m.group(0).lower() for t in textos for m in [_OPCION_PROBLEMATICA.search(t)] if m})
             if raras:
                 problematicas.append({**_ref(p), "opciones": raras})
-            largos = [(len(t), _fraccion(o)) for t, o in zip(textos, opciones)]
+            largos = [(len(t), _fraccion(o)) for t, o in zip(textos, opciones, strict=False)]
             correcta = max((n for n, f in largos if f > 0), default=0)
             cortos = [n for n, f in largos if f <= 0 and correcta >= 20 and n < 0.25 * correcta]
             if cortos:
@@ -717,8 +717,8 @@ def fila_csv(p: dict) -> Dict[str, Any]:
     fracciones = [_fraccion(o) for o in opciones]
     textos = [_plano(_texto(o.get("text"))) for o in opciones]
     largos = [len(t) for t in textos]
-    correctas = [n for n, f in zip(largos, fracciones) if f > 0]
-    distractores = [n for n, f in zip(largos, fracciones) if f <= 0]
+    correctas = [n for n, f in zip(largos, fracciones, strict=False) if f > 0]
+    distractores = [n for n, f in zip(largos, fracciones, strict=False) if f <= 0]
     razon = round(mean(correctas) / mean(distractores), 2) if correctas and distractores and mean(distractores) else ""
     retros = [o.get("feedback") for o in opciones] if p.get("type") != "TF" else [p.get("trueFeedback"), p.get("falseFeedback")]
     textos_todos = [p.get("stem"), p.get("globalFeedback")] + [o.get("text") for o in opciones] + retros

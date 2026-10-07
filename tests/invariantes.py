@@ -89,7 +89,7 @@ def conversion_conserva_las_preguntas(rutas) -> List[str]:
             continue
         # Moodle XML exige un nombre: una pregunta GIFT sin título se llama "Pregunta" al convertirla.
         sin_titulo = any(not (q.get("title") or "").strip() for q in originales)
-        esencia = (lambda q: _esencia(q, titulo=not sin_titulo))
+        esencia = (lambda q, sin_titulo=sin_titulo: _esencia(q, titulo=not sin_titulo))
         representables = [q for q in originales if q["type"] in REPRESENTABLES]
         if Counter(map(esencia, representables)) - Counter(map(esencia, convertidas)):
             problemas.append(f"{ruta}: la conversión {sentido} cambia preguntas")

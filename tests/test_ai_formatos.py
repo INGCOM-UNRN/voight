@@ -69,7 +69,7 @@ class Modelo:
         bloques = contents.split("\n\n--- PREGUNTA 1 ---\n", 1)[1]
         partes = ai._MARCADOR.split("--- PREGUNTA 1 ---\n" + bloques)
         salida = []
-        for numero, texto in zip(partes[1::2], partes[2::2]):
+        for numero, texto in zip(partes[1::2], partes[2::2], strict=False):
             for resultado in self.transformar(int(numero), texto.strip()):
                 salida.append(f"--- PREGUNTA {numero} ---\n{resultado}")
         return types.SimpleNamespace(text="\n\n".join(salida))
