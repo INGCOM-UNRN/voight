@@ -8,7 +8,7 @@ from voight.core.naming import rename_to_slug, rename_from_title, set_question_t
 
 from voight.commands.common import LLM_OPTION, emitir_json
 
-fix_app = typer.Typer(help="Comandos para corregir problemas comunes, el formato (format) y Moodle XML (xml).")
+fix_app = typer.Typer(help="Comandos para corregir problemas comunes, el formato (format), la ortografía (grammar) y Moodle XML (xml).")
 
 
 @fix_app.callback()

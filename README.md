@@ -82,7 +82,7 @@ uv run voight --help
 
 El CLI `voight` se organiza en subcomandos especializados:
 
-`health` agrupa la salud del banco (`voight health RUTAS`, igual a `health check`), la validación y el análisis; `grammar`, la revisión ortográfica; y `fix`, las correcciones, el formato y el mantenimiento de Moodle XML. Los nombres anteriores (`validate`, `analyze`, `spellcheck`, `languagetool`, `format`, `xml`) siguen funcionando con un aviso y se van a retirar.
+`health` agrupa la salud del banco (`voight health RUTAS`, igual a `health check`), la validación y el análisis; y `fix`, las correcciones, el formato, la revisión ortográfica (`fix grammar`) y el mantenimiento de Moodle XML. Los nombres anteriores (`validate`, `analyze`, `spellcheck`, `languagetool`, `grammar`, `format`, `xml`) siguen funcionando con un aviso y se van a retirar.
 
 ### 1. Validación y Análisis (GIFT y XML)
 - `voight health validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
@@ -173,11 +173,10 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | `voight unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | `voight synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | `voight ui` | Abre el editor web local (cerebro) sobre DIRECTORIO. |
-| `voight grammar` | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
 | `voight health` | Salud del banco (`voight health RUTAS` es `health check`), validación, estadísticas y similares. |
 | `voight config` | Configuración global de las herramientas. |
 | `voight convert` | Comandos para convertir entre formatos. |
-| `voight fix` | Comandos para corregir problemas comunes, el formato (format) y Moodle XML (xml). |
+| `voight fix` | Comandos para corregir problemas comunes, el formato (format), la ortografía (grammar) y Moodle XML (xml). |
 | `voight tree` | Organiza bancos en árboles de directorios por categoría. |
 | `voight moodle` | Operaciones sobre un sitio Moodle (servicio web). |
 
@@ -185,7 +184,7 @@ Ayuda de cada comando: `voight <comando> -h`.
 
 ### Salida JSON de `voight`
 
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight synth`, `voight grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight synth`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 

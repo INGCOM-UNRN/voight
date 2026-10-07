@@ -73,19 +73,23 @@ def test_cli_ai_prompt_file(tmp_path):
 
 
 def test_comandos_desduplicados_y_nombres_anteriores(tmp_path):
-    """health absorbe validate y analyze; grammar, a spellcheck y languagetool; fix, a format y xml."""
+    """health absorbe validate y analyze; fix, a format, xml y grammar (antes spellcheck y languagetool)."""
     from click.testing import CliRunner
 
     f = tmp_path / "ok.gift"
     f.write_text("::P:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
     runner = CliRunner()
     ayuda = runner.invoke(cli, ["--help"], terminal_width=200).output
-    for oculto in ("validate", "analyze", "spellcheck", "languagetool", "format", "xml"):
+    for oculto in ("validate", "analyze", "spellcheck", "languagetool", "grammar", "format", "xml"):
         assert f"│ {oculto} " not in ayuda
     # `health RUTAS` sigue siendo la salud del banco (health check).
     assert runner.invoke(cli, ["health", str(f)]).output == runner.invoke(cli, ["health", "check", str(f)]).output
     for viejo, nuevo in ((["validate"], "health validate"), (["analyze", "stats"], "health stats"),
-                         (["format", "-n"], "fix format"), (["xml", "cdata", "-n"], "fix xml cdata")):
+                         (["format", "-n"], "fix format"), (["xml", "cdata", "-n"], "fix xml cdata"),
+                         (["grammar", "--help"], None)):
+        if nuevo is None:  # la ayuda corta antes del aviso: alcanza con que siga existiendo
+            assert runner.invoke(cli, viejo).exit_code == 0
+            continue
         res = runner.invoke(cli, viejo + [str(f)])
         assert res.exit_code == 0, res.output
         assert f"ahora es `voight {nuevo}`" in res.output

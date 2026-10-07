@@ -69,9 +69,9 @@ voight doctor
 | [`voight unify`](#unify) | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | [`voight synth`](#synth) | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | [`voight ui`](#ui) | Abre el editor web local (cerebro) sobre DIRECTORIO. |
-| [`voight grammar`](#grammar) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
+| [`voight fix grammar`](#grammar) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
 
-`voight health RUTAS` es lo mismo que `voight health check RUTAS`. Los nombres anteriores siguen funcionando, con un aviso, y se van a retirar: `validate` → `health validate`, `analyze stats|similar` → `health stats|similar`, `spellcheck` y `languagetool` → `grammar`, `format` → `fix format`, `xml …` → `fix xml …`.
+`voight health RUTAS` es lo mismo que `voight health check RUTAS`. Los nombres anteriores siguen funcionando, con un aviso, y se van a retirar: `validate` → `health validate`, `analyze stats|similar` → `health stats|similar`, `spellcheck`, `languagetool` y `grammar` → `fix grammar`, `format` → `fix format`, `xml …` → `fix xml …`.
 
 Todas las opciones largas en castellano aceptan también su nombre en inglés (`--aplicar`/`--apply`, `--conservar`/`--keep`, `--estricto`/`--strict`, `--desde`/`--since`, `--contexto`/`--context`…). Los comandos que escriben aceptan `-n/--dry-run`, y `health`, `health validate`, `fix format`, `verify` y `dedup` aceptan `--desde <rev>` para procesar sólo los archivos cambiados desde una revisión git (más los nuevos sin seguimiento). Los valores por defecto de cada banco pueden fijarse en un [`.voight.toml`](#configuracion-por-banco).
 
@@ -443,7 +443,7 @@ Cada pregunta del árbol muestra su cantidad de opciones (respuestas en opción 
 voight ui
 ```
 
-### `voight grammar`
+### `voight fix grammar`
 
 Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool.
 
@@ -465,7 +465,7 @@ Verifica y corrige ortografía y gramática en bancos GIFT y XML usando Language
 
 #### Ejemplo de Invocación
 ```bash
-voight grammar
+voight fix grammar
 ```
 
 

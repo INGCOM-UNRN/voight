@@ -175,7 +175,7 @@ A continuación se detallan los subcomandos principales disponibles en `question
 | `voight convert banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
 | `voight convert banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
 | `voight health validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
-| `voight grammar banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
+| `voight fix grammar banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
 | `voight fix format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
 
 ````{tip}
@@ -270,13 +270,13 @@ Auditar ortografía en los textos de retroalimentación pedagógica.
 
 **Instrucción de ejecución:**
 ```bash
-voight grammar preguntas.gift --lang es-AR
+voight fix grammar preguntas.gift --lang es-AR
 ```
 ````
 
 ````{solution} Desafío 3
 ```bash
-voight grammar preguntas.gift --lang es-AR
+voight fix grammar preguntas.gift --lang es-AR
 # Comprobá que la salida confirme la ausencia de advertencias o errores pendientes.
 ```
 ````
@@ -344,7 +344,7 @@ Podés encadenar `voight` con otras herramientas del ecosistema en una única l�
 
 ````{code-block} bash
 # Pipeline de integración típico
-voight convert banco.gift -o banco.xml && voight grammar banco.xml --premium
+voight convert banco.gift -o banco.xml && voight fix grammar banco.xml --premium
 ````
 
 ---
