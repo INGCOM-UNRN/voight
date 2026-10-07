@@ -34,6 +34,33 @@ def comando_clang_format() -> Optional[List[str]]:
     return None
 
 
+# Estilos de llaves de clang-format (BreakBeforeBraces): `--estilo allman` es el estilo de la
+# cátedra con esas llaves. clang-format no los acepta como estilo base.
+_LLAVES = {n.lower(): n for n in ("Attach", "Linux", "Mozilla", "Stroustrup", "Allman", "Whitesmiths", "GNU", "WebKit")}
+_ESTILOS_BASE = {"llvm", "gnu", "google", "chromium", "microsoft", "mozilla", "webkit", "file", "inheritparentconfig"}
+
+
+def resolver_estilo(estilo: Optional[str]) -> str:
+    """El estilo para clang-format: el de la cátedra si no se indica; un nombre de llaves
+    (`allman`, `stroustrup`…) que no es un estilo base, el de la cátedra con esas llaves."""
+    if not estilo:
+        return ESTILO
+    nombre = estilo.strip()
+    if nombre.lower() in _LLAVES and nombre.lower() not in _ESTILOS_BASE:
+        return ESTILO[:-1] + f", BreakBeforeBraces: {_LLAVES[nombre.lower()]}}}"
+    return nombre
+
+
+def error_de_estilo(comando: List[str], estilo: str) -> Optional[str]:
+    """None si clang-format acepta el estilo; si no, su mensaje de error."""
+    try:
+        r = subprocess.run([*comando, f"--style={estilo}", "--assume-filename=prueba.c"],
+                           input="int x;\n", capture_output=True, text=True, timeout=60)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        return str(e)
+    return None if r.returncode == 0 else (r.stderr.strip() or f"clang-format salió con {r.returncode}")
+
+
 def formatear(codigo: str, lenguaje: str, comando: List[str], estilo: str = ESTILO) -> Optional[str]:
     try:
         r = subprocess.run([*comando, f"--style={estilo}", f"--assume-filename=pregunta.{_EXTENSION[lenguaje]}"],

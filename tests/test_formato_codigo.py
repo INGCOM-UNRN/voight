@@ -48,3 +48,30 @@ def test_format_gaff_formatea_y_vuelve_a_proteger(tmp_path):
     texto = banco.read_text(encoding="utf-8")
     assert "if （x ＞ 2）↵\n｛↵\n····x++；↵\n｝↵\n```" in texto
     assert runner.invoke(cli, ["fix", "format", "--gaff", "--check", str(banco)]).exit_code == 0
+
+
+def test_estilo_de_llaves_sobre_el_estilo_de_la_catedra():
+    from voight.core.formato_codigo import ESTILO, resolver_estilo
+
+    assert resolver_estilo(None) == ESTILO
+    assert resolver_estilo("allman").endswith("BreakBeforeBraces: Allman}")
+    assert resolver_estilo("Stroustrup").startswith(ESTILO[:-1])
+    # Los estilos base de clang-format pasan tal cual.
+    assert resolver_estilo("Google") == "Google" and resolver_estilo("gnu") == "gnu"
+
+
+@pytest.mark.skipif(comando_clang_format() is None, reason="sin clang-format")
+def test_code_format_allman_y_estilo_invalido(tmp_path):
+    from click.testing import CliRunner
+
+    from voight.cli import cli
+
+    banco = tmp_path / "a.gift"
+    banco.write_text("::P:: ¿Qué hace?\n```c\nint f(int x){if(x){return 1;}return 0;}\n```\n{=a ~b}\n", encoding="utf-8")
+    runner = CliRunner()
+    res = runner.invoke(cli, ["fix", "code-format", "--style", "allman", str(banco)])
+    assert res.exit_code == 0, res.output
+    # GIFT sin proteger: las llaves van escapadas.
+    assert "int f(int x)\n\\{\n    if (x)\n    \\{" in banco.read_text(encoding="utf-8")
+    res = runner.invoke(cli, ["fix", "code-format", "--style", "noexiste", str(banco)])
+    assert res.exit_code == 2 and "no acepta el estilo" in res.output

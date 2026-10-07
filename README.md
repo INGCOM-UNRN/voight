@@ -96,7 +96,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight fix format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. `--gaff` formatea el código C de los bloques con gaff (estilo de la cátedra): restaura los caracteres normales, aplica `gaff fix` y lo vuelve a proteger como estaba. Ver [caracteres especiales](./docs/caracteres_especiales.md).
 - `voight fix format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
 - `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
-- `voight fix code-format`: Formatea el código C y Java con clang-format.
+- `voight fix code-format`: Formatea el código C y Java con clang-format (`--estilo allman` u otro estilo de llaves aplica esas llaves sobre el estilo por defecto; un estilo que clang-format no acepta da error).
 - `voight fix code-indent`: Marca la indentación del código con `·`.
 - `voight fix code-chars`: Convierte los caracteres del código entre normal y fullwidth.
 - `voight fix slugify`: Normaliza nombres de archivos (minúsculas, sin acentos).
@@ -161,7 +161,7 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 |:--|:--|
 | `--llm` | Muestra instrucciones generales para un LLM. |
 
-### Comandos de `voight`
+### Comandos
 
 | Comando | Descripción |
 |:--|:--|
@@ -182,7 +182,7 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 
 Ayuda de cada comando: `voight <comando> -h`.
 
-### Salida JSON de `voight`
+### Salida JSON
 
 Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight synth`. El de `doctor --json` lleva `schema_version` y `ok`.
 

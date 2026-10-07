@@ -233,22 +233,30 @@ def code_format(
     paths: Optional[List[str]] = typer.Argument(None, exists=True),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar recursivamente"),
     estilo: Optional[str] = typer.Option(
-        None, "--estilo", "--style", help="Estilo de clang-format (por defecto: LLVM con 4 espacios, regla 0x0005h)."),
+        None, "--estilo", "--style",
+        help="Estilo de clang-format (por defecto: LLVM con 4 espacios, regla 0x0005h). Un estilo de llaves "
+             "(allman, stroustrup, gnu, linux, whitesmiths…) aplica esas llaves sobre el estilo por defecto."),
     dry_run: bool = typer.Option(False, "-n", "--dry-run", help="No aplicar cambios"),
 ):
     """Formatea el código C y Java de las preguntas con clang-format, conservando la convención de cada archivo."""
-    from voight.core.formato_codigo import ESTILO, comando_clang_format, formatear_archivo
+    from voight.core.formato_codigo import comando_clang_format, error_de_estilo, formatear_archivo, resolver_estilo
 
     comando = comando_clang_format()
     if comando is None:
         click.echo("Error: hace falta clang-format (o uvx para usar el paquete de PyPI).", err=True)
         raise typer.Exit(code=1)
+    estilo_clang = resolver_estilo(estilo)
+    error = error_de_estilo(comando, estilo_clang)
+    if error:
+        # Sin esto, cada bloque fallaba en silencio y el comando terminaba sin cambiar nada.
+        click.echo(f"Error: clang-format no acepta el estilo {estilo_clang!r}: {error}", err=True)
+        raise typer.Exit(code=2)
     files = expandir_rutas(paths or ['.'], recursive, ('.gift', '.xml', '.md'))
 
     modified_count = 0
     for f in sorted(files):
         content = f.read_text(encoding='utf-8')
-        new_content, count = formatear_archivo(content, formato_de(f) or "md", comando, estilo or ESTILO)
+        new_content, count = formatear_archivo(content, formato_de(f) or "md", comando, estilo_clang)
         if count > 0:
             if not dry_run:
                 f.write_text(new_content, encoding='utf-8')
