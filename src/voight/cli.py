@@ -1,15 +1,17 @@
+import functools
 import os
 import sys
 
 import click
 import typer
+from typer.core import TyperGroup
 from yutani.cli import CONTEXTO, VARIABLE_DEPURAR, describir_error, opcion_version
 from yutani.textos import traducir
 
 from voight.core.llm_instructions import get_instructions
 
 from voight.commands.ai import ai
-from voight.commands.analyze import analyze_app
+from voight.commands.analyze import similar, stats
 from voight.commands.config import config_app
 from voight.commands.convert import convert_app
 from voight.commands.dedup import dedup
@@ -26,7 +28,7 @@ from voight.commands.ui import ui
 from voight.commands.unify import unify
 from voight.commands.validate import validate
 from voight.commands.verify import verify
-from voight.commands.xml import xml_app
+from voight.commands.xml import cdata, clean_tags, rename, xml_group
 
 
 def llm_callback(ctx, param, value):
@@ -70,29 +72,78 @@ def main_callback(
     """Herramientas para la gestión de preguntas de Moodle."""
 
 
+class _GrupoConPredeterminado(TyperGroup):
+    """Grupo cuyo primer argumento, si no es un subcomando, va al subcomando predeterminado:
+    `voight health banco/` es `voight health check banco/`."""
+
+    predeterminado = "check"
+
+    def parse_args(self, ctx, args):
+        if args and args[0] not in self.commands and args[0] not in ("-h", "--help", "--llm"):
+            args = [self.predeterminado, *args]
+        return super().parse_args(ctx, args)
+
+
+def _deprecado(funcion, viejo: str, nuevo: str):
+    """El comando con su nombre anterior: avisa por stderr y sigue funcionando."""
+    @functools.wraps(funcion)
+    def envoltura(*args, **kwargs):
+        click.echo(f"Aviso: `voight {viejo}` ahora es `voight {nuevo}`; el nombre anterior se va a retirar.", err=True)
+        return funcion(*args, **kwargs)
+    return envoltura
+
+
+# health: la salud del banco (check, predeterminado), la validación y el análisis.
+health_app = typer.Typer(
+    cls=_GrupoConPredeterminado,
+    help="Salud del banco (`voight health RUTAS` es `health check`), validación, estadísticas y similares.",
+    no_args_is_help=True,
+)
+health_app.command("check")(health_cmd)
+health_app.command("validate")(validate)
+health_app.command("stats")(stats)
+health_app.command("similar")(similar)
+
+# fix: también el formato (format) y las herramientas de Moodle XML (xml).
+fix_app.command("format")(format_cmd)
+xml_app = typer.Typer(help="Herramientas para archivos XML de Moodle.")
+xml_app.callback()(xml_group)
+xml_app.command("cdata")(cdata)
+xml_app.command("clean-tags")(clean_tags)
+xml_app.command("rename")(rename)
+fix_app.add_typer(xml_app, name="xml")
+
 app.command("doctor")(doctor_cmd)
-app.command("health")(health_cmd)
+app.add_typer(health_app, name="health")
 app.command("ai")(ai)
-app.command("validate")(validate)
 app.command("dedup")(dedup)
 app.command("verify")(verify)
-app.command("format")(format_cmd)
 app.command("split")(split)
 app.command("unify")(unify)
 app.command("synth")(synth)
 app.command("ui")(ui)
-app.command("spellcheck")(spellcheck)
-# Alias históricos de `spellcheck` (LanguageTool).
-app.command("languagetool")(spellcheck)
 app.command("grammar")(spellcheck)
 
 app.add_typer(config_app, name="config")
 app.add_typer(convert_app, name="convert")
 app.add_typer(fix_app, name="fix")
-app.add_typer(analyze_app, name="analyze")
 app.add_typer(tree_app, name="tree")
-app.add_typer(xml_app, name="xml")
 app.add_typer(moodle_app, name="moodle")
+
+# Nombres anteriores (ocultos): avisan y siguen funcionando.
+app.command("validate", hidden=True)(_deprecado(validate, "validate", "health validate"))
+app.command("format", hidden=True)(_deprecado(format_cmd, "format", "fix format"))
+app.command("spellcheck", hidden=True)(_deprecado(spellcheck, "spellcheck", "grammar"))
+app.command("languagetool", hidden=True)(_deprecado(spellcheck, "languagetool", "grammar"))
+analyze_viejo = typer.Typer(help="Ahora es `voight health stats` y `voight health similar`.")
+analyze_viejo.command("stats")(_deprecado(stats, "analyze stats", "health stats"))
+analyze_viejo.command("similar")(_deprecado(similar, "analyze similar", "health similar"))
+app.add_typer(analyze_viejo, name="analyze", hidden=True)
+xml_viejo = typer.Typer(help="Ahora es `voight fix xml`.")
+xml_viejo.callback()(xml_group)
+for nombre, funcion in (("cdata", cdata), ("clean-tags", clean_tags), ("rename", rename)):
+    xml_viejo.command(nombre)(_deprecado(funcion, f"xml {nombre}", f"fix xml {nombre}"))
+app.add_typer(xml_viejo, name="xml", hidden=True)
 
 cli = typer.main.get_command(app)
 

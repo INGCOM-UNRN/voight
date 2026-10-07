@@ -140,13 +140,13 @@ def test_filtrado_por_prefijos_igual_a_fuerza_bruta():
 
 def test_validate_y_analyze_con_xml(tmp_path):
     (tmp_path / "b.xml").write_text(XML, encoding="utf-8")
-    res = runner.invoke(cli, ["validate", str(tmp_path / "b.xml")])
+    res = runner.invoke(cli, ["health", "validate", str(tmp_path / "b.xml")])
     assert res.exit_code == 0, res.output
     assert "Archivo válido" in res.output and "Preguntas encontradas: 6" in res.output
-    res = runner.invoke(cli, ["validate", str(tmp_path), "--json"])
+    res = runner.invoke(cli, ["health", "validate", str(tmp_path), "--json"])
     assert res.exit_code == 0, res.output
     assert json.loads(res.output)["directories"]["stats"]["byFormat"] == {"xml": 1}
-    res = runner.invoke(cli, ["analyze", "stats", str(tmp_path), "--json"])
+    res = runner.invoke(cli, ["health", "stats", str(tmp_path), "--json"])
     datos = json.loads(res.output)
     assert datos["stats"]["byType"]["MC"] == 1 and datos["stats"]["byCategory"] == {"$course$/C/Punteros": 1}
 

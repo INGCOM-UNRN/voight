@@ -2,20 +2,20 @@
 
 Este documento detalla el uso de las herramientas de validación y formateo integradas en el CLI `questions`.
 
-## 1. Validación GIFT (`voight validate`)
+## 1. Validación GIFT (`voight health validate`)
 
 Diseñado para asegurar la integridad estructural y el cumplimiento de las convenciones del repositorio.
 
 ### Uso
 ```bash
 # Validar un directorio completo (recursivo por defecto)
-uv run voight validate ./preguntas
+uv run voight health validate ./preguntas
 
 # Validar y generar un informe detallado en un archivo
-uv run voight validate ./preguntas --output informe.txt
+uv run voight health validate ./preguntas --output informe.txt
 
 # Validación de un archivo único
-uv run voight validate pregunta.gift
+uv run voight health validate pregunta.gift
 ```
 
 ### Qué valida:
@@ -26,17 +26,17 @@ uv run voight validate pregunta.gift
 
 ---
 
-## 2. Formateo GIFT (`voight format`)
+## 2. Formateo GIFT (`voight fix format`)
 
 Estandariza la apariencia visual de los archivos GIFT para mejorar su legibilidad.
 
 ### Uso
 ```bash
 # Formatear archivos (sobrescribe los originales)
-uv run voight format ./preguntas
+uv run voight fix format ./preguntas
 
 # Simulación (dry-run) para ver qué se cambiaría
-uv run voight format ./preguntas --dry-run
+uv run voight fix format ./preguntas --dry-run
 ```
 
 ### Estándar de Formato Aplicado:
@@ -76,6 +76,6 @@ Si eres un modelo de lenguaje operando en este repositorio, sigue estas directri
 
 ### Flujo de Trabajo Sugerido
 1. Genera la pregunta.
-2. Ejecuta `uv run voight format <archivo>` para asegurar el estilo.
-3. Ejecuta `uv run voight validate <archivo>` para verificar errores estructurales.
+2. Ejecuta `uv run voight fix format <archivo>` para asegurar el estilo.
+3. Ejecuta `uv run voight health validate <archivo>` para verificar errores estructurales.
 4. Si hay errores, corrígelos y repite la validación hasta obtener `✅ Archivo válido`.

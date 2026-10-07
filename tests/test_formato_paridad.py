@@ -89,14 +89,14 @@ def test_formato_xml_cdata_sangria_y_comentarios():
 def test_comando_format_procesa_gift_y_xml(tmp_path):
     (tmp_path / "a.gift").write_text("::A::Q {=a ~b}\n", encoding="utf-8")
     (tmp_path / "b.xml").write_text(XML, encoding="utf-8")
-    res = runner.invoke(cli, ["format", str(tmp_path), "--fullwidth"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--fullwidth"])
     assert res.exit_code == 0, res.output
     assert "2 modificados" in res.output
     xml = (tmp_path / "b.xml").read_text(encoding="utf-8")
     assert "＃include ＜stdio.h＞↵\nint a ＝ 1 ＆＆ 2；↵\n```" in xml
-    res = runner.invoke(cli, ["format", str(tmp_path), "--fullwidth"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--fullwidth"])
     assert "0 modificados" in res.output
-    res = runner.invoke(cli, ["format", str(tmp_path), "--normal"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--normal"])
     assert "#include <stdio.h>\nint a = 1 && 2;\n```" in (tmp_path / "b.xml").read_text(encoding="utf-8")
 
 

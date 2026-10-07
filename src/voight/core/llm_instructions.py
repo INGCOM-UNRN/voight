@@ -1,6 +1,6 @@
 VALIDATE_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Validación de Preguntas
-`validate`, `analyze` y `health` aceptan GIFT y Moodle XML (también repositorios mixtos).
+`health` (y sus subcomandos `check`, `validate`, `stats` y `similar`) acepta GIFT y Moodle XML (también repositorios mixtos).
 Al generar o corregir preguntas GIFT:
 1. **Evita líneas en blanco internas**: No insertes líneas vacías entre el título, el enunciado y el bloque de respuestas. En GIFT, una línea en blanco termina la pregunta.
 2. **Escapa los dos puntos**: No uses `:` en enunciados o respuestas a menos que lo escapes como `\:`. Para separadores visuales usa `：` (fullwidth).
@@ -14,7 +14,7 @@ Al generar o corregir preguntas GIFT:
 
 FORMAT_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Formato GIFT y Moodle XML
-`format` formatea GIFT y Moodle XML (sangría de 2 espacios y `<text>` en CDATA).
+`fix format` formatea GIFT y Moodle XML (sangría de 2 espacios y `<text>` en CDATA).
 Genera archivos GIFT siguiendo este estándar visual estricto:
 1. **Título**: Primera línea, formato `::Título::`.
 2. **Enunciado**: Siguiente línea inmediata, preferiblemente con prefijo `[markdown]`.
@@ -88,7 +88,7 @@ UNIFY_INSTRUCTIONS = r"""
 DEDUP_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Eliminar Duplicados
 1. **Simulá primero**: `dedup` sin `--aplicar` sólo muestra los grupos; revisalos antes de eliminar.
-2. **Umbral**: `-s` (0–1, por defecto 0.95). Más bajo encuentra más duplicados y más falsos positivos; usá `analyze similar -s` para explorar.
+2. **Umbral**: `-s` (0–1, por defecto 0.95). Más bajo encuentra más duplicados y más falsos positivos; usá `health similar -s` para explorar.
 3. **Qué se conserva**: de cada grupo, la pregunta más completa (feedback, título, opciones) o la primera (`--conservar primera`). Sólo se comparan preguntas del mismo tipo.
 4. **Efecto**: en GIFT se quita el bloque (las `$CATEGORY` quedan), en XML el `<question>` con sus comentarios; un archivo sin preguntas se borra.
 5. **Deshacer**: `--aplicar` guarda una copia de los originales en `dedup-respaldos/`; `dedup --restaurar ultimo` los devuelve sin pisar archivos editados después.
@@ -115,6 +115,9 @@ def get_instructions(command_name):
         'validate': VALIDATE_INSTRUCTIONS,
         'analyze': VALIDATE_INSTRUCTIONS,
         'health': VALIDATE_INSTRUCTIONS,
+        'check': VALIDATE_INSTRUCTIONS,
+        'stats': VALIDATE_INSTRUCTIONS,
+        'similar': VALIDATE_INSTRUCTIONS,
         'format': FORMAT_INSTRUCTIONS,
         'xml': XML_INSTRUCTIONS,
         'convert': CONVERT_INSTRUCTIONS,

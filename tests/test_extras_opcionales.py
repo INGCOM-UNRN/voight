@@ -21,13 +21,13 @@ def _correr(codigo: str) -> subprocess.CompletedProcess:
 def test_la_ayuda_funciona_sin_myst_tools():
     resultado = _correr("from voight.cli import cli; cli(['--help'])")
     assert resultado.returncode == 0, resultado.stderr
-    assert "spellcheck" in resultado.stdout
+    assert "grammar" in resultado.stdout
 
 
 def test_spellcheck_sin_myst_tools_explica_el_extra(tmp_path):
     banco = tmp_path / "banco.gift"
     banco.write_text("::p1:: ¿Cuánto es 2+2? {=4}\n", encoding="utf-8")
-    resultado = _correr(f"from voight.cli import cli; cli(['spellcheck', {str(banco)!r}])")
+    resultado = _correr(f"from voight.cli import cli; cli(['grammar', {str(banco)!r}])")
     assert resultado.returncode == 1
     assert "extra languagetool" in resultado.stderr
     assert "Traceback" not in resultado.stderr

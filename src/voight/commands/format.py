@@ -148,7 +148,7 @@ def format_cmd(
     if check:
         if modified_count or errores:
             click.echo(f"\n{modified_count} de {len(files)} archivos no tienen el formato estándar "
-                       "(`voight format` los corrige).", err=True)
+                       "(`voight fix format` los corrige).", err=True)
             raise typer.Exit(code=1)
         click.echo(f"{len(files)} archivos con el formato estándar.")
         return

@@ -13,18 +13,18 @@ def test_format_check_y_diff_no_escriben(tmp_path):
     limpio = tmp_path / "b.gift"
     limpio.write_text("::B::\nQ\n{\n    =a\n    ~b\n}\n", encoding="utf-8")
 
-    res = runner.invoke(cli, ["format", str(tmp_path), "--check"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--check"])
     assert res.exit_code == 1 and "[CAMBIARÍA]" in res.output and "a.gift" in res.output
     assert sucio.read_text(encoding="utf-8") == "::A::Q {=a ~b}\n"
 
-    res = runner.invoke(cli, ["format", str(sucio), "--diff"])
+    res = runner.invoke(cli, ["fix", "format", str(sucio), "--diff"])
     assert res.exit_code == 0
     assert f"--- a/{sucio}" in res.output and "+    =a" in res.output
     assert sucio.read_text(encoding="utf-8") == "::A::Q {=a ~b}\n"
 
-    assert runner.invoke(cli, ["format", str(limpio), "--check"]).exit_code == 0
-    runner.invoke(cli, ["format", str(tmp_path)])
-    assert runner.invoke(cli, ["format", str(tmp_path), "--check"]).exit_code == 0
+    assert runner.invoke(cli, ["fix", "format", str(limpio), "--check"]).exit_code == 0
+    runner.invoke(cli, ["fix", "format", str(tmp_path)])
+    assert runner.invoke(cli, ["fix", "format", str(tmp_path), "--check"]).exit_code == 0
 
 
 def test_hooks_de_pre_commit_ejecutan_comandos_reales(tmp_path):
@@ -77,12 +77,12 @@ def test_configuracion_de_dedup_y_format(tmp_path):
     raiz = _banco_con_config(tmp_path, '[dedup]\numbral = 0.5\n\n[format]\nfullwidth = true\nmarcas = false\n')
     (raiz / "temas" / "codigo.gift").write_text("::C:: Ver\n```c\nint a = 1;\n```\n{=a ~b}\n", encoding="utf-8")
     assert json.loads(runner.invoke(cli, ["dedup", str(raiz), "-r", "--json"]).output)["umbral"] == 0.5
-    runner.invoke(cli, ["format", str(raiz / "temas" / "codigo.gift")])
+    runner.invoke(cli, ["fix", "format", str(raiz / "temas" / "codigo.gift")])
     texto = (raiz / "temas" / "codigo.gift").read_text(encoding="utf-8")
     assert "int a ＝ 1；\n```" in texto  # fullwidth del archivo, sin marcas
-    runner.invoke(cli, ["format", str(raiz / "temas" / "codigo.gift"), "--normal"])
+    runner.invoke(cli, ["fix", "format", str(raiz / "temas" / "codigo.gift"), "--normal"])
     assert "int a \\= 1;" in (raiz / "temas" / "codigo.gift").read_text(encoding="utf-8")
-    assert runner.invoke(cli, ["format", str(raiz), "--fullwidth", "--normal"]).exit_code == 1
+    assert runner.invoke(cli, ["fix", "format", str(raiz), "--fullwidth", "--normal"]).exit_code == 1
 
 
 def test_configuracion_contexto_de_classify(tmp_path, monkeypatch):
@@ -124,14 +124,14 @@ def test_desde_procesa_solo_lo_cambiado(tmp_path):
 
     datos = json.loads(runner.invoke(cli, ["health", str(raiz), "--desde", "HEAD", "--json"]).output)
     assert datos["archivos"]["total"] == 2
-    res = runner.invoke(cli, ["format", str(raiz), "--check", "--desde", "HEAD"])
+    res = runner.invoke(cli, ["fix", "format", str(raiz), "--check", "--desde", "HEAD"])
     assert "viejo.gift" not in res.output and "nuevo.gift" in res.output
     # dedup compara contra todo el banco: el nuevo duplica al viejo, que no cambió.
     grupos = json.loads(runner.invoke(cli, ["dedup", str(raiz), "-s", "0.9", "--desde", "HEAD", "--json"]).output)["grupos"]
     assert len(grupos) == 1
     archivos = {grupos[0]["conserva"]["archivo"]} | {d["archivo"] for d in grupos[0]["elimina"]}
     assert {p.rsplit("/", 1)[-1] for p in archivos} == {"viejo.gift", "nuevo.gift"}
-    datos = json.loads(runner.invoke(cli, ["validate", str(raiz), "--desde", "HEAD", "--json"]).output)
+    datos = json.loads(runner.invoke(cli, ["health", "validate", str(raiz), "--desde", "HEAD", "--json"]).output)
     assert sorted(f["filepath"].rsplit("/", 1)[-1] for f in datos["files"]) == ["nuevo.gift", "tocado.gift"]
 
     fuera = tmp_path / "fuera"
@@ -178,7 +178,7 @@ def test_dry_run_en_todos_los_comandos_que_escriben(tmp_path):
     comandos = [
         ["fix", "slugify"], ["fix", "name-from-title"], ["fix", "title-from-name"], ["fix", "extension"],
         ["fix", "code-indent"], ["fix", "code-chars"],
-        ["xml", "cdata"], ["xml", "clean-tags"], ["xml", "rename"],
+        ["fix", "xml", "cdata"], ["fix", "xml", "clean-tags"], ["fix", "xml", "rename"],
         ["split", "--remove"], ["convert", "html-to-md"], ["health", "--clean-html"],
     ]
     for comando in comandos:
@@ -194,7 +194,7 @@ def test_alias_en_ingles_de_las_opciones():
     import re
     from pathlib import Path
 
-    for comando in (["health"], ["dedup"], ["ai"], ["format"], ["verify"], ["synth"], ["fix", "code-chars"]):
+    for comando in (["health", "check"], ["dedup"], ["ai"], ["fix", "format"], ["verify"], ["synth"], ["fix", "code-chars"]):
         ayuda = runner.invoke(cli, comando + ["--help"], terminal_width=200).output
         assert ayuda, comando
     fuentes = "".join(p.read_text(encoding="utf-8") for p in Path("src/voight/commands").glob("*.py"))
@@ -242,13 +242,13 @@ def test_format_json(tmp_path):
 
     ok, mal = tmp_path / "ok.gift", tmp_path / "mal.gift"
     ok.write_text("::A:: ¿Sí?\n{T}\n", encoding="utf-8")
-    runner.invoke(cli, ["format", str(ok)])
+    runner.invoke(cli, ["fix", "format", str(ok)])
     mal.write_text("::B::¿Sí?{T}", encoding="utf-8")
-    res = runner.invoke(cli, ["format", str(tmp_path), "--check", "--json"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--check", "--json"])
     datos = json.loads(res.output)
     assert res.exit_code == 1 and datos["modo"] == "check" and datos["archivos"] == 2
     assert [p.rsplit("/", 1)[-1] for p in datos["cambian"]] == ["mal.gift"] and datos["errores"] == []
-    res = runner.invoke(cli, ["format", str(tmp_path), "--json"])
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path), "--json"])
     assert json.loads(res.output)["modo"] == "escritura"
-    datos = json.loads(runner.invoke(cli, ["format", str(tmp_path), "--check", "--json"]).output)
+    datos = json.loads(runner.invoke(cli, ["fix", "format", str(tmp_path), "--check", "--json"]).output)
     assert datos["cambian"] == []

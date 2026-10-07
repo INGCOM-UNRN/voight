@@ -979,7 +979,7 @@ def generar_reporte_markdown(resultado: Dict[str, Any], nombre: str, max_items: 
     lineas.append(f"- Con líneas `//` sin proteger (se pierden al importar): {cod.get('comentarios', 0)}")
     lineas.append(f"- Bloques ``` sin etiqueta de lenguaje (`voight fix code-lang` la agrega): {cod.get('sin_lenguaje', 0)}\n")
     if cod["archivos"]:
-        lineas.append("> [!TIP]\n> `voight format --fullwidth` protege el código y agrega las marcas `·` y `↵`.\n")
+        lineas.append("> [!TIP]\n> `voight fix format --fullwidth` protege el código y agrega las marcas `·` y `↵`.\n")
         _lista(lineas, cod["archivos"],
                lambda i: f"{i['sin_proteger']} sin proteger, {i['variantes']} con variantes, {i['lineas_vacias']} con líneas en blanco, "
                          f"{i.get('comentarios', 0)} con //, {i.get('sin_lenguaje', 0)} sin lenguaje",

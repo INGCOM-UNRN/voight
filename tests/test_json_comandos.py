@@ -24,14 +24,14 @@ def _json(res):
 
 def test_analyze_stats_json(tmp_path):
     (tmp_path / "a.gift").write_text(GIFT, encoding="utf-8")
-    datos = _json(runner.invoke(cli, ["analyze", "stats", str(tmp_path), "--json"]))
+    datos = _json(runner.invoke(cli, ["health", "stats", str(tmp_path), "--json"]))
     assert datos["comando"] == "analyze stats"
     assert datos["stats"]["totalQuestions"] == 1
 
 
 def test_analyze_similar_json(tmp_path):
     (tmp_path / "a.gift").write_text(GIFT, encoding="utf-8")
-    datos = _json(runner.invoke(cli, ["analyze", "similar", str(tmp_path), "--json"]))
+    datos = _json(runner.invoke(cli, ["health", "similar", str(tmp_path), "--json"]))
     assert datos["pares"] == []
 
 

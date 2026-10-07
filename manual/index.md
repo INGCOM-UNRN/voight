@@ -174,9 +174,9 @@ A continuación se detallan los subcomandos principales disponibles en `question
 | :--- | :--- |
 | `voight convert banco.gift -o banco.xml` | Convierte preguntas de formato GIFT a Moodle XML. |
 | `voight convert banco.xml -o banco.gift` | Convierte Moodle XML a texto plano GIFT. |
-| `voight validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
-| `voight spellcheck banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
-| `voight format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
+| `voight health validate banco.xml` | Valida la integridad estructural, pesos de respuestas e imágenes embebidas. |
+| `voight grammar banco.gift` | Audita ortografía en enunciados y retroalimentaciones con LanguageTool. |
+| `voight fix format banco.gift` | Normaliza indentación y formato limpio en archivos GIFT. |
 
 ````{tip}
 Podés agregar el flag `--json` a la mayoría de los comandos para exportar resultados en formato estructurado o `--md` para generar reportes Markdown para el informe de entrega.
@@ -254,13 +254,13 @@ Verificar que ninguna pregunta tenga respuestas que no sumen 100%.
 
 **Instrucción de ejecución:**
 ```bash
-voight validate preguntas.xml
+voight health validate preguntas.xml
 ```
 ````
 
 ````{solution} Desafío 2
 ```bash
-voight validate preguntas.xml
+voight health validate preguntas.xml
 # Revisá el archivo generado o el informe en terminal para confirmar la resolución del problema.
 ```
 ````
@@ -270,13 +270,13 @@ Auditar ortografía en los textos de retroalimentación pedagógica.
 
 **Instrucción de ejecución:**
 ```bash
-voight spellcheck preguntas.gift --lang es-AR
+voight grammar preguntas.gift --lang es-AR
 ```
 ````
 
 ````{solution} Desafío 3
 ```bash
-voight spellcheck preguntas.gift --lang es-AR
+voight grammar preguntas.gift --lang es-AR
 # Comprobá que la salida confirme la ausencia de advertencias o errores pendientes.
 ```
 ````
@@ -344,7 +344,7 @@ Podés encadenar `voight` con otras herramientas del ecosistema en una única l�
 
 ````{code-block} bash
 # Pipeline de integración típico
-voight convert banco.gift -o banco.xml && voight spellcheck banco.xml --premium
+voight convert banco.gift -o banco.xml && voight grammar banco.xml --premium
 ````
 
 ---

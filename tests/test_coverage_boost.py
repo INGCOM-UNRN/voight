@@ -79,5 +79,5 @@ def test_cli_xml_cdata(tmp_path):
     xml_f = tmp_path / "quiz.xml"
     xml_f.write_text(xml_content)
 
-    res = runner.invoke(cli, ["xml", "cdata", str(xml_f)])
+    res = runner.invoke(cli, ["fix", "xml", "cdata", str(xml_f)])
     assert res.exit_code == 0

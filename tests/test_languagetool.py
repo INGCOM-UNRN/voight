@@ -133,17 +133,17 @@ def test_cli_spellcheck_moodle(tmp_path: Path, monkeypatch):
     import urllib.request
     monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=10.0: MockResponse())
 
-    res = runner.invoke(cli, ["spellcheck", str(banco)])
+    res = runner.invoke(cli, ["grammar", str(banco)])
     assert res.exit_code == 1
     assert "Observaciones de LanguageTool" in res.output
 
     # JSON
-    res_json = runner.invoke(cli, ["spellcheck", str(banco), "--json"])
+    res_json = runner.invoke(cli, ["grammar", str(banco), "--json"])
     assert res_json.exit_code == 1
     assert "total_issues" in res_json.output
 
     # MD
     md_out = tmp_path / "rep.md"
-    res_md = runner.invoke(cli, ["spellcheck", str(banco), "--md", str(md_out)])
+    res_md = runner.invoke(cli, ["grammar", str(banco), "--md", str(md_out)])
     assert res_md.exit_code == 1
     assert md_out.is_file()

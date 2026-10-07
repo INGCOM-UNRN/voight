@@ -58,20 +58,22 @@ voight doctor
 | [`voight health`](#health) | Audita la salud del banco: claves de corrección, feedback, opciones, redacción, Bloom y dificultad, código y enlaces; con TUI para arreglar. |
 | [`voight ai`](#ai) | Procesa preguntas GIFT y Moodle XML con IA (Gemini o Claude) y las clasifica por Bloom y dificultad con Jev. |
 | [`voight verify`](#verify) | Compila y ejecuta el código C y Java de las preguntas y verifica que la clave coincida con la salida. |
-| [`voight validate`](#validate) | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
+| [`voight health validate`](#validate) | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
+| `voight health stats` · `voight health similar` | Estadísticas del repositorio y preguntas similares o duplicadas (GIFT y XML, también entre formatos). |
 | [`voight dedup`](#dedup) | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML), con log y revisión en TUI. |
-| [`voight format`](#format) | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵); `--check` para CI. |
+| [`voight fix format`](#format) | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵); `--check` para CI; `--gaff` da al código C el estilo de la cátedra. |
+| `voight fix xml cdata` · `clean-tags` · `rename` | Mantenimiento de archivos Moodle XML. |
 | [`voight fix`](#fix) | Correcciones puntuales: lenguaje y formato del código, caracteres, nombres de archivo y títulos. |
 | [`voight moodle subir`](#moodle-subir) | Sube un banco a un curso de Moodle por servicio web. |
 | [`voight split`](#split) | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
 | [`voight unify`](#unify) | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | [`voight synth`](#synth) | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | [`voight ui`](#ui) | Abre el editor web local (cerebro) sobre DIRECTORIO. |
-| [`voight spellcheck`](#spellcheck) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
-| [`voight languagetool`](#languagetool) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
 | [`voight grammar`](#grammar) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
 
-Todas las opciones largas en castellano aceptan también su nombre en inglés (`--aplicar`/`--apply`, `--conservar`/`--keep`, `--estricto`/`--strict`, `--desde`/`--since`, `--contexto`/`--context`…). Los comandos que escriben aceptan `-n/--dry-run`, y `health`, `format`, `validate`, `verify` y `dedup` aceptan `--desde <rev>` para procesar sólo los archivos cambiados desde una revisión git (más los nuevos sin seguimiento). Los valores por defecto de cada banco pueden fijarse en un [`.voight.toml`](#configuracion-por-banco).
+`voight health RUTAS` es lo mismo que `voight health check RUTAS`. Los nombres anteriores siguen funcionando, con un aviso, y se van a retirar: `validate` → `health validate`, `analyze stats|similar` → `health stats|similar`, `spellcheck` y `languagetool` → `grammar`, `format` → `fix format`, `xml …` → `fix xml …`.
+
+Todas las opciones largas en castellano aceptan también su nombre en inglés (`--aplicar`/`--apply`, `--conservar`/`--keep`, `--estricto`/`--strict`, `--desde`/`--since`, `--contexto`/`--context`…). Los comandos que escriben aceptan `-n/--dry-run`, y `health`, `health validate`, `fix format`, `verify` y `dedup` aceptan `--desde <rev>` para procesar sólo los archivos cambiados desde una revisión git (más los nuevos sin seguimiento). Los valores por defecto de cada banco pueden fijarse en un [`.voight.toml`](#configuracion-por-banco).
 
 ### `voight doctor`
 
@@ -221,9 +223,9 @@ voight ai preguntas/ -r --mode classify --calibrar referencias.csv
 voight ai preguntas/ -r --mode classify --revisar --referencias referencias.csv
 ```
 
-### `voight validate`
+### `voight health validate`
 
-Valida archivos o directorios de preguntas GIFT y Moodle XML: errores de parseo, estadísticas por formato y tipo, preguntas sin respuesta correcta y duplicados (también entre un `.gift` y un `.xml`). `voight analyze stats` y `voight analyze similar` recorren los mismos repositorios mixtos; la búsqueda de duplicados filtra por prefijos y escala a miles de preguntas.
+Valida archivos o directorios de preguntas GIFT y Moodle XML: errores de parseo, estadísticas por formato y tipo, preguntas sin respuesta correcta y duplicados (también entre un `.gift` y un `.xml`). `voight health stats` y `voight health similar` recorren los mismos repositorios mixtos; la búsqueda de duplicados filtra por prefijos y escala a miles de preguntas.
 
 #### Opciones y Banderas
 | Opción / Banderas | Tipo | Por Defecto | Descripción |
@@ -239,7 +241,7 @@ Valida archivos o directorios de preguntas GIFT y Moodle XML: errores de parseo,
 
 #### Ejemplo de Invocación
 ```bash
-voight validate preguntas/ -r
+voight health validate preguntas/ -r
 ```
 
 ### `voight dedup`
@@ -282,7 +284,7 @@ voight dedup preguntas/ -r -s 0.8 --confirmar-jev
 voight dedup --restaurar ultimo
 ```
 
-### `voight format`
+### `voight fix format`
 
 Formatea archivos GIFT y Moodle XML y transforma el código. GIFT: `::Título::`, enunciado, `{` y `}` en líneas propias y una opción por línea con 4 espacios. XML: sangría de 2 espacios y cada `<text>` con contenido en CDATA (conserva los comentarios). El código de enunciados y opciones conserva sus saltos de línea y sangría.
 
@@ -307,9 +309,9 @@ Las transformaciones de código son las mismas en ambos formatos (ver [caractere
 
 #### Ejemplo de Invocación
 ```bash
-voight format preguntas/ -r --fullwidth
-voight format banco.xml --correct-first
-voight format preguntas/ -r --check --desde origin/main
+voight fix format preguntas/ -r --fullwidth
+voight fix format banco.xml --correct-first
+voight fix format preguntas/ -r --check --desde origin/main
 ```
 
 ### `voight verify`
@@ -441,56 +443,6 @@ Cada pregunta del árbol muestra su cantidad de opciones (respuestas en opción 
 voight ui
 ```
 
-### `voight spellcheck`
-
-Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool.
-
-#### Opciones y Banderas
-| Opción / Banderas | Tipo | Por Defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `--paths` | `Optional[List[pathlib.Path]]` | `None` | - |
-| `--llm` | `<class 'bool'>` | `False` | Muestra instrucciones para un LLM sobre este comando. |
-| `-s`, `--server` | `Optional[str]` | `None` | URL del servidor LanguageTool (por defecto http://localhost:8081 y API pública) |
-| `-u`, `--username` | `Optional[str]` | `None` | Usuario / email de LanguageTool Premium |
-| `-k`, `--api-key` | `Optional[str]` | `None` | API Key / Token de LanguageTool Premium |
-| `--premium` | `<class 'bool'>` | `False` | Forzar uso de la API LanguageTool Premium |
-| `-l`, `--lang` | `<class 'str'>` | `es-AR` | Código de idioma (default: es-AR) |
-| `--ignore-rules` | `Optional[str]` | `None` | Reglas a ignorar separadas por comas |
-| `--ignore-words` | `Optional[str]` | `None` | Palabras a ignorar separadas por comas |
-| `-f`, `--fix` | `<class 'bool'>` | `False` | Aplica correcciones ortográficas automáticas |
-| `--md`, `--output-md` | `Optional[pathlib.Path]` | `None` | Genera reporte Markdown |
-| `--json` | `<class 'bool'>` | `False` | Emite salida estructurada en formato JSON |
-
-#### Ejemplo de Invocación
-```bash
-voight spellcheck
-```
-
-### `voight languagetool`
-
-Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool.
-
-#### Opciones y Banderas
-| Opción / Banderas | Tipo | Por Defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `--paths` | `Optional[List[pathlib.Path]]` | `None` | - |
-| `--llm` | `<class 'bool'>` | `False` | Muestra instrucciones para un LLM sobre este comando. |
-| `-s`, `--server` | `Optional[str]` | `None` | URL del servidor LanguageTool (por defecto http://localhost:8081 y API pública) |
-| `-u`, `--username` | `Optional[str]` | `None` | Usuario / email de LanguageTool Premium |
-| `-k`, `--api-key` | `Optional[str]` | `None` | API Key / Token de LanguageTool Premium |
-| `--premium` | `<class 'bool'>` | `False` | Forzar uso de la API LanguageTool Premium |
-| `-l`, `--lang` | `<class 'str'>` | `es-AR` | Código de idioma (default: es-AR) |
-| `--ignore-rules` | `Optional[str]` | `None` | Reglas a ignorar separadas por comas |
-| `--ignore-words` | `Optional[str]` | `None` | Palabras a ignorar separadas por comas |
-| `-f`, `--fix` | `<class 'bool'>` | `False` | Aplica correcciones ortográficas automáticas |
-| `--md`, `--output-md` | `Optional[pathlib.Path]` | `None` | Genera reporte Markdown |
-| `--json` | `<class 'bool'>` | `False` | Emite salida estructurada en formato JSON |
-
-#### Ejemplo de Invocación
-```bash
-voight languagetool
-```
-
 ### `voight grammar`
 
 Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool.
@@ -515,6 +467,7 @@ Verifica y corrige ortografía y gramática en bancos GIFT y XML usando Language
 ```bash
 voight grammar
 ```
+
 
 ---
 

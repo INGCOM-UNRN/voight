@@ -82,17 +82,19 @@ uv run voight --help
 
 El CLI `voight` se organiza en subcomandos especializados:
 
+`health` agrupa la salud del banco (`voight health RUTAS`, igual a `health check`), la validación y el análisis; `grammar`, la revisión ortográfica; y `fix`, las correcciones, el formato y el mantenimiento de Moodle XML. Los nombres anteriores (`validate`, `analyze`, `spellcheck`, `languagetool`, `format`, `xml`) siguen funcionando con un aviso y se van a retirar.
+
 ### 1. Validación y Análisis (GIFT y XML)
-- `voight validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
-- `voight analyze stats`: Genera estadísticas completas sobre un repositorio de preguntas (por formato, tipo, categoría y tags).
-- `voight analyze similar`: Encuentra preguntas similares usando TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; escala a miles de preguntas.
+- `voight health validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
+- `voight health stats`: Genera estadísticas completas sobre un repositorio de preguntas (por formato, tipo, categoría y tags).
+- `voight health similar`: Encuentra preguntas similares usando TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; escala a miles de preguntas.
 - `voight dedup`: Elimina preguntas duplicadas según un umbral de similitud configurable (`-s`, por defecto 0.95), en GIFT y XML. Sólo considera duplicadas las del mismo tipo, con la misma respuesta correcta y enunciados que también superan el umbral; conserva la más completa. Simula por defecto (`--aplicar` elimina) y registra cada eliminación con la ruta completa en `dedup.log`; guarda una copia de los originales y `--restaurar ultimo` lo deshace. `--confirmar-jev` confirma cada par con Jev y `--tui` abre una interfaz de terminal para revisar los grupos lado a lado y decidir cuáles eliminar (extra `tui`).
 - `voight health`: Reporte de salud del banco (archivos o directorios, GIFT y XML): claves de corrección y porcentajes que Moodle acepta, feedback general y por opción, cantidad de opciones, longitud relativa de las respuestas, señales de redacción (posición de la correcta, «todas las anteriores», negaciones sin resaltar, distractores débiles), distribución de Bloom y dificultad con el blueprint por categoría, campos de Moodle inconsistentes, código sin proteger o sin lenguaje, enlaces y HTML obsoleto. Separa errores de advertencias y sale con código 1 si hay errores (`--estricto`: también con advertencias). `--csv` exporta una fila por pregunta y `--tui` recorre los hallazgos y aplica los arreglos automáticos.
 - `voight verify`: Compila y ejecuta el código C y Java de las preguntas y avisa si la salida coincide con un distractor en lugar de la correcta, si no compila, falla o tiene comportamiento indefinido (`--sanitizar`); `--estilo` revisa el código C con las reglas de la cátedra.
 
 ### 2. Formateo y Corrección (GIFT y XML)
-- `voight format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. `--gaff` formatea el código C de los bloques con gaff (estilo de la cátedra): restaura los caracteres normales, aplica `gaff fix` y lo vuelve a proteger como estaba. Ver [caracteres especiales](./docs/caracteres_especiales.md).
-- `voight format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
+- `voight fix format`: Estandariza el formato visual de archivos GIFT y Moodle XML (`--correct-first` ordena las opciones por porcentaje). `--fullwidth` protege el código: símbolos fullwidth, `·` en la indentación y `↵` al final de cada línea; `--normal` lo deshace. `--gaff` formatea el código C de los bloques con gaff (estilo de la cátedra): restaura los caracteres normales, aplica `gaff fix` y lo vuelve a proteger como estaba. Ver [caracteres especiales](./docs/caracteres_especiales.md).
+- `voight fix format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
 - `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
 - `voight fix code-format`: Formatea el código C y Java con clang-format.
 - `voight fix code-indent`: Marca la indentación del código con `·`.
@@ -115,9 +117,9 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"`.
 
 ### 6. Mantenimiento XML
-- `voight xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
-- `voight xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
-- `voight xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
+- `voight fix xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
+- `voight fix xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
+- `voight fix xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
 
 ### 7. Inteligencia Artificial (Gemini o Claude)
 - `voight ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini o Claude (`--proveedor`). El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.
@@ -164,30 +166,26 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | Comando | Descripción |
 |:--|:--|
 | `voight doctor` | Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis). |
-| `voight health` | Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces. |
 | `voight ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini). |
-| `voight validate` | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
 | `voight dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
 | `voight verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
-| `voight format` | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵). |
 | `voight split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
 | `voight unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | `voight synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | `voight ui` | Abre el editor web local (cerebro) sobre DIRECTORIO. |
-| `voight spellcheck`, `voight languagetool`, `voight grammar` | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
+| `voight grammar` | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
+| `voight health` | Salud del banco (`voight health RUTAS` es `health check`), validación, estadísticas y similares. |
 | `voight config` | Configuración global de las herramientas. |
 | `voight convert` | Comandos para convertir entre formatos. |
-| `voight fix` | Comandos para corregir problemas comunes. |
-| `voight analyze` | Análisis y estadísticas de preguntas. |
+| `voight fix` | Comandos para corregir problemas comunes, el formato (format) y Moodle XML (xml). |
 | `voight tree` | Organiza bancos en árboles de directorios por categoría. |
-| `voight xml` | Herramientas para archivos XML de Moodle. |
 | `voight moodle` | Operaciones sobre un sitio Moodle (servicio web). |
 
 Ayuda de cada comando: `voight <comando> -h`.
 
 ### Salida JSON de `voight`
 
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight health`, `voight validate`, `voight dedup`, `voight verify`, `voight format`, `voight synth`, `voight spellcheck`, `voight languagetool`, `voight grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight synth`, `voight grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 

@@ -14,8 +14,8 @@
 
 - id: voight-format
   name: formato estándar de GIFT y Moodle XML
-  description: Falla si algún archivo no tiene el formato estándar (voight format lo corrige).
-  entry: voight format --check
+  description: Falla si algún archivo no tiene el formato estándar (voight fix format lo corrige).
+  entry: voight fix format --check
   language: python
   files: \.(gift|xml)$
 
@@ -36,14 +36,14 @@
 - id: voight-validate
   name: validación de GIFT y Moodle XML
   description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
-  entry: voight validate
+  entry: voight health validate
   language: python
   files: \.(gift|xml)$
 
 - id: questions-format
   name: (deprecado, usar voight-*) formato estándar de GIFT y Moodle XML
-  description: Falla si algún archivo no tiene el formato estándar (voight format lo corrige).
-  entry: voight format --check
+  description: Falla si algún archivo no tiene el formato estándar (voight fix format lo corrige).
+  entry: voight fix format --check
   language: python
   files: \.(gift|xml)$
 
@@ -64,6 +64,6 @@
 - id: questions-validate
   name: (deprecado, usar voight-*) validación de GIFT y Moodle XML
   description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
-  entry: voight validate
+  entry: voight health validate
   language: python
   files: \.(gift|xml)$

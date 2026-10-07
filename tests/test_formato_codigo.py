@@ -42,9 +42,9 @@ def test_format_gaff_formatea_y_vuelve_a_proteger(tmp_path):
     banco = tmp_path / "a.gift"
     banco.write_text("::P:: ¿Qué imprime?\n```c\nint x=3;\nif(x>2){x++;}\n```\n{=3 ~2}\n", encoding="utf-8")
     runner = CliRunner()
-    assert runner.invoke(cli, ["format", "--fullwidth", str(banco)]).exit_code == 0
-    res = runner.invoke(cli, ["format", "--gaff", str(banco)])
+    assert runner.invoke(cli, ["fix", "format", "--fullwidth", str(banco)]).exit_code == 0
+    res = runner.invoke(cli, ["fix", "format", "--gaff", str(banco)])
     assert res.exit_code == 0, res.output
     texto = banco.read_text(encoding="utf-8")
     assert "if （x ＞ 2）↵\n｛↵\n····x++；↵\n｝↵\n```" in texto
-    assert runner.invoke(cli, ["format", "--gaff", "--check", str(banco)]).exit_code == 0
+    assert runner.invoke(cli, ["fix", "format", "--gaff", "--check", str(banco)]).exit_code == 0
