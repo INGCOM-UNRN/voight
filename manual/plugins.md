@@ -1,15 +1,15 @@
 ---
-title: "Guía de Extensión y Creación de Plugins: moodle-toolbox"
-subtitle: "Manual de integración, desarrollo de extensiones y uso de la API Python de moodle-toolbox"
+title: "Guía de Extensión y Creación de Plugins: voight"
+subtitle: "Manual de integración, desarrollo de extensiones y uso de la API Python de voight"
 author: "Cátedra de Algoritmos y Programación"
 date: "2026-08-31"
 ---
 
 (manual-moodle_toolbox-plugins)=
-# Guía de Extensión y Plugins: moodle-toolbox
+# Guía de Extensión y Plugins: voight
 
 ````{abstract}
-Esta guía técnica detalla cómo desarrollar extensiones, crear nuevos plugins e integrar programáticamente **`moodle-toolbox`** en herramientas de evaluación, entornos de integración continua (CI/CD) o scripts docentes.
+Esta guía técnica detalla cómo desarrollar extensiones, crear nuevos plugins e integrar programáticamente **`voight`** en herramientas de evaluación, entornos de integración continua (CI/CD) o scripts docentes.
 ````
 
 ---
@@ -17,9 +17,9 @@ Esta guía técnica detalla cómo desarrollar extensiones, crear nuevos plugins 
 (manual-moodle_toolbox-plugins-arquitectura)=
 ## 1. Arquitectura de Extensión
 
-`moodle-toolbox` provee una arquitectura modular desacoplada basada en puntos de entrada (Entry Points) estándar de Python (`[project.entry-points]`) o interfaces de inyección funcional:
+`voight` provee una arquitectura modular desacoplada basada en puntos de entrada (Entry Points) estándar de Python (`[project.entry-points]`) o interfaces de inyección funcional:
 
-- **Mecanismo de Extensión Principal**: `Extensiones y Reglas Personalizadas para moodle-toolbox`.
+- **Mecanismo de Extensión Principal**: `Extensiones y Reglas Personalizadas para voight`.
 - **Punto de Entrada Oficial**: `moodle_toolbox.plugins`.
 - **Formato de Comunicación**: Estructuras de datos serializables JSON / Pydantic models.
 
@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 class CustomPlugin:
-    """Plugin de extensión para moodle-toolbox."""
+    """Plugin de extensión para voight."""
     name = "custom_rule"
     description = "Verificación o transformación especializada"
 
@@ -53,7 +53,7 @@ class CustomPlugin:
 
 ### Paso 2: Registrar el Plugin en `pyproject.toml`
 
-Para que `moodle-toolbox` descubra y cargue automáticamente tu plugin, agregalo en tu `pyproject.toml`:
+Para que `voight` descubra y cargue automáticamente tu plugin, agregalo en tu `pyproject.toml`:
 
 ````{code-block} toml
 [project.entry-points."moodle_toolbox.plugins"]
@@ -77,7 +77,7 @@ questions plugins list
 (manual-moodle_toolbox-plugins-sdk)=
 ## 3. Conexión Programática mediante la API Python
 
-Podés importar y ejecutar `moodle-toolbox` directamente desde scripts de Python sin invocar subprocesos:
+Podés importar y ejecutar `voight` directamente desde scripts de Python sin invocar subprocesos:
 
 ````{code-block} python
 :linenos:
@@ -100,7 +100,7 @@ for item in resultado.items:
 (manual-moodle_toolbox-plugins-ci)=
 ## 4. Integración en Pipelines de CI/CD (GitHub Actions / GitLab CI)
 
-Podés integrar `moodle-toolbox` en tus flujos automatizados de Git para bloquear entregas que no cumplan los requisitos de cátedra:
+Podés integrar `voight` en tus flujos automatizados de Git para bloquear entregas que no cumplan los requisitos de cátedra:
 
 ````{code-block} yaml
 # .github/workflows/evaluacion.yml
@@ -121,7 +121,7 @@ jobs:
         with:
           python-version: "3.13"
           
-      - name: Instalar moodle-toolbox
+      - name: Instalar voight
         run: pip install -e ./moodle_toolbox
         
       - name: Ejecutar Auditoría

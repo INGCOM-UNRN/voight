@@ -1,5 +1,5 @@
 ---
-title: "Manual de Referencia: moodle-toolbox"
+title: "Manual de Referencia: voight"
 subtitle: "Moodle-Toolbox — Suite de Mantenimiento, Normalización y Conversión de Bancos GIFT/XML"
 author: "Cátedra de Algoritmos y Programación"
 date: "2026-08-31"
@@ -17,7 +17,7 @@ date: "2026-08-31"
 (manual-moodle_toolbox-proposito)=
 ## 1. Propósito y Filosofía Pedagógica
 
-La herramienta **`moodle-toolbox`** forma parte del ecosistema oficial de software de la cátedra. Su diseño sigue principios pedagógicos rigurosos:
+La herramienta **`voight`** forma parte del ecosistema oficial de software de la cátedra. Su diseño sigue principios pedagógicos rigurosos:
 
 1. **Evidencia Técnica Directa**: Todo diagnóstico se fundamenta en la norma ISO C (C11/C23), en el modelo de memoria del sistema o en convenciones arquitectónicas formales.
 2. **Acción Correctiva Concreta**: Cada advertencia incluye la prescripción técnica inmediata para resolver el defecto sin recurrir a conjeturas.
@@ -96,9 +96,9 @@ pacman -S --needed \
 
 ---
 
-### 2.2 Métodos de Instalación de `moodle-toolbox`
+### 2.2 Métodos de Instalación de `voight`
 
-Podés instalar `moodle-toolbox` mediante cualquiera de los siguientes métodos estándar:
+Podés instalar `voight` mediante cualquiera de los siguientes métodos estándar:
 
 ````{tab-set}
 ```{tab-item} uv tool (Recomendado)
@@ -193,7 +193,7 @@ Considerá el siguiente fragmento de código representativo:
 
 ````{code-block} c
 :linenos:
-// Categoría y pregunta GIFT normalizada por moodle-toolbox
+// Categoría y pregunta GIFT normalizada por voight
 $CATEGORY: $course$/Parcial 1/Punteros
 
 ::Pregunta 01 - Aritmética de Punteros::
@@ -231,7 +231,7 @@ Prestá atención a la explicación pedagógica generada: la herramienta no solo
 (manual-moodle_toolbox-ejercicios)=
 ## 5. Ejercicios Prácticos y Desafíos
 
-Practicá el uso avanzado de **`moodle-toolbox`** resolviendo los siguientes ejercicios:
+Practicá el uso avanzado de **`voight`** resolviendo los siguientes ejercicios:
 
 ````{exercise} Desafío 1: Conversión Bidireccional de Banco
 Convertir preguntas de GIFT a XML para importar en el aula virtual.
@@ -286,11 +286,11 @@ voight spellcheck preguntas.gift --lang es-AR
 (manual-moodle_toolbox-makefile)=
 ## 6. Integración en el Flujo de Trabajo y Makefile
 
-Para incorporar `moodle-toolbox` de forma automática a tu flujo de desarrollo, agregá la siguiente regla en el `Makefile` de tu proyecto:
+Para incorporar `voight` de forma automática a tu flujo de desarrollo, agregá la siguiente regla en el `Makefile` de tu proyecto:
 
 ````{code-block} makefile
 check-moodle_toolbox:
-	@echo "=== Ejecutando verificación con moodle-toolbox ==="
+	@echo "=== Ejecutando verificación con voight ==="
 	questions check src/ include/
 
 .PHONY: check-moodle_toolbox
@@ -303,7 +303,7 @@ Ejecutá `make check-moodle_toolbox` antes de cada commit para asegurar que tu c
 (manual-moodle_toolbox-arquitectura)=
 ## 7. Arquitectura Interna y Mecanismo Técnico
 
-La herramienta **`moodle-toolbox`** implementa un motor de alta precisión basado en:
+La herramienta **`voight`** implementa un motor de alta precisión basado en:
 
 - **Tecnología Núcleo:** `Moodle XML Parser / Serializer + GIFT Grammar Lexer + LanguageTool REST Client`.
 - **Aislamiento y Determinismo:** Diseñada para operar sin efectos colaterales en entornos de integración continua (CI), terminales de estudiantes y servidores docentes headless.
@@ -315,7 +315,7 @@ La herramienta **`moodle-toolbox`** implementa un motor de alta precisión basad
 ## 8. Integración y Conexión con el Ecosistema
 
 ````{note}
-Ninguna herramienta opera de forma aislada. **`moodle-toolbox`** forma parte del pipeline integral de evaluación, verificación y enseñanza de la cátedra.
+Ninguna herramienta opera de forma aislada. **`voight`** forma parte del pipeline integral de evaluación, verificación y enseñanza de la cátedra.
 ````
 
 ### Diagrama de Flujo e Interoperabilidad
@@ -340,7 +340,7 @@ graph TD
 
 ### Pipeline de Integración Recomendado
 
-Podés encadenar `moodle-toolbox` con otras herramientas del ecosistema en una única línea de comando:
+Podés encadenar `voight` con otras herramientas del ecosistema en una única línea de comando:
 
 ````{code-block} bash
 # Pipeline de integración típico
@@ -352,7 +352,7 @@ voight convert banco.gift -o banco.xml && voight spellcheck banco.xml --premium
 (manual-moodle_toolbox-seccion-plugins)=
 ## 9. Extensión, Desarrollo de Plugins y API Python
 
-Para crear tus propias reglas, conectores de evaluación o integrar `moodle-toolbox` programáticamente en pipelines de CI/CD:
+Para crear tus propias reglas, conectores de evaluación o integrar `voight` programáticamente en pipelines de CI/CD:
 
 - 👉 **Consultá la guía completa:** [Guía de Extensión y Creación de Plugins](plugins.md)
 

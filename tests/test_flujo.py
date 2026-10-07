@@ -155,7 +155,7 @@ def test_accion_de_github_declara_sus_entradas_y_salidas():
     script = accion.split("      run: |\n", 1)[1]
     assert "${{" not in script
     ejemplo = (raiz / "docs" / "ejemplos" / "salud-banco.yml").read_text(encoding="utf-8")
-    assert "uses: INGCOM-UNRN/moodle-toolbox@main" in ejemplo and "fetch-depth: 0" in ejemplo
+    assert "uses: INGCOM-UNRN/voight@main" in ejemplo and "fetch-depth: 0" in ejemplo
 
 
 def test_dry_run_en_todos_los_comandos_que_escriben(tmp_path):

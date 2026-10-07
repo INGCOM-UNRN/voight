@@ -13,12 +13,12 @@ def test_cli_doctor():
     runner = CliRunner()
     result = runner.invoke(cli, ['doctor'])
     assert result.exit_code == 0
-    assert 'Diagnóstico del Entorno MOODLE-TOOLBOX' in result.output
+    assert 'Diagnóstico del Entorno VOIGHT' in result.output
 
     res_json = runner.invoke(cli, ['doctor', '--json'])
     assert res_json.exit_code == 0
     assert '"schema_version": "1.0.0"' in res_json.output
-    assert '"herramienta": "moodle-toolbox"' in res_json.output
+    assert '"herramienta": "voight"' in res_json.output
     assert '"ok": true' in res_json.output
 
 

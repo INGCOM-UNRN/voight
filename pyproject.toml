@@ -40,9 +40,9 @@ questions = "voight.cli:main"
 moodle-toolbox = "voight.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/INGCOM-UNRN/moodle-toolbox"
-Repository = "https://github.com/INGCOM-UNRN/moodle-toolbox.git"
-Issues = "https://github.com/INGCOM-UNRN/moodle-toolbox/issues"
+Homepage = "https://github.com/INGCOM-UNRN/voight"
+Repository = "https://github.com/INGCOM-UNRN/voight.git"
+Issues = "https://github.com/INGCOM-UNRN/voight/issues"
 
 [project.optional-dependencies]
 # `questions ai` (Gemini o Claude). Es opcional: los SDK arrastran muchas

@@ -1,13 +1,13 @@
-# Manual de Uso y Referencia Técnica: moodle-toolbox
+# Manual de Uso y Referencia Técnica: voight
 
-> **MOODLE-TOOLBOX** — Herramientas para gestionar preguntas de Moodle (GIFT, XML)
-> **Versión:** `0.1.0` · **CLI principal:** `voight` (alias deprecados: `questions`, `moodle-toolbox`) · **Plugin Ripley:** `moodle-toolbox`
+> **VOIGHT** — Herramientas para gestionar preguntas de Moodle (GIFT, XML)
+> **Versión:** `0.1.0` · **CLI principal:** `voight` (alias deprecados: `questions`, `moodle-toolbox`) · **Plugin Ripley:** `voight`
 
 ---
 
 ## 1. Arquitectura y Propósito Pedagógico
 
-`moodle-toolbox` forma parte del ecosistema de herramientas de la cátedra de Programación 1 (UNRN). Su objetivo central es resolver de forma modular, determinista y automatizada las tareas asociadas a su dominio específico dentro del ciclo de desarrollo, evaluación y aprendizaje de software en C.
+`voight` forma parte del ecosistema de herramientas de la cátedra de Programación 1 (UNRN). Su objetivo central es resolver de forma modular, determinista y automatizada las tareas asociadas a su dominio específico dentro del ciclo de desarrollo, evaluación y aprendizaje de software en C.
 
 ### Alcance Funcional (Qué cubre)
 - Gestión integral, validación y mantenimiento de bancos de preguntas pedagógicas de Moodle.
@@ -39,7 +39,7 @@
 ### Instalación en el Entorno de Usuario
 Para instalar la herramienta de forma global y aislada en el sistema mediante `uv tool`:
 ```bash
-uv tool install "voight[ai,ui,languagetool] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+uv tool install "voight[ai,ui,languagetool] @ git+https://github.com/INGCOM-UNRN/voight"
 ```
 
 ### Verificación de Instalación
@@ -54,7 +54,7 @@ voight doctor
 
 | Comando | Descripción Breve |
 | :--- | :--- |
-| [`voight doctor`](#doctor) | Verifica el estado del entorno de MOODLE-TOOLBOX (Python, LanguageTool, gcc y el motor de síntesis). |
+| [`voight doctor`](#doctor) | Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis). |
 | [`voight health`](#health) | Audita la salud del banco: claves de corrección, feedback, opciones, redacción, Bloom y dificultad, código y enlaces; con TUI para arreglar. |
 | [`voight ai`](#ai) | Procesa preguntas GIFT y Moodle XML con IA (Gemini o Claude) y las clasifica por Bloom y dificultad con Jev. |
 | [`voight verify`](#verify) | Compila y ejecuta el código C y Java de las preguntas y verifica que la clave coincida con la salida. |
@@ -75,7 +75,7 @@ Todas las opciones largas en castellano aceptan también su nombre en inglés (`
 
 ### `voight doctor`
 
-Verifica el estado del entorno de MOODLE-TOOLBOX (Python, LanguageTool, gcc y el motor de síntesis).
+Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis).
 
 #### Opciones y Banderas
 | Opción / Banderas | Tipo | Por Defecto | Descripción |
@@ -421,7 +421,7 @@ voight synth
 Abre el editor web local (cerebro) sobre DIRECTORIO.
 
     Permite navegar y editar preguntas en Moodle XML y GIFT desde el navegador.
-    Requiere el extra 'ui': uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+    Requiere el extra 'ui': uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"
 
 Edita todos los tipos de pregunta de Moodle, cada uno con su editor: respuestas con porcentaje (opción múltiple, respuesta corta), valor y tolerancia (numérica), fórmula y tolerancia (calculadas), verdadero/falso con la retroalimentación de cada opción, pares (emparejamiento), elementos en orden (ordenamiento) y opciones por grupo para los huecos `[[n]]` (seleccionar palabras faltantes, arrastrar sobre texto). Ensayo, descripción, cloze, emparejamiento aleatorio y arrastrar sobre imagen editan los campos comunes y sus opciones. Al guardar sólo cambia lo que el editor muestra: en XML se conservan unidades, variables, imágenes y zonas, y en GIFT la categoría, los comentarios y las demás preguntas del archivo.
 
@@ -562,7 +562,7 @@ El repositorio publica hooks de [pre-commit](https://pre-commit.com) (`voight-fo
 
 ```yaml
 repos:
-  - repo: https://github.com/INGCOM-UNRN/moodle-toolbox
+  - repo: https://github.com/INGCOM-UNRN/voight
     rev: <etiqueta o commit>
     hooks:
       - id: voight-format
@@ -575,7 +575,7 @@ Y una acción de GitHub que corre `health` sobre lo que cambia en un pull reques
 - uses: actions/checkout@v7
   with:
     fetch-depth: 0
-- uses: INGCOM-UNRN/moodle-toolbox@main
+- uses: INGCOM-UNRN/voight@main
   with:
     rutas: preguntas
 ```
@@ -591,12 +591,12 @@ QUESTIONS_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py
 ### Integración con Dredd (`dredd-section`)
 Cuando la herramienta genera reportes de evaluación para entregas de alumnos, produce una sección Markdown estandarizada conforme al contrato de integración de Dredd (v1.0.0):
 ```markdown
-<!-- dredd-section: moodle-toolbox, tool=moodle-toolbox, version=0.1.0, status=ok -->
+<!-- dredd-section: voight, tool=voight, version=0.1.0, status=ok -->
 ```
 Este encabezado garantiza la agregación determinista de los hallazgos en la rúbrica docente.
 
 ### Integración con Ripley
-`moodle-toolbox` está registrada en el catálogo de plugins satélites de Ripley (`SATELLITE_CATALOG`). Puede invocarse directamente a través del motor de evaluación de Ripley configurando el análisis en `ripley.toml`.
+`voight` está registrada en el catálogo de plugins satélites de Ripley (`SATELLITE_CATALOG`). Puede invocarse directamente a través del motor de evaluación de Ripley configurando el análisis en `ripley.toml`.
 
 ---
 

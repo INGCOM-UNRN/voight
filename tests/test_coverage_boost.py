@@ -1,4 +1,4 @@
-"""Tests adicionales para maximizar la cobertura en MOODLE-TOOLBOX."""
+"""Tests adicionales para maximizar la cobertura en VOIGHT."""
 
 from click.testing import CliRunner
 from voight.cli import cli

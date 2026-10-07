@@ -1,4 +1,4 @@
-"""Comando doctor para diagnóstico del entorno de moodle-toolbox (questions)."""
+"""Comando doctor para diagnóstico del entorno de voight (questions)."""
 
 import json
 import shutil
@@ -12,7 +12,7 @@ def doctor_cmd(
         False, "--json", help="Emitir diagnóstico en formato JSON estructurado."
     ),
 ):
-    """Verifica el estado del entorno de MOODLE-TOOLBOX (Python, LanguageTool, gcc y el motor de síntesis)."""
+    """Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis)."""
     diagnostico = []
 
     py_ok = sys.version_info >= (3, 10)
@@ -65,7 +65,7 @@ def doctor_cmd(
     if json_output:
         payload = {
             "schema_version": "1.0.0",
-            "herramienta": "moodle-toolbox",
+            "herramienta": "voight",
             "ok": todo_ok,
             "componentes": diagnostico,
         }
@@ -76,7 +76,7 @@ def doctor_cmd(
         from rich.console import Console
         from rich.table import Table
         console = Console()
-        tabla = Table(title="🏥 Diagnóstico del Entorno MOODLE-TOOLBOX (doctor)", border_style="cyan")
+        tabla = Table(title="🏥 Diagnóstico del Entorno VOIGHT (doctor)", border_style="cyan")
         tabla.add_column("Componente", style="bold white")
         tabla.add_column("Estado", justify="center")
         tabla.add_column("Detalle")
@@ -88,7 +88,7 @@ def doctor_cmd(
 
         console.print(tabla)
     except ImportError:
-        click.echo("🏥 Diagnóstico del Entorno MOODLE-TOOLBOX (doctor)")
+        click.echo("🏥 Diagnóstico del Entorno VOIGHT (doctor)")
         for c in diagnostico:
             click.echo(f" - {c['componente']}: {c['estado']} ({c['detalle']})")
 

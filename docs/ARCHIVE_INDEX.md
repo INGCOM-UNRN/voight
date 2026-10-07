@@ -1,4 +1,4 @@
-# Índice del Proyecto Moodle Toolbox
+# Índice del Proyecto voight (antes Moodle Toolbox)
 
 Guía rápida de navegación para todos los archivos del proyecto.
 

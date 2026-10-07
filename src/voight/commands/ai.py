@@ -182,7 +182,7 @@ def _revisar_clasificacion(rutas: List[Path], umbral: float, tags: bool, referen
         from voight.tui.clasificacion import ClasificacionApp
     except ImportError:
         fail('La interfaz de terminal requiere el extra opcional \'tui\': '
-             'uv tool install "questions[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"')
+             'uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"')
     with contextlib.redirect_stdout(io.StringIO()):
         archivos = leer_archivos(rutas)
     unidades = para_revisar(unidades_de(archivos), umbral, todas=umbral >= 1.0)

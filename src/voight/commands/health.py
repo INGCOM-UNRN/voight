@@ -86,7 +86,7 @@ def health_cmd(
             from voight.tui.health import HealthApp
         except ImportError:
             fail('La interfaz de terminal requiere el extra opcional \'tui\': '
-                 'uv tool install "questions[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"')
+                 'uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"')
 
         def auditar():
             vigentes = [a for a in archivos if a.exists()]

@@ -107,7 +107,7 @@ def dedup(
             from voight.tui.dedup import DedupApp
         except ImportError:
             fail('La interfaz de terminal requiere el extra opcional \'tui\': '
-                 'uv tool install "questions[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"')
+                 'uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"')
         from voight.core.deduplicar import Revision
 
         resultado = DedupApp(archivos, Revision(grupos), similarity, log, respaldo).run()

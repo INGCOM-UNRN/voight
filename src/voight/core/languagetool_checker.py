@@ -1,4 +1,4 @@
-"""Módulo de verificación y corrección ortográfica en moodle-toolbox — Delegado a myst-tools."""
+"""Módulo de verificación y corrección ortográfica en voight — Delegado a myst-tools."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ try:
     )
 except ImportError as error:  # sin el extra `languagetool` (myst-tools)
     raise ModuleNotFoundError(
-        "La revisión con LanguageTool usa myst-tools, que no está instalado. Instalá moodle-toolbox con el "
-        "extra languagetool: uv tool install \"questions[languagetool] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox\"",
+        "La revisión con LanguageTool usa myst-tools, que no está instalado. Instalá voight con el "
+        "extra languagetool: uv tool install \"voight[languagetool] @ git+https://github.com/INGCOM-UNRN/voight\"",
         name="myst_tools",
     ) from error
 

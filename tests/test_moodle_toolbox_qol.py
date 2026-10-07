@@ -1,4 +1,4 @@
-"""Tests para las mejoras QoL de MOODLE-TOOLBOX."""
+"""Tests para las mejoras QoL de VOIGHT."""
 
 from voight.core.duplicates import detectar_preguntas_duplicadas
 from voight.core.accessibility import validar_accesibilidad_imagenes

@@ -2,7 +2,7 @@
 # Uso, en el .pre-commit-config.yaml del banco:
 #
 #   repos:
-#     - repo: https://github.com/INGCOM-UNRN/moodle-toolbox
+#     - repo: https://github.com/INGCOM-UNRN/voight
 #       rev: <tag o commit>
 #       hooks:
 #         - id: voight-format

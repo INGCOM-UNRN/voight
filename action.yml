@@ -24,7 +24,7 @@ inputs:
     description: "true: publicar el informe como comentario del pull request (necesita pull-requests: write)."
     default: "true"
   version:
-    description: Rama, etiqueta o commit de moodle-toolbox a instalar.
+    description: Rama, etiqueta o commit de voight a instalar.
     default: main
   token:
     description: Token para comentar en el pull request.
@@ -50,7 +50,7 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
-      run: uv tool install "git+https://github.com/INGCOM-UNRN/moodle-toolbox@${VERSION}"
+      run: uv tool install "git+https://github.com/INGCOM-UNRN/voight@${VERSION}"
 
     - name: Revisar la salud del banco
       id: salud

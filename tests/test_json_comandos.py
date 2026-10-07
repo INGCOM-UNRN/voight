@@ -18,7 +18,7 @@ def _json(res):
     assert res.exit_code == 0, res.output
     datos = json.loads(res.output)
     assert datos["schema_version"] == "1.0.0"
-    assert datos["herramienta"] == "moodle-toolbox"
+    assert datos["herramienta"] == "voight"
     return datos
 
 

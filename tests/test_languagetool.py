@@ -1,4 +1,4 @@
-"""Tests para el verificador de LanguageTool en moodle-toolbox."""
+"""Tests para el verificador de LanguageTool en voight."""
 
 import json
 from pathlib import Path

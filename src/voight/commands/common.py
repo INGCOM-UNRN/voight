@@ -37,7 +37,7 @@ SCHEMA_VERSION = "1.0.0"
 
 def emitir_json(comando: str, datos: dict) -> None:
     """Imprime `datos` como JSON con envoltorio versionado (`schema_version`, `comando`)."""
-    payload = {"schema_version": SCHEMA_VERSION, "herramienta": "moodle-toolbox", "comando": comando}
+    payload = {"schema_version": SCHEMA_VERSION, "herramienta": "voight", "comando": comando}
     payload.update(datos)
     click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 

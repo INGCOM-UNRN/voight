@@ -1,6 +1,6 @@
-"""moodle-toolbox funciona sin myst-tools ni alucarD instalados (N-MOODLE-01, N-ECO-01).
+"""voight funciona sin myst-tools ni alucarD instalados (N-MOODLE-01, N-ECO-01).
 
-Fuera del monorepo, `moodle-toolbox --help` fallaba al importar myst_tools a
+Fuera del monorepo, `voight --help` fallaba al importar myst_tools a
 nivel de módulo. Ahora LanguageTool llega con el extra `languagetool` y la
 síntesis con alucarD es opcional: sin ellos el CLI arranca y el comando que los
 necesita explica cómo instalarlos.

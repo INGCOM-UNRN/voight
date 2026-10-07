@@ -8,6 +8,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- **repositorio**: `INGCOM-UNRN/moodle-toolbox` pasa a `INGCOM-UNRN/voight` (GitHub redirige la URL vieja): instalación, hooks de pre-commit, acción de GitHub y documentación usan la URL nueva; el JSON de `--json` dice `"herramienta": "voight"`.
 - **nombre**: la herramienta se llama **voight** (por el test Voight-Kampff): paquete `voight`, comando `voight`, configuración `.voight.toml` y `~/.voight/.env`, variables `VOIGHT_DEBUG` y `VOIGHT_PROVEEDOR`, hooks `voight-*`. Los nombres anteriores siguen funcionando: los comandos `questions` y `moodle-toolbox` avisan que se van a retirar; `.questions.toml`, `~/.questions`, `QUESTIONS_DEBUG`, `QUESTIONS_PROVEEDOR` y los hooks `questions-*` se siguen leyendo.
 
 ### Agregado

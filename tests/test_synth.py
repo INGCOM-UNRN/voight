@@ -1,4 +1,4 @@
-"""Tests para el sintetizador de preguntas de C en moodle-toolbox delegando en alucarD."""
+"""Tests para el sintetizador de preguntas de C en voight delegando en alucarD."""
 
 import shutil
 import pytest

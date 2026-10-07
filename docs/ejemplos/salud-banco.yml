@@ -16,6 +16,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # para revisar sólo lo que cambia respecto de la base del PR
-      - uses: INGCOM-UNRN/moodle-toolbox@main
+      - uses: INGCOM-UNRN/voight@main
         with:
           rutas: preguntas

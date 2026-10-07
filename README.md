@@ -33,7 +33,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
-- `ai`: el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`).
+- `ai`: el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`).
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
 - `voight doctor` informa cuáles de estos requisitos están presentes.
 
@@ -58,21 +58,21 @@ Se instala siempre desde el repositorio, no por nombre desde PyPI.
 
 ```bash
 # Instalación como herramienta (comando `voight`)
-uv tool install git+https://github.com/INGCOM-UNRN/moodle-toolbox
+uv tool install git+https://github.com/INGCOM-UNRN/voight
 # con el editor web opcional (`voight ui`)
-uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"
 # con las interfaces de terminal (`dedup --tui`, `health --tui`, `ai --mode classify --revisar`)
-uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"
 # con los proveedores de IA (Gemini y Claude) para `voight ai`
-uv tool install "voight[ai,tui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"
+uv tool install "voight[ai,tui] @ git+https://github.com/INGCOM-UNRN/voight"
 ```
 
 Para desarrollo:
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/INGCOM-UNRN/moodle-toolbox.git
-cd moodle-toolbox
+git clone https://github.com/INGCOM-UNRN/voight.git
+cd voight
 
 # Ejecutar la ayuda principal
 uv run voight --help
@@ -112,7 +112,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías.
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
-- `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"`.
+- `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"`.
 
 ### 6. Mantenimiento XML
 - `voight xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
@@ -126,7 +126,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 ### 8. Moodle e integración
 - `voight moodle subir`: Sube un banco a un curso de Moodle por servicio web (requiere el plugin `local_questions_importer_ws` en el sitio).
 - `.voight.toml` (se sigue leyendo `.questions.toml`): valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
-- `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/moodle-toolbox@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
+- `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/voight@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
 
 ## 📚 Documentación Detallada
 
@@ -153,41 +153,41 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 
 - Python ≥ 3.11 y [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-### Opciones de `moodle-toolbox`
+### Opciones de `voight`
 
 | Opción | Descripción |
 |:--|:--|
 | `--llm` | Muestra instrucciones generales para un LLM. |
 
-### Comandos de `moodle-toolbox`
+### Comandos de `voight`
 
 | Comando | Descripción |
 |:--|:--|
-| `moodle-toolbox doctor` | Verifica el estado del entorno de MOODLE-TOOLBOX (Python, LanguageTool, gcc y el motor de síntesis). |
-| `moodle-toolbox health` | Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces. |
-| `moodle-toolbox ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini). |
-| `moodle-toolbox validate` | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
-| `moodle-toolbox dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
-| `moodle-toolbox verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
-| `moodle-toolbox format` | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵). |
-| `moodle-toolbox split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
-| `moodle-toolbox unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
-| `moodle-toolbox synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
-| `moodle-toolbox ui` | Abre el editor web local (cerebro) sobre DIRECTORIO. |
-| `moodle-toolbox spellcheck`, `moodle-toolbox languagetool`, `moodle-toolbox grammar` | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
-| `moodle-toolbox config` | Configuración global de las herramientas. |
-| `moodle-toolbox convert` | Comandos para convertir entre formatos. |
-| `moodle-toolbox fix` | Comandos para corregir problemas comunes. |
-| `moodle-toolbox analyze` | Análisis y estadísticas de preguntas. |
-| `moodle-toolbox tree` | Organiza bancos en árboles de directorios por categoría. |
-| `moodle-toolbox xml` | Herramientas para archivos XML de Moodle. |
-| `moodle-toolbox moodle` | Operaciones sobre un sitio Moodle (servicio web). |
+| `voight doctor` | Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis). |
+| `voight health` | Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces. |
+| `voight ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini). |
+| `voight validate` | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
+| `voight dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
+| `voight verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
+| `voight format` | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵). |
+| `voight split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
+| `voight unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
+| `voight synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
+| `voight ui` | Abre el editor web local (cerebro) sobre DIRECTORIO. |
+| `voight spellcheck`, `voight languagetool`, `voight grammar` | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
+| `voight config` | Configuración global de las herramientas. |
+| `voight convert` | Comandos para convertir entre formatos. |
+| `voight fix` | Comandos para corregir problemas comunes. |
+| `voight analyze` | Análisis y estadísticas de preguntas. |
+| `voight tree` | Organiza bancos en árboles de directorios por categoría. |
+| `voight xml` | Herramientas para archivos XML de Moodle. |
+| `voight moodle` | Operaciones sobre un sitio Moodle (servicio web). |
 
-Ayuda de cada comando: `moodle-toolbox <comando> -h`.
+Ayuda de cada comando: `voight <comando> -h`.
 
-### Salida JSON de `moodle-toolbox`
+### Salida JSON de `voight`
 
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `moodle-toolbox doctor`, `moodle-toolbox health`, `moodle-toolbox validate`, `moodle-toolbox dedup`, `moodle-toolbox verify`, `moodle-toolbox format`, `moodle-toolbox synth`, `moodle-toolbox spellcheck`, `moodle-toolbox languagetool`, `moodle-toolbox grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight health`, `voight validate`, `voight dedup`, `voight verify`, `voight format`, `voight synth`, `voight spellcheck`, `voight languagetool`, `voight grammar`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 

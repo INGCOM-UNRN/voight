@@ -72,7 +72,7 @@ class ClienteClaude:
             except ImportError:
                 raise ImportError(
                     "El paquete 'anthropic' no está instalado: `voight ai --proveedor claude` requiere el extra "
-                    'opcional ai. Instalalo con: uv tool install "questions[ai] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"'
+                    'opcional ai. Instalalo con: uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"'
                 ) from None
             clave = get_anthropic_key()
             cliente = anthropic.Anthropic(api_key=clave, max_retries=5) if clave else anthropic.Anthropic(max_retries=5)
@@ -116,7 +116,7 @@ def load_config():
     if genai is None:
         raise ImportError(
             "El paquete 'google-genai' no está instalado: `voight ai` requiere el extra opcional 'ai'. "
-            'Instalalo con: uv tool install "questions[ai] @ git+https://github.com/INGCOM-UNRN/moodle-toolbox"'
+            'Instalalo con: uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"'
         )
     api_key = get_api_key()
     if not api_key:

@@ -1,6 +1,6 @@
 # Resumen de Organización del Proyecto
 
-Documento generado como resultado de la reorganización y documentación del proyecto Moodle Toolbox.
+Documento generado como resultado de la reorganización y documentación del proyecto voight (antes Moodle Toolbox).
 
 ## 📊 Estado del Proyecto
 

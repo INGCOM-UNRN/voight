@@ -26,9 +26,9 @@ except ImportError:  # sin alucarD (generador-examenes): la síntesis no está d
     def sintetizar(*args, **kwargs):  # type: ignore
         raise RuntimeError(
             "la síntesis de preguntas usa alucarD (generador-examenes), que no está instalado. "
-            "Sumalo al entorno de moodle-toolbox: uv tool install --with "
+            "Sumalo al entorno de voight: uv tool install --with "
             "\"generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD\" "
-            "\"questions @ git+https://github.com/INGCOM-UNRN/moodle-toolbox\""
+            "\"voight @ git+https://github.com/INGCOM-UNRN/voight\""
         )
     def exportar_gift(*args, **kwargs) -> str:  # type: ignore
         return ""
