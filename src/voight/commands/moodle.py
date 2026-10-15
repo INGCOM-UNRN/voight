@@ -61,3 +61,57 @@ def subir(
     click.echo(f"✓ {len(preguntas)} preguntas importadas en el curso {curso} (borrador {itemid}).")
     if respuesta not in (None, {}, []):
         click.echo(f"  Moodle respondió: {respuesta}")
+
+
+@moodle_app.command(name="backup-quiz")
+def backup_quiz(
+    rutas: List[Path] = typer.Argument(None, exists=True, help="Archivos .gift/.xml o directorios del repositorio."),
+    output_file: Path = typer.Option(..., "-o", "--output", help="Archivo .mbz de salida para la copia de seguridad."),
+    titulo: str = typer.Option("Cuestionario", "-t", "--titulo", "--title", help="Título o nombre del cuestionario."),
+    preguntas_por_categoria: int = typer.Option(
+        1, "-k", "--preguntas-por-categoria", help="Cantidad de preguntas aleatorias a extraer por cada categoría."
+    ),
+    recursivo: bool = typer.Option(True, "-r/--no-recursive", help="Recorrer los subdirectorios recursivamente."),
+    tiempo_limite: int = typer.Option(3600, "--tiempo-limite", help="Límite de tiempo en segundos (por defecto 3600s = 1 hora)."),
+    calificacion_maxima: float = typer.Option(10.0, "--calificacion-maxima", help="Calificación máxima del cuestionario."),
+    intentos: int = typer.Option(1, "--intentos", help="Número de intentos permitidos (1 por defecto)."),
+    shuffle_respuestas: bool = typer.Option(True, "--shuffle/--no-shuffle", help="Barajar respuestas."),
+    output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
+):
+    """Crea un backup de cuestionario (.mbz) con preguntas aleatorias por categoría.
+
+    Unifica las preguntas de la estructura de directorios y genera un paquete MBZ
+    (Moodle 2 backup de actividad) listo para restaurar directamente en cualquier
+    curso de Moodle sin requerir plugins externos ni web services.
+    """
+    from voight.core.moodle_backup import generar_quiz_mbz
+
+    if not rutas:
+        rutas = [Path(".")]
+
+    try:
+        res = generar_quiz_mbz(
+            rutas=rutas,
+            archivo_salida=output_file,
+            titulo=titulo,
+            preguntas_por_categoria=preguntas_por_categoria,
+            recursivo=recursivo,
+            tiempo_limite=tiempo_limite,
+            calificacion_maxima=calificacion_maxima,
+            intentos=intentos,
+            shuffle_respuestas=shuffle_respuestas,
+        )
+    except Exception as e:
+        fail(f"Error generando backup del cuestionario: {e}")
+
+    if output_json:
+        emitir_json("moodle backup-quiz", res)
+        return
+
+    click.echo(
+        f"✓ Backup de cuestionario generado exitosamente en {output_file}:\n"
+        f"  - {res['categorias']} categorías encontradas\n"
+        f"  - {res['preguntas']} preguntas totales en el banco\n"
+        f"  - {res['slots']} slots de preguntas aleatorias configurados en el cuestionario"
+    )
+
