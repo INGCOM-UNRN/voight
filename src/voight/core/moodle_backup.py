@@ -13,7 +13,7 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Sequence, Union
 
 from voight.core.converter import gift_to_xml
 from voight.core.moodle_xml import parse_moodle_xml
@@ -717,7 +717,7 @@ def generar_quiz_mbz(
 
         archivo_salida.parent.mkdir(parents=True, exist_ok=True)
         with tarfile.open(archivo_salida, "w:gz") as tar:
-            for rel, is_dir, full in entries:
+            for rel, _is_dir, full in entries:
                 tar.add(full, arcname=rel, recursive=False)
 
     return {
