@@ -62,12 +62,12 @@ def set_model_cmd(model: str = typer.Argument(...)):
 
 @config_app.command(name="list-models")
 def list_models_cmd():
-    """Lista los modelos disponibles en la API de Gemini."""
+    """Lista los modelos del proveedor de IA configurado (Gemini por defecto)."""
     try:
         client = load_config()
         models = list_available_models(client)
         if models:
-            click.echo("Modelos disponibles (con soporte generateContent):")
+            click.echo(f"Modelos disponibles en {client.config.proveedor}:")
             for m in models:
                 click.echo(f" - {m}")
         else:

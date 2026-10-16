@@ -1,4 +1,7 @@
-"""Procesamiento de preguntas con un LLM (Gemini) sobre GIFT y Moodle XML.
+"""Procesamiento de preguntas con un modelo de lenguaje sobre GIFT y Moodle XML.
+
+El modelo lo elige `yutani.ia`, igual que en el resto del ecosistema: Gemini (por defecto),
+un servidor local con la API de OpenAI (Ollama, llama.cpp…), OpenCode o Claude.
 
 El modelo siempre recibe GIFT compacto, el formato más corto para una pregunta y el
 que los LLM conocen mejor:
@@ -23,18 +26,14 @@ import copy
 import os
 import re
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
-try:
-    from google import genai
-except ImportError:
-    genai = None
-
 from voight.core.cache import Cache
 from voight.core.codigo import transformar_codigo
-from voight.core.config import get_anthropic_key, get_api_key, get_model
+from yutani import ia
+
+from voight.core.config import cargar_entorno, get_proveedor
 from voight.core.converter import question_to_gift
 from voight.core.formatter import format_gift_content
 from voight.core.gift_model import Question
@@ -50,85 +49,54 @@ from voight.core.lector import (  # noqa: F401
 VARIACIONES = 3
 
 
-MODELO_CLAUDE = "claude-opus-5"
-PROVEEDORES = ("gemini", "claude")
+# Los de yutani.ia (google, local, opencode, claude) y los nombres de antes (gemini…).
+PROVEEDORES = (*ia.PROVEEDORES, *ia.ALIAS)
 
 
-class ClienteClaude:
-    """Claude (Anthropic) con la interfaz que usa el procesamiento por lotes:
-    `cliente.models.generate_content(model=…, contents=…).text`.
+def configuracion_ia(proveedor: Optional[str] = None, modelo: Optional[str] = None) -> ia.ConfigIA:
+    """El proveedor y el modelo de `voight ai`.
 
-    Usa el SDK oficial con los reintentos propios del SDK (429, 5xx y errores de red) y
-    el fallback del servidor ante una negativa por política (`fallbacks="default"`): si
-    el modelo declina, la API reintenta en otro modelo dentro de la misma llamada. Si
-    aun así la respuesta es una negativa, el lote falla y sus preguntas quedan como
-    estaban.
+    Prioridad: `--proveedor`/`--model` (o el voight.toml del proyecto), `VOIGHT_PROVEEDOR` (el
+    nombre de antes, también en ~/.voight/.env), la configuración común de yutani.ia
+    (`P1_IA_PROVEEDOR`, `~/.config/p1/ia.toml`) y Gemini. Con Gemini, `GEMINI_MODEL` (de `voight
+    config set-model`) se respeta cuando no hay otro modelo configurado.
     """
-
-    def __init__(self, cliente=None, max_tokens: int = 16000):
-        if cliente is None:
-            try:
-                import anthropic
-            except ImportError:
-                raise ImportError(
-                    "El paquete 'anthropic' no está instalado: `voight ai --proveedor claude` requiere el extra "
-                    'opcional ai. Instalalo con: uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"'
-                ) from None
-            clave = get_anthropic_key()
-            cliente = anthropic.Anthropic(api_key=clave, max_retries=5) if clave else anthropic.Anthropic(max_retries=5)
-        self._cliente = cliente
-        self.max_tokens = max_tokens
-        self.models = self
-
-    def generate_content(self, model: str, contents: str):
-        respuesta = self._cliente.beta.messages.create(
-            model=model,
-            max_tokens=self.max_tokens,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            messages=[{"role": "user", "content": contents}],
-        )
-        if respuesta.stop_reason == "refusal":
-            categoria = getattr(getattr(respuesta, "stop_details", None), "category", None)
-            raise RuntimeError(f"el modelo declinó el lote (categoría: {categoria or 'sin dato'})")
-        texto = "".join(b.text for b in respuesta.content if getattr(b, "type", "") == "text")
-        return _Respuesta(texto)
+    cargar_entorno()
+    config = ia.configuracion("voight", proveedor=proveedor or get_proveedor(), modelo=modelo,
+                              proveedor_por_defecto="google")
+    if config.proveedor == "google" and config.origen.get("modelo") == "por defecto" and os.getenv("GEMINI_MODEL"):
+        config.modelo = os.environ["GEMINI_MODEL"]
+        config.origen["modelo"] = "GEMINI_MODEL"
+    return config
 
 
-@dataclass
-class _Respuesta:
-    text: str
+def cargar_cliente(proveedor: Optional[str] = None, modelo: Optional[str] = None):
+    """(cliente, modelo efectivo) para procesar lotes; ErrorIA si el proveedor no está disponible."""
+    config = configuracion_ia(proveedor, modelo)
+    cliente = ia.cliente(config)
+    elegido = config.modelo
+    if not elegido:  # servidor local sin modelo configurado: el primero de texto que ofrezca
+        disponibles = [m for m in cliente.modelos() if "embed" not in m.lower()]
+        if not disponibles:
+            raise ia.ErrorIA(f"El servidor {config.url} no ofrece ningún modelo de texto.")
+        elegido = disponibles[0]
+    return cliente, elegido
 
 
-def cargar_cliente(proveedor: str):
-    """El cliente del proveedor pedido (gemini o claude)."""
-    if proveedor == "claude":
-        return ClienteClaude()
-    return load_config()
-
-
-def modelo_por_defecto(proveedor: str) -> str:
-    return MODELO_CLAUDE if proveedor == "claude" else get_model()
+def modelo_por_defecto(proveedor: Optional[str] = None) -> Optional[str]:
+    return configuracion_ia(proveedor).modelo
 
 
 def load_config():
-    """Load configuration and return GenAI Client."""
-    if genai is None:
-        raise ImportError(
-            "El paquete 'google-genai' no está instalado: `voight ai` requiere el extra opcional 'ai'. "
-            'Instalalo con: uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"'
-        )
-    api_key = get_api_key()
-    if not api_key:
-        raise ValueError("❌ Error: GEMINI_API_KEY no encontrada. Usa 'voight config set-key <KEY>' para configurarla.")
-    return genai.Client(api_key=api_key)
+    """Cliente del proveedor configurado (compatibilidad: antes devolvía el de Gemini)."""
+    return ia.cliente(configuracion_ia())
 
 
 def list_available_models(client) -> List[str]:
-    """Lista los modelos generativos disponibles en Gemini."""
+    """Modelos que ofrece el proveedor del cliente."""
     try:
-        return [m.name for m in client.models.list() if 'generateContent' in m.supported_methods]
-    except Exception as e:
+        return client.modelos()
+    except ia.ErrorIA as e:
         print(f"❌ Error al listar modelos: {e}")
         return []
 
@@ -385,11 +353,11 @@ def process_batch(client, model_id: str, unidades: List[Unidad], mode: str,
         return 0
     prompt = construir_prompt([u.texto for u in unidades], mode, custom_prompt)
     try:
-        response = client.models.generate_content(model=model_id, contents=prompt)
+        texto = client.generar(prompt, modelo=model_id)
     except Exception as e:  # noqa: BLE001
         print(f"❌ Error procesando lote con el modelo: {e}")
         return len(unidades)
-    respuesta = separar_respuesta(response.text or "", len(unidades))
+    respuesta = separar_respuesta(texto or "", len(unidades))
     if cache is not None:
         for numero, unidad in enumerate(unidades, 1):
             if respuesta.get(numero):

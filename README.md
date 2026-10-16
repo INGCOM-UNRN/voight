@@ -33,7 +33,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
-- `ai`: el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`).
+- `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
 - `voight doctor` informa cuáles de estos requisitos están presentes.
 
@@ -63,7 +63,7 @@ uv tool install git+https://github.com/INGCOM-UNRN/voight
 uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"
 # con las interfaces de terminal (`dedup --tui`, `health --tui`, `ai --mode classify --revisar`)
 uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"
-# con los proveedores de IA (Gemini y Claude) para `voight ai`
+# con los SDK de Gemini y Claude para `voight ai` (un servidor local u OpenCode no los necesitan)
 uv tool install "voight[ai,tui] @ git+https://github.com/INGCOM-UNRN/voight"
 ```
 
@@ -121,8 +121,8 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight fix xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
 - `voight fix xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
 
-### 7. Inteligencia Artificial (Gemini o Claude)
-- `voight ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini o Claude (`--proveedor`). El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.
+### 7. Inteligencia Artificial (Gemini, servidor local, OpenCode o Claude)
+- `voight ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini, un servidor local con la API de OpenAI (Ollama, llama.cpp, LM Studio, vLLM), OpenCode o Claude (`--proveedor google|local|opencode|claude`, y `--model`). El proveedor se configura igual que en el resto del ecosistema (yutani.ia): `--proveedor`, `VOIGHT_PROVEEDOR`, `P1_IA_PROVEEDOR`, `P1_IA_MODELO`, `P1_IA_URL` o `~/.config/p1/ia.toml` (con `[herramientas.voight]` para lo propio); sin nada configurado sigue siendo Gemini, y `voight doctor` muestra cuál quedó y si está disponible. El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.
 - `voight ai --mode classify`: Clasifica cada pregunta con Jev (TypeSafe): nivel de Bloom (B1–B6) y dificultad (1–5) del enunciado y de las respuestas, escritos como comentario en GIFT y XML (y como tags de Moodle con `--tags`). `--calibrar` mide la concordancia con una clasificación docente y `--revisar` abre una interfaz de terminal para corregir las de poca confianza. Requiere `TYPESAFE_API_KEY`.
 
 ### 8. Moodle e integración
@@ -166,7 +166,7 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | Comando | Descripción |
 |:--|:--|
 | `voight doctor` | Verifica el estado del entorno de VOIGHT (Python, LanguageTool, gcc y el motor de síntesis). |
-| `voight ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini). |
+| `voight ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini, un servidor local, OpenCode o Claude). |
 | `voight dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
 | `voight verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
 | `voight split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |

@@ -4,8 +4,7 @@ from typing import List, Optional
 import click
 import typer
 
-from voight.core.ai import PROVEEDORES, cargar_cliente, modelo_por_defecto, run_global_ai_processing
-from voight.core.config import get_proveedor
+from voight.core.ai import PROVEEDORES, cargar_cliente, configuracion_ia, run_global_ai_processing
 from voight.core.banco import expandir_rutas
 from voight.commands.common import LLM_OPTION, con_configuracion, fail
 
@@ -25,10 +24,12 @@ def ai(
     output: Optional[Path] = typer.Option(None, "--output", help="Directorio de salida (por defecto: output_<mode>)."),
     proveedor: Optional[str] = typer.Option(
         None, "--proveedor", "--provider", click_type=click.Choice(PROVEEDORES),
-        help="Modelo de lenguaje para improve/multiply/transform/feedback/distractors: gemini o claude "
-             "(por defecto: VOIGHT_PROVEEDOR o gemini)."),
+        help="Modelo de lenguaje para improve/multiply/transform/feedback/distractors: google (Gemini), "
+             "local (Ollama, llama.cpp…), opencode o claude (por defecto: VOIGHT_PROVEEDOR, P1_IA_PROVEEDOR, "
+             "~/.config/p1/ia.toml o google)."),
     model: Optional[str] = typer.Option(
-        None, "--model", help="Modelo (por defecto: gemini configurado o gemini-2.0-flash; claude-opus-5 con claude)."),
+        None, "--model", help="Modelo (por defecto, el configurado para el proveedor: gemini-2.0-flash, claude-opus-5, "
+                              "opencode-go/qwen3.8-max o el primero del servidor local)."),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar subdirectorios recursivamente."),
     batch_size: int = typer.Option(5, "--batch-size", help="Número de preguntas por petición a la API (default: 5)."),
     in_place: bool = typer.Option(False, "-i", "--in-place", help="Escribir en la misma carpeta que el original."),
@@ -62,7 +63,7 @@ def ai(
         help="Mostrar lo que se enviaría (y cuánto se ahorra) sin llamar al modelo ni escribir archivos.",
     ),
 ):
-    """Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini).
+    """Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini, un servidor local, OpenCode o Claude).
 
     El modelo recibe GIFT compacto (sin comentarios, categorías ni marcas · y ↵ en el
     código); las preguntas XML se convierten a GIFT y la respuesta se aplica sobre el
@@ -78,10 +79,11 @@ def ai(
         "contexto": contexto, "proveedor": proveedor, "model": (model, "modelo"), "opciones": opciones})
     contexto, proveedor, model, opciones = (
         opciones["contexto"], opciones["proveedor"], opciones["model"], opciones["opciones"])
-    proveedor = (proveedor or get_proveedor()).lower()
-    if proveedor not in PROVEEDORES:
-        fail(f"Proveedor desconocido: {proveedor} (gemini o claude).")
-    active_model = model or modelo_por_defecto(proveedor)
+    try:
+        config_ia = configuracion_ia(proveedor, model)
+    except Exception as e:  # noqa: BLE001 - ErrorIA: proveedor desconocido o configuración ilegible
+        fail(str(e))
+    active_model = config_ia.modelo or "(el primero del servidor)"
 
     # Resolver prompt desde archivo si es necesario
     custom_prompt = prompt
@@ -145,7 +147,7 @@ def ai(
     client = None
     if not dry_run:
         try:
-            client = cargar_cliente(proveedor)
+            client, active_model = cargar_cliente(config_ia.proveedor, config_ia.modelo)
         except Exception as e:
             fail(str(e))
 

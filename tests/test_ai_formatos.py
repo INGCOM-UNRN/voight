@@ -5,6 +5,8 @@ convención y, en XML, sobre el <question> original.
 """
 
 import types
+
+import pytest
 import xml.etree.ElementTree as ET
 
 from click.testing import CliRunner
@@ -73,6 +75,10 @@ class Modelo:
             for resultado in self.transformar(int(numero), texto.strip()):
                 salida.append(f"--- PREGUNTA {numero} ---\n{resultado}")
         return types.SimpleNamespace(text="\n\n".join(salida))
+
+    def generar(self, prompt, *, sistema=None, modelo=None):
+        """La interfaz de yutani.ia que usa voight."""
+        return self.generate_content(modelo, prompt).text
 
 
 def _procesar(tmp_path, nombre, contenido, modelo, mode="improve"):
@@ -311,24 +317,65 @@ class _SDKFalso:
                                      stop_details=types.SimpleNamespace(category="cyber"))
 
 
-def test_cliente_claude_usa_el_sdk_con_fallback_y_junta_el_texto():
-    sdk = _SDKFalso()
-    cliente = ai.ClienteClaude(cliente=sdk)
-    respuesta = cliente.models.generate_content(model="claude-opus-5", contents="prompt")
-    assert respuesta.text == "--- PREGUNTA 1 ---\n::A:: ¿Sí? {T}"
-    llamada = sdk.llamadas[0]
-    assert llamada["model"] == "claude-opus-5" and llamada["max_tokens"] == 16000
-    assert llamada["betas"] == ["server-side-fallback-2026-07-01"] and llamada["fallbacks"] == "default"
-    assert llamada["messages"] == [{"role": "user", "content": "prompt"}]
-
-
 def test_cliente_claude_ante_una_negativa_conserva_las_preguntas(tmp_path, capsys):
-    cliente = ai.ClienteClaude(cliente=_SDKFalso(stop_reason="refusal", bloques=[]))
+    """El cliente de Claude es el de yutani.ia; una negativa deja el lote como estaba."""
+    from yutani import ia as yia
+
+    cliente = yia.ClienteClaude(yia.configuracion(proveedor="claude"), sdk=_SDKFalso(stop_reason="refusal", bloques=[]))
     salida = _procesar(tmp_path, "b.gift", GIFT, cliente)
     assert salida == GIFT.strip() + "\n"
     assert "declinó" in capsys.readouterr().out
 
 
-def test_modelo_por_defecto_segun_proveedor():
+@pytest.fixture
+def sin_config_ia(monkeypatch, tmp_path):
+    for var in ("P1_IA_PROVEEDOR", "P1_IA_MODELO", "P1_IA_URL", "VOIGHT_PROVEEDOR", "GEMINI_MODEL"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("P1_IA_CONFIG", str(tmp_path / "ia.toml"))
+    monkeypatch.setattr(ai, "cargar_entorno", lambda: None)  # sin el ~/.voight/.env de la máquina
+
+
+def test_modelo_por_defecto_segun_proveedor(sin_config_ia):
     assert ai.modelo_por_defecto("claude") == "claude-opus-5"
     assert ai.modelo_por_defecto("gemini").startswith("gemini")
+    assert ai.modelo_por_defecto("opencode") == "opencode-go/qwen3.8-max"
+
+
+def test_configuracion_ia_respeta_lo_de_antes_y_lo_comun(sin_config_ia, monkeypatch):
+    """N-ECO-26: sin nada, Gemini; VOIGHT_PROVEEDOR y GEMINI_MODEL siguen valiendo; P1_IA_* también."""
+    assert ai.configuracion_ia().proveedor == "google"
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-pro")
+    assert ai.configuracion_ia().modelo == "gemini-2.5-pro"
+    monkeypatch.setenv("P1_IA_PROVEEDOR", "ollama")
+    monkeypatch.setenv("P1_IA_MODELO", "qwen2.5-coder:7b")
+    c = ai.configuracion_ia()
+    assert (c.proveedor, c.modelo) == ("local", "qwen2.5-coder:7b")
+    monkeypatch.setenv("VOIGHT_PROVEEDOR", "claude")
+    assert ai.configuracion_ia().proveedor == "claude"
+    assert ai.configuracion_ia("opencode", "x/y").modelo == "x/y"
+
+
+def test_cli_ai_con_servidor_local(sin_config_ia, monkeypatch, tmp_path):
+    """--proveedor local usa el cliente de yutani.ia con el modelo pedido."""
+    from yutani import ia as yia
+
+    pedidos = []
+    modelo = Modelo()
+
+    def cliente(config, directorio=None):
+        pedidos.append(config)
+        return modelo
+
+    monkeypatch.setattr(yia, "cliente", cliente)
+    (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
+    res = runner.invoke(cli, ["ai", str(tmp_path / "b.gift"), "--proveedor", "local", "--model", "qwen2.5-coder:7b",
+                              "--output", str(tmp_path / "out"), "--sin-cache"])
+    assert res.exit_code == 0, res.output
+    assert (pedidos[-1].proveedor, pedidos[-1].modelo) == ("local", "qwen2.5-coder:7b")
+    assert modelo.prompts and list((tmp_path / "out").glob("*.gift"))
+
+
+def test_cli_ai_proveedor_desconocido(sin_config_ia, tmp_path):
+    (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
+    res = runner.invoke(cli, ["ai", str(tmp_path / "b.gift"), "--proveedor", "watson"])
+    assert res.exit_code != 0

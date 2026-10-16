@@ -52,13 +52,22 @@ def doctor_cmd(
         "detalle": motor_detalle,
     })
 
-    import os
-    diagnostico.append({
-        "componente": "GEMINI_API_KEY (comando ai)",
-        "estado": "OK" if os.getenv("GEMINI_API_KEY") else "ADVERTENCIA",
-        "requerido": False,
-        "detalle": "Definida" if os.getenv("GEMINI_API_KEY") else "No definida: `ai` la exige (ver `config`)",
-    })
+    # Proveedor de IA de `voight ai` (opcional): el diagnóstico común de yutani.ia.
+    from yutani import ia
+
+    from voight.core.ai import configuracion_ia
+
+    try:
+        chequeos_ia = ia.diagnostico(configuracion_ia())
+    except ia.ErrorIA as exc:
+        chequeos_ia = [ia.Chequeo("ia", False, False, str(exc))]
+    for c in chequeos_ia:
+        diagnostico.append({
+            "componente": f"{c.nombre} (comando ai)",
+            "estado": "OK" if c.ok else "ADVERTENCIA",
+            "requerido": False,
+            "detalle": c.detalle + (f" — {c.sugerencia}" if c.sugerencia else ""),
+        })
 
     todo_ok = py_ok
 

@@ -52,7 +52,7 @@ def test_el_doctor_informa_los_requisitos_reales_de_synth_y_ai():
     componentes = {c["componente"] for c in json.loads(res.output)["componentes"]}
     assert any("GCC" in c for c in componentes)
     assert any("alucarD" in c for c in componentes)
-    assert any("GEMINI" in c for c in componentes)
+    assert any("ia: " in c and "(comando ai)" in c for c in componentes)  # proveedor de IA (N-ECO-26)
     assert not any("TatSu" in c for c in componentes)
 
 

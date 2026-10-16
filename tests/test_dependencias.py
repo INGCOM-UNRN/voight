@@ -32,5 +32,5 @@ def test_el_modulo_ai_se_importa_aunque_falte_google_genai(monkeypatch):
     modulo = importlib.util.module_from_spec(spec)
     monkeypatch.setitem(sys.modules, spec.name, modulo)  # @dataclass busca el módulo en sys.modules
     spec.loader.exec_module(modulo)
-    assert modulo.genai is None
-    assert original.genai is not None or "google" not in sys.modules
+    # El SDK lo pide yutani.ia recién al usar Gemini, con un error que dice qué instalar.
+    assert "google" in modulo.PROVEEDORES and original.PROVEEDORES == modulo.PROVEEDORES

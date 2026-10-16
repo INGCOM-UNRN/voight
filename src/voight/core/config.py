@@ -75,9 +75,17 @@ def get_anthropic_key():
     return _leer("ANTHROPIC_API_KEY")
 
 
-def get_proveedor() -> str:
-    """Proveedor por defecto de `voight ai`: gemini (histórico) o claude."""
-    return (_leer("VOIGHT_PROVEEDOR") or "gemini").lower()
+def get_proveedor() -> Optional[str]:
+    """`VOIGHT_PROVEEDOR` (entorno o ~/.voight/.env), si está; si no, decide yutani.ia."""
+    valor = _leer("VOIGHT_PROVEEDOR")
+    return valor.lower() if valor else None
+
+
+def cargar_entorno() -> None:
+    """Pone en el entorno lo guardado con `voight config` (claves y modelo) sin pisar lo que ya esté."""
+    load_dotenv()
+    if ENV_FILE.exists():
+        load_dotenv(ENV_FILE)
 
 
 def save_anthropic_key(api_key: str):
