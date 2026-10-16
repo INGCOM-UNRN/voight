@@ -4,6 +4,7 @@ El modelo siempre recibe GIFT compacto; la respuesta vuelve a cada archivo con s
 convención y, en XML, sobre el <question> original.
 """
 
+import re
 import types
 
 import pytest
@@ -184,16 +185,17 @@ def test_xml_conserva_los_comentarios(tmp_path):
 
 
 def _con_feedback(n, texto):
-    """Modelo que completa feedback y, además, intenta reescribir el enunciado y un feedback existente."""
-    texto = texto.replace("¿Qué imprime?", "¿Qué muestra en pantalla?").replace("#Bien", "#Muy bien")
-    lineas = []
+    """Modelo que recibe la vista de feedback (enunciado, opciones numeradas y FALTA) y devuelve sólo
+    líneas 'n# …'; además intenta reescribir un feedback que ya existe (1# …), que debe ignorarse."""
+    opciones = {}
     for linea in texto.splitlines():
-        s = linea.strip()
-        if s.startswith(("=", "~")) and "#" not in s:
-            linea += " #Explicación de " + s[1:].strip()
-        lineas.append(linea)
-    lineas.insert(len(lineas) - 1, "\t####Repasá el concepto.")
-    return ["\n".join(lineas)]
+        m = re.match(r"^(\d+)\. [=~](?:%-?[\d.]+%)?(.*)$", linea)
+        if m:
+            opciones[m.group(1)] = m.group(2).strip()
+    faltan = [x.strip() for x in texto.rsplit("FALTA:", 1)[1].split(",")]
+    salida = [f"{i}# Explicación de {opciones[i]}" for i in faltan if i in opciones]
+    salida += ["1# Muy bien"] + (["G# Repasá el concepto."] if "G" in faltan else [])
+    return ["\n".join(salida)]
 
 
 def test_feedback_completa_solo_lo_que_falta_en_gift(tmp_path):
@@ -255,11 +257,8 @@ def test_estimacion_de_tokens_y_costo(tmp_path):
 
 
 def _con_distractores(n, texto):
-    """Agrega dos distractores nuevos (uno repetido de los existentes, que se ignora)."""
-    lineas = texto.splitlines()
-    cierre = max(i for i, linea in enumerate(lineas) if linea.strip() == "}")
-    lineas[cierre:cierre] = ["\t~Un número aleatorio #confunde con basura", "\t~error", "\t~Una excepción en tiempo de ejecución"]
-    return ["\n".join(lineas)]
+    """Devuelve sólo distractores (uno repetido de los existentes, que se ignora)."""
+    return ["~Un número aleatorio #confunde con basura\n~error\n~Una excepción en tiempo de ejecución"]
 
 
 def test_distractors_agrega_solo_opciones_incorrectas_nuevas(tmp_path):
@@ -279,12 +278,16 @@ def test_distractors_en_xml_agrega_respuestas_con_fraccion_cero(tmp_path):
     assert pregunta.findtext("penalty") == "0.5"
 
 
-def test_distractors_rechaza_si_cambia_las_opciones_originales(tmp_path):
+def test_distractors_nunca_cambia_las_opciones_originales(tmp_path):
+    """Con la vista parcial el modelo sólo puede agregar: si devuelve la vista entera con una opción
+    reescrita, el enunciado y las originales quedan como estaban."""
     def cambia(n, texto):
-        return [texto.replace("~nada", "~nada de nada") + "\n"]
+        return [texto.replace("~nada", "~nada de nada").replace("ENUNCIADO: ", "ENUNCIADO: Nuevo ")]
 
     salida = _procesar(tmp_path, "b.gift", GIFT, Modelo(cambia), mode="distractors")
-    assert salida == GIFT.strip() + "\n"
+    q = parse_gift(salida)["questions"][1]
+    textos = [c["text"]["text"] for c in q["choices"]]
+    assert textos[:3] == ["`si`", "nada", "error"] and "Nuevo" not in q["stem"]["text"]
 
 
 def test_necesita_distractores():
@@ -379,3 +382,90 @@ def test_cli_ai_proveedor_desconocido(sin_config_ia, tmp_path):
     (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
     res = runner.invoke(cli, ["ai", str(tmp_path / "b.gift"), "--proveedor", "watson"])
     assert res.exit_code != 0
+
+
+# ── Vistas parciales: sólo se envía y se recibe lo que cambia ─────────────────────
+
+def _procesar_parte(tmp_path, nombre, contenido, modelo, parte):
+    origen = tmp_path / "banco"
+    origen.mkdir(exist_ok=True)
+    archivo = origen / nombre
+    archivo.write_text(contenido, encoding="utf-8")
+    ai.run_global_ai_processing(modelo, "simulado", [archivo], tmp_path / "salida", "improve", parte=parte)
+    return (tmp_path / "salida" / f"{archivo.stem}_improve{archivo.suffix}").read_text(encoding="utf-8")
+
+
+def test_parte_enunciado_envia_y_recibe_solo_el_enunciado_gift(tmp_path):
+    modelo = Modelo(lambda n, t: [t.replace("¿Qué imprime?", "¿Qué muestra en pantalla este fragmento?")])
+    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "enunciado")
+    enviado = modelo.prompts[0].split("--- PREGUNTA 1 ---\n", 1)[1]
+    assert "{" not in enviado.replace("if (a == b) {", "") and "nada" not in enviado and "Bien" not in enviado
+    assert "if (a == b) {" in enviado  # el código va en ASCII, sin marcas · ni ↵
+    q = parse_gift(salida)["questions"][1]
+    assert "¿Qué muestra en pantalla este fragmento?" in q["stem"]["text"]
+    assert [c["text"]["text"] for c in q["choices"]] == ["`si`", "nada", "error"]
+    assert q["choices"][0]["feedback"]["text"] == "Bien"
+    assert "if （a ⩵ b） ｛↵" in salida  # el código recupera la convención del original
+    assert salida.startswith("$CATEGORY: $course$/Java\n\n// [tag:java] [id:J-1]\n")
+
+
+def test_parte_enunciado_en_xml_solo_toca_questiontext(tmp_path):
+    modelo = Modelo(lambda n, t: [t.replace("¿Qué imprime?", "¿Qué se imprime?")])
+    salida = _procesar_parte(tmp_path, "b.xml", XML, modelo, "enunciado")
+    assert "<answer" not in modelo.prompts[0] and "basura" not in modelo.prompts[0]
+    pregunta = ET.fromstring(salida).findall("question")[1]
+    assert pregunta.findtext("questiontext/text").startswith("¿Qué se imprime?")
+    assert [a.findtext("text") for a in pregunta.findall("answer")] == ["5", "0", "basura"]
+    assert pregunta.findtext("penalty") == "0.5" and pregunta.findtext("idnumber") == "C-7"
+
+
+def test_parte_respuestas_envia_opciones_sin_retroalimentacion(tmp_path):
+    def mejora(n, texto):
+        opciones = [linea for linea in texto.splitlines() if linea.startswith(("=", "~"))]
+        return ["\n".join(o.replace("nada", "No imprime nada").replace("error", "Error de compilación")
+                          for o in opciones)]
+
+    modelo = Modelo(mejora)
+    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "respuestas")
+    assert "Bien" not in modelo.prompts[0]  # la retroalimentación no viaja
+    q = parse_gift(salida)["questions"][1]
+    assert [c["text"]["text"] for c in q["choices"]] == ["`si`", "No imprime nada", "Error de compilación"]
+    assert q["choices"][0]["feedback"]["text"] == "Bien" and q["choices"][0]["is_correct"]
+
+
+def test_parte_respuestas_rechaza_si_cambia_la_correcta(tmp_path, capsys):
+    modelo = Modelo(lambda n, t: ["~`si`\n=nada\n~error"])
+    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "respuestas")
+    assert salida == GIFT.strip() + "\n" and "forma pedida" in capsys.readouterr().out
+
+
+def test_las_vistas_parciales_envian_menos(tmp_path):
+    (tmp_path / "b.xml").write_text(XML, encoding="utf-8")
+    unidades = ai.unidades_de(ai.leer_archivos([tmp_path / "b.xml"]))
+    completo = ai.estimar_tokens(unidades, "improve", None, 5)
+    enunciado = ai.estimar_tokens(unidades, "improve", None, 5, parte="enunciado")
+    assert enunciado["entrada"] < completo["entrada"] and enunciado["salida"] < completo["salida"]
+    # feedback devuelve sólo lo que falta; antes volvía la pregunta entera además de eso.
+    feedback = ai.estimar_tokens(unidades, "feedback", None, 5)
+    antes = sum(len(u.texto) for u in unidades) / ai.CARACTERES_POR_TOKEN + feedback["salida"]
+    assert feedback["salida"] < antes
+
+
+def test_parte_solo_con_improve(tmp_path):
+    (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
+    res = runner.invoke(cli, ["ai", str(tmp_path), "--mode", "feedback", "--parte", "enunciado", "--dry-run"])
+    assert res.exit_code != 0 and "--parte" in res.output
+
+
+def test_dry_run_con_parte_muestra_la_vista(tmp_path):
+    (tmp_path / "b.gift").write_text(GIFT, encoding="utf-8")
+    res = runner.invoke(cli, ["ai", str(tmp_path), "--parte", "enunciado", "--dry-run"])
+    assert res.exit_code == 0, res.output
+    assert "sólo el enunciado" in res.output and "~nada" not in res.output
+
+
+def test_parte_enunciado_rechaza_marcadores_deformados(tmp_path, capsys):
+    """Un modelo chico que devuelve varias «preguntas» con marcadores mal escritos no pisa el enunciado."""
+    modelo = Modelo(lambda n, t: ["--- PREGUNQA 1 ---\nOtra cosa\n\n--- PREGUNTA 2 |\nY otra"])
+    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "enunciado")
+    assert salida == GIFT.strip() + "\n" and "forma pedida" in capsys.readouterr().out

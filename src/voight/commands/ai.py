@@ -30,6 +30,10 @@ def ai(
     model: Optional[str] = typer.Option(
         None, "--model", help="Modelo (por defecto, el configurado para el proveedor: gemini-2.0-flash, claude-opus-5, "
                               "opencode-go/qwen3.8-max o el primero del servidor local)."),
+    parte: str = typer.Option(
+        "todo", "--parte", "--part", click_type=click.Choice(["todo", "enunciado", "respuestas"]),
+        help="improve: qué mejorar. enunciado o respuestas envían y reciben sólo esa parte (menos tokens); "
+             "todo, la pregunta entera."),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar subdirectorios recursivamente."),
     batch_size: int = typer.Option(5, "--batch-size", help="Número de preguntas por petición a la API (default: 5)."),
     in_place: bool = typer.Option(False, "-i", "--in-place", help="Escribir en la misma carpeta que el original."),
@@ -94,8 +98,10 @@ def ai(
             fail(f"Error al leer el archivo de prompt: {e}")
 
     # Si se provee prompt y no hay modo explícito de transform o multiply, usar transform
-    if prompt and mode == 'improve':
+    if prompt and mode == 'improve' and parte == "todo":
         mode = 'transform'
+    if parte != "todo" and mode != "improve":
+        fail("--parte sólo se usa con --mode improve.")
 
     from voight.core import ai as ai_core
 
@@ -170,6 +176,7 @@ def ai(
         usar_cache=not sin_cache,
         precio_entrada=precio_entrada,
         precio_salida=precio_salida,
+        parte=parte,
     )
 
 

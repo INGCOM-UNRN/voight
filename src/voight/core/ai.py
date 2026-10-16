@@ -39,6 +39,7 @@ from voight.core.formatter import format_gift_content
 from voight.core.gift_model import Question
 from voight.core.parser import GiftParser
 from voight.core.tree import serializar_quiz
+from voight.core import vistas
 
 # El lector vive en core/lector.py; se reexporta por compatibilidad.
 from voight.core.lector import (  # noqa: F401
@@ -111,7 +112,34 @@ _CONVENCIONES = (
 )
 
 
-def construir_prompt(textos: List[str], mode: str, custom_prompt: Optional[str] = None) -> str:
+def _base(unidad: Unidad) -> Optional[Question]:
+    """La pregunta compacta en la representación protegida (la de una respuesta interpretada)."""
+    interpretado = _interpretar(unidad.texto)
+    return interpretado[1] if interpretado else None
+
+
+def texto_enviado(unidad: Unidad, mode: str, parte: str = "todo") -> str:
+    """Lo que se envía de la unidad: su vista parcial si el modo la tiene, o el GIFT compacto."""
+    clase = vistas.clase_de(mode, parte)
+    base = _base(unidad) if clase else None
+    if clase and base is not None and vistas.aplica(clase, base):
+        return vistas.vista(base, clase)
+    return unidad.texto
+
+
+def construir_prompt(textos: List[str], mode: str, custom_prompt: Optional[str] = None, parte: str = "todo") -> str:
+    clase = vistas.clase_de(mode, parte)
+    if clase:
+        instruccion, salida = vistas.instruccion(clase, OPCIONES_OBJETIVO[0])
+        if custom_prompt:
+            instruccion += f"\nInstrucción adicional: {custom_prompt}"
+        lote = "\n\n".join(f"--- PREGUNTA {i} ---\n{t}" for i, t in enumerate(textos, 1))
+        return (
+            f"{instruccion}\nEl código va entre ``` o `...`, en ASCII normal y sin escapar.\n\n"
+            f"Devolvé, para cada pregunta, {salida}, precedido por la misma línea '--- PREGUNTA n ---'. "
+            "Sin explicaciones ni bloques ``` alrededor.\n\n"
+            f"{lote}"
+        )
     if mode == "improve":
         instruccion = (
             "Sos experto en pedagogía y en el formato GIFT de Moodle. Mejorá la claridad, la gramática y la "
@@ -207,12 +235,23 @@ def _interpretar(gift: str) -> Optional[tuple]:
     return gift, preguntas[0]
 
 
-def aplicar_respuesta(unidades: List[Unidad], respuesta: Dict[int, List[str]], mode: str) -> int:
+def aplicar_respuesta(unidades: List[Unidad], respuesta: Dict[int, List[str]], mode: str,
+                      parte: str = "todo") -> int:
     """Valida y asigna lo devuelto a cada unidad. Devuelve cuántas quedaron sin cambios."""
     sin_cambios = 0
+    clase = vistas.clase_de(mode, parte)
     for numero, unidad in enumerate(unidades, 1):
         validas = []
+        base = _base(unidad) if clase else None
         for bloque in respuesta.get(numero, []):
+            if base is not None and clase and vistas.aplica(clase, base):
+                # Vista parcial: lo devuelto se aplica sobre la pregunta y vuelve a ser GIFT completo.
+                completo = vistas.reconstruir(base, clase, bloque)
+                if completo is None:
+                    print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no tiene la forma pedida "
+                          f"({clase}); se conserva el original.")
+                    continue
+                bloque = completo
             interpretado = _interpretar(bloque)
             if interpretado is None:
                 print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no es una pregunta GIFT válida.")
@@ -338,20 +377,23 @@ def completar_feedback(original: Question, nueva: Question) -> tuple:
     return completa, agregadas
 
 
-def _clave_cache(model_id: str, mode: str, custom_prompt: Optional[str], unidad: Unidad) -> str:
+def _clave_cache(model_id: str, mode: str, custom_prompt: Optional[str], unidad: Unidad, parte: str = "todo") -> str:
     extra = OPCIONES_OBJETIVO[0] if mode == "distractors" else None
-    return Cache.clave("ai", model_id, mode, custom_prompt or "", extra, unidad.texto)
+    clase = vistas.clase_de(mode, parte)
+    # La caché se indexa por lo que se envía: con vistas parciales, la vista (y su clase).
+    return Cache.clave("ai", model_id, mode, custom_prompt or "", extra, *(("vista", clase) if clase else ()),
+                       texto_enviado(unidad, mode, parte))
 
 
 def process_batch(client, model_id: str, unidades: List[Unidad], mode: str,
-                  custom_prompt: Optional[str] = None, cache: Optional[Cache] = None) -> int:
+                  custom_prompt: Optional[str] = None, cache: Optional[Cache] = None, parte: str = "todo") -> int:
     """Envía un lote al modelo y aplica la respuesta. Devuelve cuántas quedaron sin cambios.
 
     Con `cache`, las respuestas por pregunta se guardan bajo el hash de lo enviado.
     """
     if not unidades:
         return 0
-    prompt = construir_prompt([u.texto for u in unidades], mode, custom_prompt)
+    prompt = construir_prompt([texto_enviado(u, mode, parte) for u in unidades], mode, custom_prompt, parte)
     try:
         texto = client.generar(prompt, modelo=model_id)
     except Exception as e:  # noqa: BLE001
@@ -361,18 +403,18 @@ def process_batch(client, model_id: str, unidades: List[Unidad], mode: str,
     if cache is not None:
         for numero, unidad in enumerate(unidades, 1):
             if respuesta.get(numero):
-                cache.guardar(_clave_cache(model_id, mode, custom_prompt, unidad), respuesta[numero])
-    return aplicar_respuesta(unidades, respuesta, mode)
+                cache.guardar(_clave_cache(model_id, mode, custom_prompt, unidad, parte), respuesta[numero])
+    return aplicar_respuesta(unidades, respuesta, mode, parte)
 
 
 def desde_cache(unidades: List[Unidad], model_id: str, mode: str, custom_prompt: Optional[str],
-                cache: Cache) -> List[Unidad]:
+                cache: Cache, parte: str = "todo") -> List[Unidad]:
     """Aplica las respuestas en caché y devuelve las unidades que hay que enviar."""
     pendientes = []
     for unidad in unidades:
-        guardada = cache.obtener(_clave_cache(model_id, mode, custom_prompt, unidad))
+        guardada = cache.obtener(_clave_cache(model_id, mode, custom_prompt, unidad, parte))
         if guardada:
-            aplicar_respuesta([unidad], {1: guardada}, mode)
+            aplicar_respuesta([unidad], {1: guardada}, mode, parte)
         else:
             pendientes.append(unidad)
     return pendientes
@@ -598,14 +640,19 @@ CARACTERES_POR_TOKEN = 4  # aproximación usual para texto mayormente ASCII
 SALIDA_POR_MODO = {"multiply": VARIACIONES, "feedback": 1.4, "distractors": 1.4}
 
 
-def estimar_tokens(unidades: List[Unidad], mode: str, custom_prompt: Optional[str], batch_size: int) -> Dict[str, int]:
-    """Tokens aproximados de entrada (prompts completos) y de salida (preguntas devueltas)."""
+def estimar_tokens(unidades: List[Unidad], mode: str, custom_prompt: Optional[str], batch_size: int,
+                   parte: str = "todo") -> Dict[str, int]:
+    """Tokens aproximados de entrada (prompts completos) y de salida (lo que vuelve)."""
     entrada = salida = 0
+    clase = vistas.clase_de(mode, parte)
     for i in range(0, len(unidades), batch_size):
         lote = unidades[i:i + batch_size]
-        entrada += len(construir_prompt([u.texto for u in lote], mode, custom_prompt))
-        salida += sum(len(u.texto) for u in lote)
-    factor = SALIDA_POR_MODO.get(mode, 1)
+        entrada += len(construir_prompt([texto_enviado(u, mode, parte) for u in lote], mode, custom_prompt, parte))
+        for u in lote:
+            base = _base(u) if clase else None
+            salida += (vistas.salida_esperada(base, clase) if clase and base is not None and vistas.aplica(clase, base)
+                       else len(u.texto))
+    factor = 1 if clase else SALIDA_POR_MODO.get(mode, 1)
     return {"entrada": round(entrada / CARACTERES_POR_TOKEN), "salida": round(salida * factor / CARACTERES_POR_TOKEN)}
 
 
@@ -617,16 +664,17 @@ def describir_costo(tokens: Dict[str, int], precio_entrada: Optional[float], pre
     return texto.replace(",", ".")
 
 
-def estadisticas(unidades: List[Unidad]) -> Dict[str, int]:
+def estadisticas(unidades: List[Unidad], mode: str = "improve", parte: str = "todo") -> Dict[str, int]:
     original = sum(len(u.original) for u in unidades)
-    enviado = sum(len(u.texto) for u in unidades)
+    enviado = sum(len(texto_enviado(u, mode, parte)) for u in unidades)
     return {"preguntas": len(unidades), "caracteres_original": original, "caracteres_enviados": enviado}
 
 
 def run_global_ai_processing(client, model_id: str, file_paths: List[Path], output_dir: Optional[Path], mode: str,
                              custom_prompt: Optional[str] = None, batch_size: int = 5, in_place: bool = False,
                              suffix: Optional[str] = None, dry_run: bool = False, usar_cache: bool = True,
-                             precio_entrada: Optional[float] = None, precio_salida: Optional[float] = None):
+                             precio_entrada: Optional[float] = None, precio_salida: Optional[float] = None,
+                             parte: str = "todo"):
     """Procesa todas las preguntas de todos los archivos (GIFT y XML) en lotes globales."""
     print(f"🔍 Escaneando {len(file_paths)} archivos...")
     archivos = leer_archivos(file_paths)
@@ -635,11 +683,17 @@ def run_global_ai_processing(client, model_id: str, file_paths: List[Path], outp
         unidades = [u for u in unidades if u.pregunta is not None and falta_feedback(u.pregunta)]
     elif mode == "distractors":
         unidades = [u for u in unidades if u.pregunta is not None and necesita_distractores(u.pregunta, OPCIONES_OBJETIVO[0])]
+    clase = vistas.clase_de(mode, parte)
+    if clase in ("enunciado", "respuestas"):
+        aplicables = [u for u in unidades if (b := _base(u)) is not None and vistas.aplica(clase, b)]
+        if len(aplicables) < len(unidades):
+            print(f"ℹ️ {len(unidades) - len(aplicables)} preguntas no tienen {clase} que mejorar: se dejan como están.")
+        unidades = aplicables
     if not unidades:
         print("⚠️ No se encontraron preguntas para procesar.")
         return
 
-    datos = estadisticas(unidades)
+    datos = estadisticas(unidades, mode, parte)
     ahorro = 100 - datos["caracteres_enviados"] * 100 // max(datos["caracteres_original"], 1)
     print(f"📏 {datos['preguntas']} preguntas: se envían {datos['caracteres_enviados']} caracteres "
           f"de {datos['caracteres_original']} en los archivos ({ahorro}% menos).")
@@ -647,26 +701,26 @@ def run_global_ai_processing(client, model_id: str, file_paths: List[Path], outp
     lotes = [unidades[i:i + batch_size] for i in range(0, len(unidades), batch_size)]
     if dry_run:
         pendientes_sim = [u for u in unidades
-                          if Cache("ai", activa=usar_cache).obtener(_clave_cache(model_id, mode, custom_prompt, u)) is None]
+                          if Cache("ai", activa=usar_cache).obtener(_clave_cache(model_id, mode, custom_prompt, u, parte)) is None]
         en_cache = len(unidades) - len(pendientes_sim)
-        print(f"💰 {describir_costo(estimar_tokens(pendientes_sim, mode, custom_prompt, batch_size), precio_entrada, precio_salida)}"
+        print(f"💰 {describir_costo(estimar_tokens(pendientes_sim, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}"
               + (f" ({en_cache} preguntas ya están en la caché)" if en_cache else ""))
         print(f"🧪 Simulación: {len(lotes)} lotes; no se llama al modelo. Primer lote:\n")
-        print(construir_prompt([u.texto for u in lotes[0]], mode, custom_prompt))
+        print(construir_prompt([texto_enviado(u, mode, parte) for u in lotes[0]], mode, custom_prompt, parte))
         return
 
     cache = Cache("ai", activa=usar_cache)
-    pendientes = desde_cache(unidades, model_id, mode, custom_prompt, cache)
+    pendientes = desde_cache(unidades, model_id, mode, custom_prompt, cache, parte)
     if cache.aciertos:
         print(f"♻️  {cache.aciertos} preguntas resueltas desde la caché (sin consultar al modelo).")
     lotes = [pendientes[i:i + batch_size] for i in range(0, len(pendientes), batch_size)]
     if pendientes:
-        print(f"💰 {describir_costo(estimar_tokens(pendientes, mode, custom_prompt, batch_size), precio_entrada, precio_salida)}")
+        print(f"💰 {describir_costo(estimar_tokens(pendientes, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}")
     print(f"🚀 Procesando en {len(lotes)} lotes de hasta {batch_size} preguntas...")
     sin_cambios = 0
     for n, lote in enumerate(lotes, 1):
         print(f"  📦 Lote {n}/{len(lotes)} ({len(lote)} preguntas)...")
-        sin_cambios += process_batch(client, model_id, lote, mode, custom_prompt, cache)
+        sin_cambios += process_batch(client, model_id, lote, mode, custom_prompt, cache, parte)
 
     print("💾 Guardando resultados...")
     # En el directorio de salida se conserva la estructura relativa: en un banco hay
