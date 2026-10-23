@@ -32,6 +32,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
+- Diagramas mermaid al fusionar Moodle XML (`unify`, `tree collect`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
 - `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
@@ -111,7 +112,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 
 ### 4. Árboles de Directorios (absorbe moodle-reorganizer)
 - `voight tree export banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta).
-- `voight tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías.
+- `voight tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías. En Moodle XML (también con `voight unify`), los bloques ```` ```mermaid ```` se renderizan con mermaid-cli (`mmdc`) y las imágenes con ruta relativa se incrustan en el archivo fusionado como `@@PLUGINFILE@@`; las preguntas fuente siguen siendo texto (`--no-incrustar` lo desactiva, `--diagramas svg` cambia el formato).
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
 - `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"`.

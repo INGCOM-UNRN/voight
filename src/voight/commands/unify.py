@@ -27,12 +27,22 @@ def unify(
         False, "--remove",
         help="Borrar los archivos fuente después de unificarlos.",
     ),
+    incrustar: bool = typer.Option(
+        True, "--incrustar/--no-incrustar",
+        help="XML: renderiza los diagramas mermaid e incrusta las imágenes relativas en la salida."),
+    formato_diagrama: str = typer.Option(
+        "png", "--diagramas",
+        click_type=click.Choice(["png", "svg"]),
+        help="Formato de imagen de los diagramas mermaid incrustados."),
 ):
     """Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo.
 
     Es la operación inversa a 'split' y 'tree export': recopila preguntas
     recorriendo los directorios especificados, infiere y preserva las categorías,
     y genera un único banco monolítico (.gift o .xml).
+
+    En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`) y las
+    imágenes con ruta relativa al archivo de la pregunta se incrustan en la salida.
     """
     if not paths:
         paths = [Path(".")]
@@ -44,6 +54,8 @@ def unify(
             formato=formato,
             recursivo=recursive,
             eliminar_origen=remove,
+            incrustar=incrustar,
+            formato_diagrama=formato_diagrama,
         )
     except Exception as e:
         fail(f"Error durante la unificación: {e}")

@@ -375,6 +375,9 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
     recorriendo los directorios especificados, infiere y preserva las categorías,
     y genera un único banco monolítico (.gift o .xml).
 
+    En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`) y las
+    imágenes con ruta relativa al archivo de la pregunta se incrustan en la salida.
+
 #### Argumentos
 | Argumento | Tipo | Descripción |
 | :--- | :--- | :--- |
@@ -388,11 +391,48 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 | `-f`, `--format` | `Optional[str]` | `None` | Formato de salida (por defecto se deduce de la extensión del archivo de salida). |
 | `-r`, `--recursive/--no-recursive` | `<class 'bool'>` | `True` | Procesar directorios recursivamente (por defecto True). |
 | `--remove` | `<class 'bool'>` | `False` | Borrar los archivos fuente después de unificarlos. |
+| `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: renderiza los diagramas mermaid e incrusta las imágenes relativas en la salida. |
+| `--diagramas` | `<class 'str'>` | `png` | Formato de imagen de los diagramas mermaid incrustados (`png` o `svg`). |
 
 #### Ejemplo de Invocación
 ```bash
 voight unify <output_file>
 ```
+
+#### Diagramas mermaid e imágenes relativas
+
+Las preguntas se escriben y versionan como texto; sólo el archivo fusionado
+(`voight unify … -o banco.xml` y `voight tree collect … -o banco.xml`) lleva las
+imágenes incrustadas. Los archivos fuente no se modifican.
+
+- **Diagramas**: un bloque ```` ```mermaid ```` (en campos `markdown`) o un
+  `<pre class="mermaid">` / `<div class="mermaid">` (en campos `html`) se renderiza
+  con [mermaid-cli](https://github.com/mermaid-js/mermaid-cli) (`npm install -g
+  @mermaid-js/mermaid-cli`; otra ruta con `VOIGHT_MMDC`). El código puede estar
+  protegido con fullwidth y marcas `·`/`↵`: se restaura antes de renderizar. Los
+  renders se guardan en la caché de voight.
+- **Imágenes relativas**: `![alt](img/a.png)` y `<img src="img/a.png">` se resuelven
+  contra el directorio del archivo de la pregunta. Las URL absolutas, `data:` y
+  `@@PLUGINFILE@@` quedan como están.
+
+Cada recurso se adjunta al campo que lo usa (enunciado, retroalimentación, opción…)
+como `<file name="…" path="/" encoding="base64">` y la referencia pasa a
+`@@PLUGINFILE@@/<nombre>`, que es como Moodle importa archivos en Moodle XML. Una
+imagen que no existe o un diagrama que no compila detienen la fusión con el error.
+`--no-incrustar` deja el texto como está. En GIFT no aplica: el formato no lleva
+archivos.
+
+````markdown
+<!-- Tema/flujo.xml, campo questiontext format="markdown" -->
+¿Qué imprime el programa?
+
+```mermaid
+graph TD
+  A[inicio] --> B{x > 0}
+```
+
+![salida esperada](img/salida.png)
+````
 
 ### `voight synth`
 

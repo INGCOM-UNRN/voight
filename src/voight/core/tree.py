@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from voight.core.converter import _cdata_sub, _serializar_quiz
+from voight.core.incrustar import incrustar_pregunta
 from voight.core.xml_tools import sanitize_filename
 
 
@@ -222,8 +223,13 @@ def xml_export(input_file: Path, base_output_dir: Path) -> int:
     return question_count
 
 
-def xml_collect(base_input_dir: Path, output_file: Path) -> int:
-    """Recolecta un árbol de preguntas Moodle XML en un archivo monolítico."""
+def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
+                formato_diagrama: str = 'png') -> int:
+    """Recolecta un árbol de preguntas Moodle XML en un archivo monolítico.
+
+    Con `incrustar`, los diagramas mermaid y las imágenes relativas se adjuntan a la
+    salida (ver `incrustar.py`); los archivos del árbol no cambian.
+    """
     print(f"Recolectando Moodle XML desde: {base_input_dir}")
 
     xml_files = sorted(
@@ -256,6 +262,8 @@ def xml_collect(base_input_dir: Path, output_file: Path) -> int:
             for question in tree.getroot().findall('question'):
                 if question.get('type') == 'category':
                     continue
+                if incrustar:
+                    incrustar_pregunta(question, filepath.parent, formato_diagrama)
                 quiz_root.append(question)
                 question_count += 1
                 print(f"  Agregada: {rel_path}")
@@ -282,11 +290,15 @@ def exportar(archivo: Path, dir_destino: Path, formato: str | None = None) -> in
     raise ValueError(f"Formato desconocido: {formato}")
 
 
-def recolectar(directorio: Path, archivo_destino: Path, formato: str | None = None) -> int:
-    """Recolecta un árbol de directorios en un banco según el formato."""
+def recolectar(directorio: Path, archivo_destino: Path, formato: str | None = None,
+               incrustar: bool = True, formato_diagrama: str = 'png') -> int:
+    """Recolecta un árbol de directorios en un banco según el formato.
+
+    `incrustar` y `formato_diagrama` sólo aplican a Moodle XML (GIFT no lleva archivos).
+    """
     formato = (formato or ('gift' if archivo_destino.suffix.lower() == '.gift' else 'xml')).lower()
     if formato == 'gift':
         return gift_collect(directorio, archivo_destino)
     if formato == 'xml':
-        return xml_collect(directorio, archivo_destino)
+        return xml_collect(directorio, archivo_destino, incrustar, formato_diagrama)
     raise ValueError(f"Formato desconocido: {formato}")

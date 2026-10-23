@@ -16,6 +16,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Agregado
 
+- **unify / tree collect**: al fusionar Moodle XML, los diagramas mermaid (bloques ```` ```mermaid ````, `<pre class="mermaid">`) se renderizan con mermaid-cli y las imágenes con ruta relativa al archivo de la pregunta se incrustan como `<file>` base64 con referencias `@@PLUGINFILE@@`; los archivos fuente no cambian. `--no-incrustar` lo desactiva y `--diagramas svg` cambia el formato (PNG por defecto); `doctor` informa si está `mmdc`.
 - **paridad GIFT/XML**: `validate`, `analyze stats` y `analyze similar` recorren repositorios con archivos `.gift` y `.xml` (y mezclados) sobre un parser de Moodle XML al modelo unificado; los duplicados se detectan también entre formatos.
 - **health**: acepta archivos y directorios (`-r`) de ambos formatos con el mismo diagnóstico; agrega fracciones que Moodle rechaza al importar, respuesta única/múltiple, feedback por opción, cantidad de opciones y opciones repetidas, longitud relativa de las respuestas (correcta vs. distractores y sesgo a nivel banco), código sin proteger, backticks sin cerrar; `--clean-html` también en XML; `--min-opciones`, `--umbral-longitud`, `--max-items`.
 - **format**: formatea Moodle XML (sangría, CDATA, comentarios) y `--correct-first` ordena por porcentaje en ambos formatos; `--fullwidth` agrega las marcas `·` (indentación) y `↵` (fin de línea), con `--sin-marcas` para omitirlas.

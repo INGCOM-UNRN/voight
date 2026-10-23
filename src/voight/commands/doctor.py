@@ -52,6 +52,17 @@ def doctor_cmd(
         "detalle": motor_detalle,
     })
 
+    # Diagramas mermaid incrustados al fusionar Moodle XML (`unify`, `tree collect`).
+    from voight.core.incrustar import comando_mermaid
+
+    mmdc_path = comando_mermaid()
+    diagnostico.append({
+        "componente": "mermaid-cli (diagramas en unify / tree collect)",
+        "estado": "OK" if mmdc_path else "ADVERTENCIA",
+        "requerido": False,
+        "detalle": mmdc_path or "No encontrado: `npm install -g @mermaid-js/mermaid-cli` (o VOIGHT_MMDC)",
+    })
+
     # Proveedor de IA de `voight ai` (opcional): el diagnóstico común de yutani.ia.
     from yutani import ia
 

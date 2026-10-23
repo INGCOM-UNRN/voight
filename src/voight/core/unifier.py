@@ -14,6 +14,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 from voight.core.converter import _cdata_sub
 from voight.core.formatter import _bloques_gift
+from voight.core.incrustar import incrustar_pregunta
 from voight.core.tree import (
     _protect_backslashes_in_code,
     serializar_quiz,
@@ -95,10 +96,14 @@ def unificar_xml(
     archivo_salida: Path,
     recursivo: bool = True,
     eliminar_origen: bool = False,
+    incrustar: bool = True,
+    formato_diagrama: str = "png",
 ) -> int:
     """Unifica múltiples archivos y/o directorios Moodle XML en un único archivo XML monolítico.
 
-    Preserva las categorías de carpetas y las etiquetas de categoría internas.
+    Preserva las categorías de carpetas y las etiquetas de categoría internas. Con
+    `incrustar`, los diagramas mermaid y las imágenes relativas de cada pregunta se
+    adjuntan a la salida (ver `incrustar.py`); los archivos fuente no cambian.
     """
     archivos_xml: List[Tuple[str, Path]] = []
 
@@ -148,6 +153,8 @@ def unificar_xml(
                 ruta_cat = f"$course$/{cat_rel}" if cat_rel else "$course$"
                 _cdata_sub(cat, "text", ruta_cat)
 
+            if incrustar:
+                incrustar_pregunta(question, filepath.parent, formato_diagrama)
             quiz_root.append(question)
             question_count += 1
 
@@ -171,12 +178,18 @@ def unificar(
     formato: Optional[str] = None,
     recursivo: bool = True,
     eliminar_origen: bool = False,
+    incrustar: bool = True,
+    formato_diagrama: str = "png",
 ) -> int:
-    """Unifica árboles o colecciones de preguntas al formato especificado o deducido de la salida."""
+    """Unifica árboles o colecciones de preguntas al formato especificado o deducido de la salida.
+
+    `incrustar` y `formato_diagrama` sólo aplican a Moodle XML (GIFT no lleva archivos).
+    """
     fmt = (formato or (archivo_salida.suffix.lower().lstrip(".") if archivo_salida.suffix else "gift")).lower()
     if fmt == "gift":
         return unificar_gift(rutas, archivo_salida, recursivo=recursivo, eliminar_origen=eliminar_origen)
     elif fmt == "xml":
-        return unificar_xml(rutas, archivo_salida, recursivo=recursivo, eliminar_origen=eliminar_origen)
+        return unificar_xml(rutas, archivo_salida, recursivo=recursivo, eliminar_origen=eliminar_origen,
+                            incrustar=incrustar, formato_diagrama=formato_diagrama)
     else:
         raise ValueError(f"Formato no soportado: {fmt}. Debe ser 'gift' o 'xml'.")
