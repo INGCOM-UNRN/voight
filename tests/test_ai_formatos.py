@@ -332,10 +332,10 @@ def test_cliente_claude_ante_una_negativa_conserva_las_preguntas(tmp_path, capsy
 
 @pytest.fixture
 def sin_config_ia(monkeypatch, tmp_path):
-    for var in ("P1_IA_PROVEEDOR", "P1_IA_MODELO", "P1_IA_URL", "VOIGHT_PROVEEDOR", "GEMINI_MODEL"):
+    for var in ("P1_IA_PROVEEDOR", "P1_IA_MODELO", "P1_IA_URL", "VOIGHT_PROVEEDOR", "VOIGHT_MODELO", "GEMINI_MODEL"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("P1_IA_CONFIG", str(tmp_path / "ia.toml"))
-    monkeypatch.setattr(ai, "cargar_entorno", lambda: None)  # sin el ~/.voight/.env de la máquina
+    monkeypatch.setattr(ai, "cargar_entorno", lambda local=False: None)  # ni el .env del directorio de trabajo
 
 
 def test_modelo_por_defecto_segun_proveedor(sin_config_ia):

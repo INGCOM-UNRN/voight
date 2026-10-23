@@ -81,6 +81,9 @@ Hay una sola forma de hacer cada cosa: `health` diagnostica (no escribe), `fix` 
 | `tree collect DIR -o BANCO` | `unify DIR -o BANCO` |
 | `fix xml cdata`, `xml cdata` | `fix format` (formatea el XML con cada `<text>` en CDATA) |
 | `fix xml rename`, `xml rename` | `fix name-from-title` (GIFT y XML) |
+| `config set-key`, `set-anthropic-key`, `set-typesafe-key`, `set-moodle-token`, `set-provider`, `set-model` | `config set gemini-key\|anthropic-key\|typesafe-key\|moodle-token\|proveedor\|modelo` |
+| `config show-key` · `config list-models` | `config show` · `config models` |
+| `config unset-key` (borraba todo `~/.voight/.env`) | `config unset gemini-key` (sólo esa clave) |
 | `fix xml clean-tags`, `xml clean-tags` | `fix clean-tags` |
 | `spellcheck`, `languagetool`, `grammar` | `fix grammar` |
 | `format` | `fix format` |
@@ -152,7 +155,7 @@ voight health preguntas/ -r --tui
 
 ### `voight ai`
 
-Procesa preguntas GIFT y Moodle XML con un LLM: Gemini (por defecto) o Claude (`--proveedor claude`, o `config set-provider`; la clave con `config set-anthropic-key` o `ANTHROPIC_API_KEY`). Modos:
+Procesa preguntas GIFT y Moodle XML con un LLM: Gemini (por defecto) o Claude (`--proveedor claude`, o `config set proveedor claude`; la clave con `config set anthropic-key` o `ANTHROPIC_API_KEY`). Modos:
 
 - `improve`: mejora redacción y precisión sin cambiar el tipo ni la cantidad de opciones.
 - `multiply`: crea variaciones que evalúan lo mismo.
@@ -189,7 +192,7 @@ Jev recibe la pregunta como JSON (contexto del curso, tipo, enunciado y opciones
 // [bloom:B3-aplicar] [dificultad-enunciado:3.7/5] [dificultad-respuestas:3.7/5] [clasificacion:jev-1.13.0 confianza=1,0.74,0.71]
 ```
 
-Las preguntas ya clasificadas se saltean (`--reclasificar` las reemplaza, sin duplicar la línea); `--tags` agrega además los tags de Moodle `bloom:…`, `dificultad-enunciado:N` y `dificultad-respuestas:N`, que se conservan al importar y permiten filtrar el banco. Al terminar informa la distribución de Bloom, las dificultades medias, cuántas preguntas tuvieron baja confianza y los tokens usados (≈1300 de entrada por pregunta). La clave `TYPESAFE_API_KEY` se toma del entorno, de `.env.local`, de `~/.env` o de `voight config set-typesafe-key`.
+Las preguntas ya clasificadas se saltean (`--reclasificar` las reemplaza, sin duplicar la línea); `--tags` agrega además los tags de Moodle `bloom:…`, `dificultad-enunciado:N` y `dificultad-respuestas:N`, que se conservan al importar y permiten filtrar el banco. Al terminar informa la distribución de Bloom, las dificultades medias, cuántas preguntas tuvieron baja confianza y los tokens usados (≈1300 de entrada por pregunta). La clave `TYPESAFE_API_KEY` se toma del entorno, de `.env.local`, de `~/.env` o de `voight config set typesafe-key`.
 
 **Calibración.** `--calibrar referencias.csv` (columnas `archivo,titulo,bloom[,dificultad_enunciado,dificultad_respuestas]`, hecho por docentes) clasifica esas preguntas con Jev sin escribir nada y mide la concordancia: acuerdo exacto y a ±1 nivel de Bloom, kappa de Cohen, matriz de confusión y error medio de las dificultades. Sirve para ajustar `--contexto` antes de clasificar todo el banco.
 
@@ -349,7 +352,7 @@ Correcciones puntuales, en GIFT, Moodle XML y Markdown; todas aceptan `-r` y `-n
 
 Sube un banco a un curso de Moodle por servicio web. Moodle estándar no tiene un servicio para importar preguntas: hace falta el plugin local **Question Web Service Import** (`local_questions_importer_ws`) en el sitio y un token de un usuario que pueda importar preguntas en el curso. El comando convierte y unifica los GIFT/XML indicados (las carpetas se vuelven categorías), sube el Moodle XML al área de borradores con `webservice/upload.php` y lo importa con `local_questions_importer_ws_import_xml`. Con un curso de prueba sirve para probar la importación contra el Moodle real.
 
-`--url` (o `MOODLE_URL`), `--curso` (id) y el token por `--token`, `MOODLE_TOKEN` o `voight config set-moodle-token`. `--dry-run` prepara el XML sin contactar al sitio y `--guardar` conserva el XML que se sube.
+`--url` (o `MOODLE_URL`, también con `voight config set moodle-url`), `--curso` (id) y el token por `--token`, `MOODLE_TOKEN` o `voight config set moodle-token`. `--dry-run` prepara el XML sin contactar al sitio y `--guardar` conserva el XML que se sube.
 
 ```bash
 voight moodle subir preguntas/ --url https://moodle.ejemplo.edu.ar --curso 1234 --dry-run
@@ -545,6 +548,31 @@ Para integración con pipelines de CI/CD, scripts de automatización u orquestad
 ```bash
 voight doctor --json
 ```
+
+### Configuración global (`voight config`)
+
+Las claves de los servicios y las opciones de voight se guardan en `~/.voight/.env` (permisos 600; `VOIGHT_CONFIG_DIR` cambia el directorio) con un solo juego de comandos. Cada clave es una variable de entorno, y una variable definida en el entorno gana sobre lo guardado. Al arrancar, voight pone lo guardado en el entorno para todos los comandos, sin pisar lo que ya esté.
+
+| Clave | Variable | Para qué |
+| :--- | :--- | :--- |
+| `gemini-key` | `GEMINI_API_KEY` | `voight ai` con Gemini |
+| `anthropic-key` | `ANTHROPIC_API_KEY` | `voight ai` con Claude |
+| `typesafe-key` | `TYPESAFE_API_KEY` | `voight ai --mode classify` (Jev) |
+| `moodle-token` | `MOODLE_TOKEN` | `voight moodle subir` |
+| `moodle-url` | `MOODLE_URL` | `voight moodle subir` |
+| `proveedor` | `VOIGHT_PROVEEDOR` | proveedor de `voight ai` (google, local, opencode, claude) |
+| `modelo` | `VOIGHT_MODELO` | modelo de `voight ai` (no aplica si se pasa `--proveedor`) |
+
+```bash
+voight config set gemini-key          # sin valor, lo pide sin mostrarlo (no queda en el historial)
+voight config set proveedor local
+voight config get moodle-url
+voight config unset anthropic-key     # quita sólo esa clave
+voight config show                    # todo, con los secretos ocultos, y la IA efectiva con su origen
+voight config models                  # modelos del proveedor configurado
+```
+
+El proveedor, el modelo y la URL de IA comunes a todo el ecosistema van en `~/.config/p1/ia.toml` (yutani.ia); `proveedor` y `modelo` de `voight config` sólo cambian los de voight. `config show` muestra cuál quedó y de dónde sale.
 
 <a id="configuracion-por-banco"></a>
 ### Configuración por banco (`.voight.toml`)

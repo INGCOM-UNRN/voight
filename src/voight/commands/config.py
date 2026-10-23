@@ -1,93 +1,176 @@
+"""`voight config`: las claves y opciones globales, con un solo juego de comandos.
+
+`show` lista todo (valores secretos ocultos, con su origen) y la configuración de IA que
+resuelve yutani.ia; `get`, `set` y `unset` trabajan sobre una clave de `CLAVES`.
+"""
+from typing import Optional
+
 import click
 import typer
-from voight.core.config import save_api_key, get_api_key, delete_api_key, save_model, get_model, save_typesafe_key
-from voight.core.config import save_anthropic_key, save_moodle_token, save_proveedor
-from voight.core.ai import load_config, list_available_models
 
-config_app = typer.Typer(help="Configuración global de las herramientas.")
+from voight.commands.common import fail
+from voight.core.config import CLAVES, archivo_env, borrar, guardar, leer, ocultar
+
+config_app = typer.Typer(help="Configuración global: claves de los servicios, proveedor y modelo de IA.")
+
+NOMBRES = click.Choice(list(CLAVES))
 
 
 @config_app.callback()
 def config():
-    """Configuración global de las herramientas."""
+    """Configuración global: claves de los servicios, proveedor y modelo de IA.
+
+    Se guarda en ~/.voight/.env; una variable de entorno con el mismo nombre gana. El
+    proveedor y el modelo de IA de todo el ecosistema van en ~/.config/p1/ia.toml.
+    """
 
 
-@config_app.command(name="set-key")
-def set_key_cmd(api_key: str = typer.Argument(...)):
-    """Configura la GEMINI_API_KEY globalmente."""
+@config_app.command(name="show")
+def show_cmd(
+    mostrar: bool = typer.Option(False, "--mostrar", "--reveal", help="Mostrar los valores secretos completos."),
+):
+    """Muestra cada clave (oculta), de dónde sale y la configuración de IA efectiva."""
+    from yutani import ia
+
+    from voight.core.ai import configuracion_ia
+
+    click.echo(f"Configuración de voight ({archivo_env()}):")
+    ancho = max(len(n) for n in CLAVES)
+    for nombre, c in CLAVES.items():
+        valor, origen = leer(c.variable)
+        if valor is None:
+            texto = "—"
+        else:
+            texto = (ocultar(valor) if c.secreta and not mostrar else valor) + (" (entorno)" if origen == "entorno" else "")
+        click.echo(f"  {nombre:<{ancho}}  {texto}")
     try:
-        save_api_key(api_key)
-        click.echo("✅ API Key guardada correctamente en ~/.voight/.env")
-    except Exception as e:
-        click.echo(f"❌ Error al guardar la API Key: {e}", err=True)
+        efectiva = configuracion_ia()
+    except ia.ErrorIA as e:
+        click.echo(f"\nIA: {e}")
+        return
+    origen = efectiva.origen
+    click.echo(f"\nIA de `voight ai` (común: {ia.ruta_configuracion()}):")
+    click.echo(f"  proveedor  {efectiva.proveedor} ({origen.get('proveedor', '?')})")
+    click.echo(f"  modelo     {efectiva.modelo or '—'} ({origen.get('modelo', '?')})")
+    if efectiva.url:
+        click.echo(f"  url        {efectiva.url} ({origen.get('url', 'por defecto')})")
+    click.echo(f"  clave      {'sí' if efectiva.clave else 'no'}" + (f" ({origen['clave']})" if origen.get("clave") else ""))
 
-@config_app.command(name="set-typesafe-key")
-def set_typesafe_key_cmd(api_key: str = typer.Argument(...)):
-    """Configura la TYPESAFE_API_KEY (Jev) para `ai --mode classify`."""
-    try:
-        save_typesafe_key(api_key)
-        click.echo("✅ TYPESAFE_API_KEY guardada correctamente en ~/.voight/.env")
-    except Exception as e:
-        click.echo(f"❌ Error al guardar la API Key: {e}", err=True)
 
-@config_app.command(name="set-anthropic-key")
-def set_anthropic_key_cmd(api_key: str = typer.Argument(...)):
-    """Configura la ANTHROPIC_API_KEY (Claude) para `ai --proveedor claude`."""
-    try:
-        save_anthropic_key(api_key)
-        click.echo("✅ ANTHROPIC_API_KEY guardada correctamente en ~/.voight/.env")
-    except Exception as e:
-        click.echo(f"❌ Error al guardar la API Key: {e}", err=True)
+@config_app.command(name="get")
+def get_cmd(
+    nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a mostrar."),
+    mostrar: bool = typer.Option(False, "--mostrar", "--reveal", help="Mostrar el valor secreto completo."),
+):
+    """Muestra el valor de una clave (los secretos, ocultos salvo --mostrar)."""
+    c = CLAVES[nombre]
+    valor, origen = leer(c.variable)
+    if valor is None:
+        click.echo(f"{nombre} no está configurada ({c.variable}).", err=True)
+        raise typer.Exit(code=1)
+    click.echo(ocultar(valor) if c.secreta and not mostrar else valor)
+    if origen == "entorno":
+        click.echo(f"(de la variable de entorno {c.variable})", err=True)
 
-@config_app.command(name="set-provider")
-def set_provider_cmd(proveedor: str = typer.Argument(..., click_type=click.Choice(["gemini", "claude"]))):
-    """Configura el proveedor por defecto de `voight ai` (gemini o claude)."""
-    save_proveedor(proveedor)
-    click.echo(f"✅ Proveedor por defecto: {proveedor}")
 
-@config_app.command(name="set-moodle-token")
-def set_moodle_token_cmd(token: str = typer.Argument(...)):
-    """Configura el MOODLE_TOKEN del servicio web para `moodle subir`."""
-    save_moodle_token(token)
-    click.echo("✅ MOODLE_TOKEN guardado correctamente en ~/.voight/.env")
+@config_app.command(name="set")
+def set_cmd(
+    nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a guardar."),
+    valor: Optional[str] = typer.Argument(
+        None, help="Valor; si falta, se pide sin mostrarlo (así una clave no queda en el historial)."),
+):
+    """Guarda una clave en ~/.voight/.env.
 
-@config_app.command(name="set-model")
-def set_model_cmd(model: str = typer.Argument(...)):
-    """Configura el modelo de Gemini por defecto."""
-    try:
-        save_model(model)
-        click.echo(f"✅ Modelo por defecto configurado: {model}")
-    except Exception as e:
-        click.echo(f"❌ Error al guardar el modelo: {e}", err=True)
+    Claves: gemini-key, anthropic-key, typesafe-key, moodle-token, moodle-url,
+    proveedor (google, local, opencode, claude) y modelo.
+    """
+    c = CLAVES[nombre]
+    if valor is None:
+        valor = typer.prompt(c.descripcion.capitalize(), hide_input=c.secreta)
+    valor = valor.strip()
+    if not valor:
+        fail(f"El valor de {nombre} está vacío.")
+    if nombre == "proveedor":
+        from voight.core.ai import PROVEEDORES
 
-@config_app.command(name="list-models")
-def list_models_cmd():
-    """Lista los modelos del proveedor de IA configurado (Gemini por defecto)."""
+        valor = valor.lower()
+        if valor not in PROVEEDORES:
+            fail(f"{valor!r} no es un proveedor: {', '.join(PROVEEDORES)}.")
+    archivo = guardar(c.variable, valor)
+    click.echo(f"✓ {nombre} guardada en {archivo}" + ("" if c.secreta else f": {valor}"))
+
+
+@config_app.command(name="unset")
+def unset_cmd(nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a quitar.")):
+    """Quita una clave de ~/.voight/.env (las demás quedan)."""
+    c = CLAVES[nombre]
+    if borrar(c.variable):
+        click.echo(f"✓ {nombre} quitada de {archivo_env()}")
+    else:
+        click.echo(f"{nombre} no estaba guardada en {archivo_env()}.")
+    if leer(c.variable)[1] == "entorno":
+        click.echo(f"Sigue definida en el entorno ({c.variable}).", err=True)
+
+
+@config_app.command(name="models")
+def models_cmd():
+    """Lista los modelos del proveedor de IA configurado."""
+    from voight.core.ai import list_available_models, load_config
+
     try:
         client = load_config()
         models = list_available_models(client)
-        if models:
-            click.echo(f"Modelos disponibles en {client.config.proveedor}:")
-            for m in models:
-                click.echo(f" - {m}")
-        else:
-            click.echo("No se encontraron modelos disponibles.")
     except Exception as e:
         click.echo(f"❌ Error: {e}", err=True)
-
-@config_app.command(name="show-key")
-def show_key_cmd():
-    """Muestra la API Key actual (parcialmente oculta)."""
-    key = get_api_key()
-    if key:
-        hidden_key = key[:4] + "*" * (len(key) - 8) + key[-4:]
-        click.echo(f"API Key configurada: {hidden_key}")
-        click.echo(f"Modelo por defecto: {get_model()}")
+        raise typer.Exit(code=1) from None
+    if models:
+        click.echo(f"Modelos disponibles en {client.config.proveedor}:")
+        for m in models:
+            click.echo(f" - {m}")
     else:
-        click.echo("No hay API Key configurada.")
+        click.echo("No se encontraron modelos disponibles.")
 
-@config_app.command(name="unset-key")
+
+# ---------------------------------------------------------------------------
+# Nombres anteriores: avisan y siguen funcionando
+# ---------------------------------------------------------------------------
+
+def _aviso(viejo: str, nuevo: str) -> None:
+    click.echo(f"Aviso: `voight config {viejo}` ahora es `voight config {nuevo}`; "
+               "el nombre anterior se va a retirar.", err=True)
+
+
+def _set_anterior(viejo: str, nombre: str):
+    def comando(valor: str = typer.Argument(...)):
+        _aviso(viejo, f"set {nombre}")
+        set_cmd(nombre, valor)
+    comando.__doc__ = f"Ahora es `voight config set {nombre}`."
+    config_app.command(name=viejo, hidden=True)(comando)
+
+
+for _viejo, _nombre in (("set-key", "gemini-key"), ("set-anthropic-key", "anthropic-key"),
+                        ("set-typesafe-key", "typesafe-key"), ("set-moodle-token", "moodle-token"),
+                        ("set-provider", "proveedor"), ("set-model", "modelo")):
+    _set_anterior(_viejo, _nombre)
+
+
+@config_app.command(name="show-key", hidden=True)
+def show_key_cmd():
+    """Ahora es `voight config show`."""
+    _aviso("show-key", "show")
+    show_cmd(mostrar=False)
+
+
+@config_app.command(name="unset-key", hidden=True)
 def unset_key_cmd():
-    """Elimina la configuración de la API Key."""
-    delete_api_key()
-    click.echo("✅ Configuración eliminada.")
+    """Ahora es `voight config unset gemini-key` (antes borraba todo ~/.voight/.env)."""
+    _aviso("unset-key", "unset gemini-key")
+    unset_cmd("gemini-key")
+
+
+@config_app.command(name="list-models", hidden=True)
+def list_models_cmd():
+    """Ahora es `voight config models`."""
+    _aviso("list-models", "models")
+    models_cmd()
+

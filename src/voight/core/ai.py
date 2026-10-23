@@ -33,7 +33,7 @@ from voight.core.cache import Cache
 from voight.core.codigo import transformar_codigo
 from yutani import ia
 
-from voight.core.config import cargar_entorno, get_proveedor
+from voight.core.config import cargar_entorno, get_modelo, get_proveedor
 from voight.core.converter import question_to_gift
 from voight.core.formatter import format_gift_content
 from voight.core.gift_model import Question
@@ -57,14 +57,21 @@ PROVEEDORES = (*ia.PROVEEDORES, *ia.ALIAS)
 def configuracion_ia(proveedor: Optional[str] = None, modelo: Optional[str] = None) -> ia.ConfigIA:
     """El proveedor y el modelo de `voight ai`.
 
-    Prioridad: `--proveedor`/`--model` (o el voight.toml del proyecto), `VOIGHT_PROVEEDOR` (el
-    nombre de antes, también en ~/.voight/.env), la configuración común de yutani.ia
-    (`P1_IA_PROVEEDOR`, `~/.config/p1/ia.toml`) y Gemini. Con Gemini, `GEMINI_MODEL` (de `voight
-    config set-model`) se respeta cuando no hay otro modelo configurado.
+    Prioridad: `--proveedor`/`--model` (o el voight.toml del proyecto), `VOIGHT_PROVEEDOR` y
+    `VOIGHT_MODELO` (`voight config set proveedor|modelo`, en ~/.voight/.env), la configuración
+    común de yutani.ia (`P1_IA_PROVEEDOR`, `~/.config/p1/ia.toml`) y Gemini. El modelo guardado no
+    aplica si el proveedor vino de `--proveedor` (sería el de otro). Con Gemini, `GEMINI_MODEL` (el
+    nombre anterior) se respeta cuando no hay otro modelo configurado.
     """
-    cargar_entorno()
-    config = ia.configuracion("voight", proveedor=proveedor or get_proveedor(), modelo=modelo,
+    cargar_entorno(local=True)
+    modelo_guardado = get_modelo() if modelo is None and proveedor is None else None
+    proveedor_guardado = get_proveedor() if proveedor is None else None
+    config = ia.configuracion("voight", proveedor=proveedor or proveedor_guardado, modelo=modelo or modelo_guardado,
                               proveedor_por_defecto="google")
+    if proveedor_guardado:
+        config.origen["proveedor"] = "VOIGHT_PROVEEDOR"
+    if modelo_guardado:
+        config.origen["modelo"] = "VOIGHT_MODELO"
     if config.proveedor == "google" and config.origen.get("modelo") == "por defecto" and os.getenv("GEMINI_MODEL"):
         config.modelo = os.environ["GEMINI_MODEL"]
         config.origen["modelo"] = "GEMINI_MODEL"

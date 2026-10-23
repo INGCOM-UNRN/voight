@@ -90,7 +90,9 @@ CON_OPCIONES = ("MC", "Matching")
 def resolver_clave() -> Optional[str]:
     if os.environ.get("TYPESAFE_API_KEY"):
         return os.environ["TYPESAFE_API_KEY"].strip()
-    for archivo in (Path.cwd() / ".env.local", Path.home() / ".env", Path.home() / ".voight" / ".env"):
+    from voight.core.config import archivo_env
+
+    for archivo in (Path.cwd() / ".env.local", Path.home() / ".env", archivo_env()):
         if archivo.exists():
             m = re.search(r"^\s*(?:export\s+)?TYPESAFE_API_KEY\s*=\s*['\"]?([^'\"\r\n]+)",
                           archivo.read_text(encoding="utf-8", errors="replace"), re.MULTILINE)
@@ -108,7 +110,7 @@ class ClienteJev:
         self.clave = clave or resolver_clave()
         if not self.clave:
             raise ValueError("No se encontró TYPESAFE_API_KEY (entorno, .env.local, ~/.env o ~/.voight/.env). "
-                             "Configurala con `voight config set-typesafe-key <KEY>`.")
+                             "Configurala con `voight config set typesafe-key <KEY>`.")
         self.modelo = modelo
         self.reintentos = reintentos
         self.espera = espera

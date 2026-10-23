@@ -48,7 +48,7 @@ def subir(
         return
     token = resolver_token(token)
     if not token:
-        fail("Falta el token del servicio web: --token, MOODLE_TOKEN o `voight config set-moodle-token`.")
+        fail("Falta el token del servicio web: --token, MOODLE_TOKEN o `voight config set moodle-token`.")
     try:
         itemid = subir_borrador(url, token, nombre, contenido)
         respuesta = importar(url, token, curso, itemid)

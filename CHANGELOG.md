@@ -8,6 +8,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- **config**: un solo juego de comandos sobre `~/.voight/.env`: `config set|get|unset CLAVE`, `config show` y `config models`, con las claves `gemini-key`, `anthropic-key`, `typesafe-key`, `moodle-token`, `moodle-url` (nueva), `proveedor` (acepta todos los de yutani.ia, no sólo gemini o claude) y `modelo` (`VOIGHT_MODELO`, para cualquier proveedor). `set` sin valor lo pide sin mostrarlo; `show` oculta los secretos, dice cuáles vienen del entorno y muestra la IA efectiva con su origen. Lo guardado llega al entorno de todos los comandos (antes `MOODLE_URL` no se leía del archivo). Los nueve comandos anteriores (`set-key`, `set-anthropic-key`, `set-typesafe-key`, `set-moodle-token`, `set-provider`, `set-model`, `show-key`, `unset-key`, `list-models`) avisan y siguen funcionando.
 - **interfaz**: una sola forma de hacer cada cosa. `voight health` es el diagnóstico (su ayuda muestra sus opciones, con `stats` y `similar` como subcomandos); `health check` y `health validate` (que daba el mismo informe que `health stats`) quedan como nombres anteriores, y `health` suma lo que sólo detectaba validate: respuesta corta o numérica sin respuestas y emparejamiento con menos de 2 pares (errores) y archivos sin preguntas (advertencia). `health` ya no escribe: `--clean-html` pasa a `fix clean-html`. `split -o DIR` reemplaza a `tree export` y `unify` (ahora con `--json`) a `tree collect`. `fix xml cdata` pasa a `fix format`, `fix xml rename` a `fix name-from-title` y `fix xml clean-tags` a `fix clean-tags`. Los nombres anteriores siguen funcionando, avisan por stderr y se van a retirar; el hook `voight-validate` queda igual a `voight-health`.
 - **fix format-init**: la ayuda mostraba «la plantilla de  en» (rich se comía `[format]` como marcado).
 - **code-chars**: ya no excluye a `code-indent`: `--to-normal` cambia sólo los símbolos y conserva la indentación `·` y los `↵`; `--sin-marcas` los quita como antes.
@@ -49,6 +50,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **config unset-key** borraba todo `~/.voight/.env` (también las claves de Claude, Jev y Moodle), y `tests/test_coverage_boost.py` lo ejecutaba sobre el directorio real del usuario en cada corrida de la suite. Ahora quita sólo la clave de Gemini y los tests usan un `VOIGHT_CONFIG_DIR` temporal.
 - **fix code-format**: `--estilo allman` (u otro estilo de llaves) no cambiaba nada: clang-format no lo acepta como estilo y cada bloque fallaba en silencio. Ahora se aplica como `BreakBeforeBraces` sobre el estilo por defecto, y un estilo inválido termina con error.
 - **health / fix code-lang**: con varios bloques ``` seguidos, el cierre de uno se tomaba por la apertura de otro (y se etiquetaba con un lenguaje equivocado); «código sin cerrar» ya no marca los backticks que están dentro de un bloque.
 - **parser**: el formato «palabra faltante» (`El {=gato ~perro} maúlla.`) se leía como descripción y el rango numérico `{#1..5}` perdía la respuesta; al pasar a XML el rango se escribe como valor ± tolerancia.

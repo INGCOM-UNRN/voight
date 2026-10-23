@@ -60,11 +60,9 @@ def test_cli_tree_export_and_collect(tmp_path):
 
 
 def test_cli_config_commands():
-    res1 = runner.invoke(cli, ["config", "show-key"])
-    assert res1.exit_code == 0
-
-    res2 = runner.invoke(cli, ["config", "unset-key"])
-    assert res2.exit_code == 0
+    # El conftest apunta VOIGHT_CONFIG_DIR a un directorio temporal: nunca el del usuario.
+    assert runner.invoke(cli, ["config", "show"]).exit_code == 0
+    assert runner.invoke(cli, ["config", "unset", "gemini-key"]).exit_code == 0
 
 
 def test_cli_xml_cdata(tmp_path):

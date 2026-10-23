@@ -1,78 +1,110 @@
+"""Configuración global de voight: `~/.voight/.env`, con un único registro de claves.
+
+`voight config set|get|unset|show` trabajan sobre `CLAVES`; cada clave es una variable
+de entorno, así que lo que está en el entorno siempre gana sobre lo guardado. Al
+arrancar, la CLI pone lo guardado en el entorno (`cargar_entorno`) sin pisar nada: de
+ahí lo leen yutani.ia (GEMINI_API_KEY, ANTHROPIC_API_KEY), `moodle subir` (MOODLE_URL,
+MOODLE_TOKEN) y `ai --mode classify` (TYPESAFE_API_KEY).
+
+El proveedor y el modelo de IA comunes a todo el ecosistema viven en
+`~/.config/p1/ia.toml` (yutani.ia); `proveedor` y `modelo` de acá son sólo de voight.
+`VOIGHT_CONFIG_DIR` cambia el directorio (los tests lo usan para no tocar el del usuario).
+"""
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
-from dotenv import load_dotenv, set_key
-
-CONFIG_DIR = Path.home() / ".voight"
-ENV_FILE = CONFIG_DIR / ".env"
-
-def get_api_key() -> Optional[str]:
-    """Obtiene la API Key desde el entorno o el archivo de configuración global."""
-    # 1. Intentar desde el entorno (incluye .env local si existe)
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
-    
-    # 2. Intentar desde el archivo de configuración global
-    if not api_key and ENV_FILE.exists():
-        load_dotenv(ENV_FILE)
-        api_key = os.getenv("GEMINI_API_KEY")
-        
-    return api_key
-
-def get_model() -> str:
-    """Obtiene el modelo por defecto desde el entorno o la configuración global."""
-    load_dotenv()
-    model = os.getenv("GEMINI_MODEL")
-    
-    if not model and ENV_FILE.exists():
-        load_dotenv(ENV_FILE)
-        model = os.getenv("GEMINI_MODEL")
-        
-    return model or "gemini-2.0-flash"
-
-def save_api_key(api_key: str):
-    """Guarda la API Key en el archivo de configuración global."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    
-    # Usar python-dotenv para guardar de forma persistente
-    set_key(str(ENV_FILE), "GEMINI_API_KEY", api_key)
-
-def save_model(model: str):
-    """Guarda el modelo por defecto en el archivo de configuración global."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    
-    set_key(str(ENV_FILE), "GEMINI_MODEL", model)
-
-def delete_api_key():
-    """Elimina la API Key configurada."""
-    if ENV_FILE.exists():
-        ENV_FILE.unlink()
-
-def save_typesafe_key(api_key: str):
-    """Guarda la TYPESAFE_API_KEY (Jev, usada por `ai --mode classify`) en la configuración global."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    set_key(str(ENV_FILE), "TYPESAFE_API_KEY", api_key)
+from dotenv import dotenv_values, load_dotenv, set_key, unset_key
 
 
-def _leer(variable: str):
-    load_dotenv()
-    valor = os.getenv(variable)
-    if not valor and ENV_FILE.exists():
-        load_dotenv(ENV_FILE)
-        valor = os.getenv(variable)
-    return valor
+@dataclass(frozen=True)
+class Clave:
+    variable: str
+    descripcion: str
+    secreta: bool = True
 
 
-def get_anthropic_key():
-    """ANTHROPIC_API_KEY del entorno o de ~/.voight/.env (si no hay, el SDK prueba sus otras fuentes)."""
-    return _leer("ANTHROPIC_API_KEY")
+CLAVES: Dict[str, Clave] = {
+    "gemini-key": Clave("GEMINI_API_KEY", "clave de Gemini (proveedor google de `voight ai`)"),
+    "anthropic-key": Clave("ANTHROPIC_API_KEY", "clave de Claude (proveedor claude de `voight ai`)"),
+    "typesafe-key": Clave("TYPESAFE_API_KEY", "clave de Jev para `voight ai --mode classify`"),
+    "moodle-token": Clave("MOODLE_TOKEN", "token del servicio web para `voight moodle subir`"),
+    "moodle-url": Clave("MOODLE_URL", "URL del sitio Moodle para `voight moodle subir`", secreta=False),
+    "proveedor": Clave("VOIGHT_PROVEEDOR", "proveedor de IA de `voight ai` (sobre el de ~/.config/p1/ia.toml)",
+                       secreta=False),
+    "modelo": Clave("VOIGHT_MODELO", "modelo de IA de `voight ai` (sobre el de ~/.config/p1/ia.toml)",
+                    secreta=False),
+}
+
+
+def directorio_config() -> Path:
+    return Path(os.environ.get("VOIGHT_CONFIG_DIR") or Path.home() / ".voight")
+
+
+def archivo_env() -> Path:
+    return directorio_config() / ".env"
+
+
+def clave(nombre: str) -> Clave:
+    """La clave por su nombre en `voight config` o por su variable (GEMINI_API_KEY…)."""
+    if nombre in CLAVES:
+        return CLAVES[nombre]
+    for c in CLAVES.values():
+        if c.variable == nombre.upper():
+            return c
+    raise KeyError(nombre)
+
+
+def _guardadas() -> Dict[str, Optional[str]]:
+    archivo = archivo_env()
+    return dotenv_values(archivo) if archivo.exists() else {}
+
+
+# Lo que `cargar_entorno` puso en el entorno desde el archivo (no cuenta como "entorno").
+_CARGADAS: Dict[str, str] = {}
+
+
+def leer(variable: str) -> Tuple[Optional[str], Optional[str]]:
+    """(valor, origen): el entorno gana sobre `~/.voight/.env`."""
+    actual = os.environ.get(variable)
+    if actual and _CARGADAS.get(variable) != actual and actual != _guardadas().get(variable):
+        return actual, "entorno"
+    valor = _guardadas().get(variable)
+    if valor:
+        return valor, str(archivo_env())
+    return None, None
+
+
+def guardar(variable: str, valor: str) -> Path:
+    """Guarda la variable en `~/.voight/.env` (creado con permisos 600)."""
+    archivo = archivo_env()
+    archivo.parent.mkdir(parents=True, exist_ok=True)
+    if not archivo.exists():
+        archivo.touch(mode=0o600)
+    set_key(str(archivo), variable, valor)
+    return archivo
+
+
+def borrar(variable: str) -> bool:
+    """Quita SÓLO esa variable de `~/.voight/.env`; True si estaba."""
+    archivo = archivo_env()
+    if not archivo.exists() or variable not in _guardadas():
+        return False
+    unset_key(str(archivo), variable)
+    if variable in _CARGADAS and os.environ.get(variable) == _CARGADAS.pop(variable):
+        del os.environ[variable]
+    return True
+
+
+def ocultar(valor: str) -> str:
+    if len(valor) <= 8:
+        return "*" * len(valor)
+    return valor[:4] + "*" * (len(valor) - 8) + valor[-4:]
+
+
+def _leer(variable: str) -> Optional[str]:
+    return leer(variable)[0]
 
 
 def get_proveedor() -> Optional[str]:
@@ -81,31 +113,17 @@ def get_proveedor() -> Optional[str]:
     return valor.lower() if valor else None
 
 
-def cargar_entorno() -> None:
-    """Pone en el entorno lo guardado con `voight config` (claves y modelo) sin pisar lo que ya esté."""
-    load_dotenv()
-    if ENV_FILE.exists():
-        load_dotenv(ENV_FILE)
+def get_modelo() -> Optional[str]:
+    """`VOIGHT_MODELO` (entorno o ~/.voight/.env), si está."""
+    return _leer("VOIGHT_MODELO")
 
 
-def save_anthropic_key(api_key: str):
-    """Guarda la ANTHROPIC_API_KEY (Claude, para `ai --proveedor claude`) en la configuración global."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    set_key(str(ENV_FILE), "ANTHROPIC_API_KEY", api_key)
-
-
-def save_proveedor(proveedor: str):
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    set_key(str(ENV_FILE), "VOIGHT_PROVEEDOR", proveedor)
-
-
-def save_moodle_token(token: str):
-    """Guarda el MOODLE_TOKEN (servicio web, para `moodle subir`) en la configuración global."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if not ENV_FILE.exists():
-        ENV_FILE.touch(mode=0o600)
-    set_key(str(ENV_FILE), "MOODLE_TOKEN", token)
+def cargar_entorno(local: bool = False) -> None:
+    """Pone en el entorno lo guardado con `voight config` sin pisar lo que ya esté; con
+    `local`, también el `.env` del directorio de trabajo (como hizo siempre `voight ai`)."""
+    if local:
+        load_dotenv()
+    for variable, valor in _guardadas().items():
+        if valor is not None and variable not in os.environ:
+            os.environ[variable] = valor
+            _CARGADAS[variable] = valor

@@ -70,6 +70,11 @@ def main_callback(
     ),
 ):
     """Herramientas para la gestión de preguntas de Moodle."""
+    # Lo guardado con `voight config` queda en el entorno para todos los comandos (sin pisar
+    # el entorno): así MOODLE_URL, MOODLE_TOKEN y las claves de IA se leen de un solo lugar.
+    from voight.core.config import cargar_entorno
+
+    cargar_entorno()
 
 
 class _GrupoConPredeterminado(TyperGroup):

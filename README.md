@@ -34,7 +34,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
 - Diagramas mermaid al fusionar Moodle XML (`unify`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
-- `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
+- `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con `voight config set gemini-key`; `voight config show` muestra todo lo configurado); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
 - `voight doctor` informa cuáles de estos requisitos están presentes.
 
