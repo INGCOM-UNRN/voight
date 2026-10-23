@@ -181,7 +181,8 @@ def test_desde_procesa_solo_lo_cambiado(tmp_path):
     assert len(grupos) == 1
     archivos = {grupos[0]["conserva"]["archivo"]} | {d["archivo"] for d in grupos[0]["elimina"]}
     assert {p.rsplit("/", 1)[-1] for p in archivos} == {"viejo.gift", "nuevo.gift"}
-    datos = json.loads(runner.invoke(cli, ["health", "validate", str(raiz), "--desde", "HEAD", "--json"]).output)
+    # Nombre anterior: avisa por stderr y el JSON sigue limpio en stdout.
+    datos = json.loads(runner.invoke(cli, ["health", "validate", str(raiz), "--desde", "HEAD", "--json"]).stdout)
     assert sorted(f["filepath"].rsplit("/", 1)[-1] for f in datos["files"]) == ["nuevo.gift", "tocado.gift"]
 
     fuera = tmp_path / "fuera"

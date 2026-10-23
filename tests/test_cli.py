@@ -73,23 +73,73 @@ def test_cli_ai_prompt_file(tmp_path):
 
 
 def test_comandos_desduplicados_y_nombres_anteriores(tmp_path):
-    """health absorbe validate y analyze; fix, a format, xml y grammar (antes spellcheck y languagetool)."""
+    """Una sola forma de hacer cada cosa; los nombres anteriores avisan y siguen funcionando."""
     from click.testing import CliRunner
 
     f = tmp_path / "ok.gift"
     f.write_text("::P:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
     runner = CliRunner()
     ayuda = runner.invoke(cli, ["--help"], terminal_width=200).output
-    for oculto in ("validate", "analyze", "spellcheck", "languagetool", "grammar", "format", "xml"):
+    for oculto in ("validate", "analyze", "spellcheck", "languagetool", "grammar", "format", "xml", "tree"):
         assert f"│ {oculto} " not in ayuda
-    # `health RUTAS` sigue siendo la salud del banco (health check).
-    assert runner.invoke(cli, ["health", str(f)]).output == runner.invoke(cli, ["health", "check", str(f)]).output
-    for viejo, nuevo in ((["validate"], "health validate"), (["analyze", "stats"], "health stats"),
-                         (["format", "-n"], "fix format"), (["xml", "cdata", "-n"], "fix xml cdata"),
+    # health ES el diagnóstico: su ayuda muestra sus opciones y los subcomandos.
+    ayuda = runner.invoke(cli, ["health", "--help"], terminal_width=200).output
+    assert "--estricto" in ayuda and "stats" in ayuda and "similar" in ayuda
+    assert " check " not in ayuda and " validate " not in ayuda
+    ayuda = runner.invoke(cli, ["fix", "--help"], terminal_width=200).output
+    assert "clean-html" in ayuda and "clean-tags" in ayuda and "│ xml " not in ayuda
+    res = runner.invoke(cli, ["health", "check", str(f)])
+    assert res.stdout == runner.invoke(cli, ["health", str(f)]).stdout
+    for viejo, nuevo in ((["validate"], "health"), (["health", "validate"], "health"),
+                         (["analyze", "stats"], "health stats"), (["format", "-n"], "fix format"),
+                         (["xml", "cdata", "-n"], "fix format"), (["fix", "xml", "cdata", "-n"], "fix format"),
+                         (["fix", "xml", "rename", "-n"], "fix name-from-title"),
+                         (["fix", "xml", "clean-tags", "-n"], "fix clean-tags"),
                          (["grammar", "--help"], None)):
         if nuevo is None:  # la ayuda corta antes del aviso: alcanza con que siga existiendo
             assert runner.invoke(cli, viejo).exit_code == 0
             continue
         res = runner.invoke(cli, viejo + [str(f)])
         assert res.exit_code == 0, res.output
-        assert f"ahora es `voight {nuevo}`" in res.output
+        assert f"ahora es `voight {nuevo}`" in res.stderr, viejo
+
+
+def test_health_absorbe_los_chequeos_de_validate(tmp_path):
+    import json
+    from click.testing import CliRunner
+
+    (tmp_path / "corta.xml").write_text(
+        '<quiz><question type="shortanswer"><name><text>C</text></name>'
+        '<questiontext format="html"><text>¿Capital de Francia?</text></questiontext></question></quiz>',
+        encoding="utf-8")
+    (tmp_path / "vacio.gift").write_text("// sólo un comentario\n$CATEGORY: $course$/X\n", encoding="utf-8")
+    (tmp_path / "par.xml").write_text(
+        '<quiz><question type="matching"><name><text>M</text></name>'
+        '<questiontext format="html"><text>Uní</text></questiontext>'
+        '<subquestion format="html"><text>a</text><answer><text>1</text></answer></subquestion>'
+        '</question></quiz>', encoding="utf-8")
+    res = CliRunner().invoke(cli, ["health", str(tmp_path), "--json"])
+    assert res.exit_code == 1
+    resumen = json.loads(res.stdout)["resumen"]
+    errores = {e["clave"] for e in resumen["errores"]}
+    advertencias = {a["clave"] for a in resumen["advertencias"]}
+    assert {"pocos_pares", "sin_respuestas"} <= errores
+    assert "archivos_sin_preguntas" in advertencias
+    md = CliRunner().invoke(cli, ["health", str(tmp_path)]).stdout
+    assert "Archivos sin preguntas" in md and "Emparejamiento con menos de 2 pares" in md
+
+
+def test_fix_clean_html_y_el_aviso_de_health(tmp_path):
+    from click.testing import CliRunner
+
+    f = tmp_path / "a.gift"
+    f.write_text('::P:: <font color="red">¿2+2?</font> {=4 ~3 ~5}\n', encoding="utf-8")
+    runner = CliRunner()
+    assert "1 archivos a modificar" in runner.invoke(cli, ["fix", "clean-html", str(f), "-n"]).output
+    assert "<font" in f.read_text(encoding="utf-8")
+    assert runner.invoke(cli, ["fix", "clean-html", str(f)]).exit_code == 0
+    assert "<font" not in f.read_text(encoding="utf-8")
+    f.write_text('::P:: <font color="red">¿2+2?</font> {=4 ~3 ~5}\n', encoding="utf-8")
+    res = runner.invoke(cli, ["health", str(f), "--clean-html"])
+    assert "ahora es `voight fix clean-html`" in res.stderr
+    assert "<font" not in f.read_text(encoding="utf-8")

@@ -3,7 +3,7 @@ import typer
 from pathlib import Path
 from typing import List, Optional
 
-from voight.commands.common import LLM_OPTION, fail
+from voight.commands.common import LLM_OPTION, emitir_json, fail
 from voight.core.unifier import unificar
 
 
@@ -34,10 +34,11 @@ def unify(
         "png", "--diagramas",
         click_type=click.Choice(["png", "svg"]),
         help="Formato de imagen de los diagramas mermaid incrustados."),
+    output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
     """Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo.
 
-    Es la operación inversa a 'split' y 'tree export': recopila preguntas
+    Es la operación inversa a 'split' (también con -o): recopila preguntas
     recorriendo los directorios especificados, infiere y preserva las categorías,
     y genera un único banco monolítico (.gift o .xml).
 
@@ -64,4 +65,7 @@ def unify(
         click.echo("No se encontraron preguntas para unificar.", err=True)
         raise typer.Exit(code=1)
 
+    if output_json:
+        emitir_json("unify", {"preguntas": total, "archivo": str(output_file)})
+        return
     click.echo(f"✓ Unificación completada exitosamente: {total} preguntas escritas en {output_file}")

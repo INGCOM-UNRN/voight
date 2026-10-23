@@ -27,7 +27,7 @@ def health_cmd(
         None, "--md", help="Exportar reporte en Markdown."
     ),
     clean_html: bool = typer.Option(
-        False, "--clean-html", help="Limpiar etiquetas HTML obsoletas y estilos inline (GIFT y XML)."
+        False, "--clean-html", hidden=True, help="Ahora es `voight fix clean-html`."
     ),
     min_opciones: int = typer.Option(
         MIN_OPCIONES, "--min-opciones", "--min-options", help="Mínimo de opciones esperado en opción múltiple."
@@ -36,7 +36,7 @@ def health_cmd(
         UMBRAL_LONGITUD, "--umbral-longitud", "--length-threshold",
         help="Razón de largo correcta/distractores a partir de la cual se advierte.",
     ),
-    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="Con --clean-html: mostrar qué se limpiaría sin escribir."),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", hidden=True, help="Con --clean-html: mostrar qué se limpiaría sin escribir."),
     max_items: int = typer.Option(50, "--max-items", help="Máximo de preguntas listadas por sección (0: todas)."),
     estricto: bool = typer.Option(False, "--estricto", "--strict", help="Salir con código 1 también ante advertencias."),
     output_csv: Optional[Path] = typer.Option(
@@ -72,6 +72,8 @@ def health_cmd(
         fail(f"No se encontraron archivos de preguntas (.gift / .xml).{sugerencia}")
 
     if clean_html:
+        click.echo("Aviso: `voight health --clean-html` ahora es `voight fix clean-html`; "
+                   "la opción se va a retirar.", err=True)
         for archivo in archivos:
             contenido = archivo.read_text(encoding="utf-8", errors="replace")
             limpio = limpiar_html_archivo(contenido, formato_de(archivo))

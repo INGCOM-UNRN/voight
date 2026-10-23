@@ -1,6 +1,6 @@
 VALIDATE_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Validación de Preguntas
-`health` (y sus subcomandos `check`, `validate`, `stats` y `similar`) acepta GIFT y Moodle XML (también repositorios mixtos).
+`health` (y sus subcomandos `stats` y `similar`) acepta GIFT y Moodle XML (también repositorios mixtos). `health` sólo diagnostica: lo que modifica archivos está en `fix` (por ejemplo `fix clean-html`).
 Al generar o corregir preguntas GIFT:
 1. **Evita líneas en blanco internas**: No insertes líneas vacías entre el título, el enunciado y el bloque de respuestas. En GIFT, una línea en blanco termina la pregunta.
 2. **Escapa los dos puntos**: No uses `:` en enunciados o respuestas a menos que lo escapes como `\:`. Para separadores visuales usa `：` (fullwidth).

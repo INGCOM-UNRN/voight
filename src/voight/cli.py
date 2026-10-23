@@ -73,8 +73,9 @@ def main_callback(
 
 
 class _GrupoConPredeterminado(TyperGroup):
-    """Grupo cuyo primer argumento, si no es un subcomando, va al subcomando predeterminado:
-    `voight health banco/` es `voight health check banco/`."""
+    """`voight health` ES el diagnóstico: el primer argumento, si no es un subcomando, va
+    al comando predeterminado (`voight health banco/`) y la ayuda del grupo es la suya,
+    con los subcomandos (`stats`, `similar`) al final."""
 
     predeterminado = "check"
 
@@ -82,6 +83,28 @@ class _GrupoConPredeterminado(TyperGroup):
         if args and args[0] not in self.commands and args[0] not in ("-h", "--help", "--llm"):
             args = [self.predeterminado, *args]
         return super().parse_args(ctx, args)
+
+    def format_help(self, ctx, formatter):
+        comando = self.commands[self.predeterminado]
+        with comando.make_context(ctx.info_name, [], parent=ctx.parent, resilient_parsing=True) as sub:
+            comando.format_help(sub, formatter)
+        visibles = [(n, c.get_short_help_str(300)) for n, c in self.commands.items() if not c.hidden]
+        if not visibles:
+            return
+        try:
+            from rich.console import Console
+            from rich.panel import Panel
+            from rich.table import Table
+        except ImportError:
+            with formatter.section("Subcomandos"):
+                formatter.write_dl(visibles)
+            return
+        tabla = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+        tabla.add_column(style="bold cyan", no_wrap=True)
+        tabla.add_column()
+        for nombre, ayuda in visibles:
+            tabla.add_row(nombre, ayuda)
+        Console().print(Panel(tabla, title="Subcomandos", title_align="left", border_style="dim"))
 
 
 def _deprecado(funcion, viejo: str, nuevo: str):
@@ -93,27 +116,30 @@ def _deprecado(funcion, viejo: str, nuevo: str):
     return envoltura
 
 
-# health: la salud del banco (check, predeterminado), la validación y el análisis.
+# health: la salud del banco (el diagnóstico es el propio `health`), estadísticas y similares.
 health_app = typer.Typer(
     cls=_GrupoConPredeterminado,
-    help="Salud del banco (`voight health RUTAS` es `health check`), validación, estadísticas y similares.",
+    help="Audita la salud del banco (con `stats` y `similar` como subcomandos).",
     no_args_is_help=True,
 )
-health_app.command("check")(health_cmd)
-health_app.command("validate")(validate)
+health_app.command("check", hidden=True)(health_cmd)
 health_app.command("stats")(stats)
 health_app.command("similar")(similar)
+# validate daba el mismo informe que stats y un subconjunto de los chequeos de health.
+health_app.command("validate", hidden=True)(_deprecado(validate, "health validate", "health"))
 
-# fix: también el formato (format), la ortografía (grammar) y Moodle XML (xml).
+# fix: todo lo que modifica archivos: formato, código, nombres, HTML, ortografía y tags.
 fix_app.command("format")(format_cmd)
 fix_app.command("format-init")(format_init_cmd)
+fix_app.command("clean-tags")(clean_tags)
 fix_app.command("grammar")(spellcheck)
-xml_app = typer.Typer(help="Herramientas para archivos XML de Moodle.")
+# fix xml: lo que hacía ya está en fix format (CDATA), fix name-from-title y fix clean-tags.
+xml_app = typer.Typer(help="Ahora es `voight fix format`, `fix name-from-title` y `fix clean-tags`.")
 xml_app.callback()(xml_group)
-xml_app.command("cdata")(cdata)
-xml_app.command("clean-tags")(clean_tags)
-xml_app.command("rename")(rename)
-fix_app.add_typer(xml_app, name="xml")
+for nombre, funcion, nuevo in (("cdata", cdata, "fix format"), ("clean-tags", clean_tags, "fix clean-tags"),
+                               ("rename", rename, "fix name-from-title")):
+    xml_app.command(nombre)(_deprecado(funcion, f"fix xml {nombre}", nuevo))
+fix_app.add_typer(xml_app, name="xml", hidden=True)
 
 app.command("doctor")(doctor_cmd)
 app.add_typer(health_app, name="health")
@@ -128,11 +154,12 @@ app.command("ui")(ui)
 app.add_typer(config_app, name="config")
 app.add_typer(convert_app, name="convert")
 app.add_typer(fix_app, name="fix")
-app.add_typer(tree_app, name="tree")
+# tree: `tree export` es `split -o DIR` y `tree collect`, `unify`.
+app.add_typer(tree_app, name="tree", hidden=True)
 app.add_typer(moodle_app, name="moodle")
 
 # Nombres anteriores (ocultos): avisan y siguen funcionando.
-app.command("validate", hidden=True)(_deprecado(validate, "validate", "health validate"))
+app.command("validate", hidden=True)(_deprecado(validate, "validate", "health"))
 app.command("format", hidden=True)(_deprecado(format_cmd, "format", "fix format"))
 app.command("grammar", hidden=True)(_deprecado(spellcheck, "grammar", "fix grammar"))
 app.command("spellcheck", hidden=True)(_deprecado(spellcheck, "spellcheck", "fix grammar"))
@@ -141,10 +168,11 @@ analyze_viejo = typer.Typer(help="Ahora es `voight health stats` y `voight healt
 analyze_viejo.command("stats")(_deprecado(stats, "analyze stats", "health stats"))
 analyze_viejo.command("similar")(_deprecado(similar, "analyze similar", "health similar"))
 app.add_typer(analyze_viejo, name="analyze", hidden=True)
-xml_viejo = typer.Typer(help="Ahora es `voight fix xml`.")
+xml_viejo = typer.Typer(help="Ahora es `voight fix format`, `fix name-from-title` y `fix clean-tags`.")
 xml_viejo.callback()(xml_group)
-for nombre, funcion in (("cdata", cdata), ("clean-tags", clean_tags), ("rename", rename)):
-    xml_viejo.command(nombre)(_deprecado(funcion, f"xml {nombre}", f"fix xml {nombre}"))
+for nombre, funcion, nuevo in (("cdata", cdata, "fix format"), ("clean-tags", clean_tags, "fix clean-tags"),
+                               ("rename", rename, "fix name-from-title")):
+    xml_viejo.command(nombre)(_deprecado(funcion, f"xml {nombre}", nuevo))
 app.add_typer(xml_viejo, name="xml", hidden=True)
 
 cli = typer.main.get_command(app)

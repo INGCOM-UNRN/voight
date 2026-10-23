@@ -181,7 +181,7 @@ def format_init_cmd(
     directorio: Path = typer.Argument(
         Path("."), exists=True, file_okay=False, help="Raíz del árbol de preguntas (por defecto, el directorio actual)."),
 ):
-    """Crea la plantilla de [format] en el .voight.toml de la raíz del árbol de preguntas.
+    """Crea la plantilla de la sección format del .voight.toml en la raíz del árbol de preguntas.
 
     Lleva todas las claves de formato con sus valores por defecto y una explicación de
     cada una. Si ya hay un .voight.toml o .voight en el directorio, agrega la sección

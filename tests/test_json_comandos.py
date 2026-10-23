@@ -43,15 +43,28 @@ def test_health_json(tmp_path):
     assert "porcentajes" in datos and "enlaces" in datos
 
 
-def test_tree_export_y_collect_json(tmp_path):
+def test_split_y_unify_json(tmp_path):
     f = tmp_path / "cat.gift"
     f.write_text(GIFT, encoding="utf-8")
     out = tmp_path / "arbol"
-    datos = _json(runner.invoke(cli, ["tree", "export", str(f), "-o", str(out), "--json"]))
-    assert datos["preguntas"] == 1
+    datos = _json(runner.invoke(cli, ["split", str(f), "-o", str(out), "--json"]))
+    assert datos["preguntas"] == 1 and datos["comando"] == "split"
+    assert (out / "Mate" / "Algebra").is_dir()
     salida = tmp_path / "rebuilt.gift"
-    datos = _json(runner.invoke(cli, ["tree", "collect", str(out), "-o", str(salida), "--json"]))
-    assert datos["comando"] == "tree collect"
+    datos = _json(runner.invoke(cli, ["unify", str(out), "-o", str(salida), "--json"]))
+    assert datos["comando"] == "unify" and datos["preguntas"] == 1
+
+
+def test_tree_export_y_collect_json_nombres_anteriores(tmp_path):
+    f = tmp_path / "cat.gift"
+    f.write_text(GIFT, encoding="utf-8")
+    out = tmp_path / "arbol"
+    res = runner.invoke(cli, ["tree", "export", str(f), "-o", str(out), "--json"])
+    assert "ahora es `voight split -o DIR`" in res.stderr
+    assert json.loads(res.stdout)["preguntas"] == 1
+    res = runner.invoke(cli, ["tree", "collect", str(out), "-o", str(tmp_path / "rebuilt.gift"), "--json"])
+    assert "ahora es `voight unify`" in res.stderr
+    assert json.loads(res.stdout)["comando"] == "tree collect"
 
 
 def test_synth_listar_json():

@@ -10,7 +10,11 @@ from voight.core import tree as core_tree
 from voight.core.incrustar import ErrorIncrustacion
 from voight.commands.common import LLM_OPTION, emitir_json, fail
 
-tree_app = typer.Typer(help="Organiza bancos en árboles de directorios por categoría.")
+tree_app = typer.Typer(help="Ahora es `voight split -o DIR` y `voight unify`.")
+
+
+def _aviso(viejo: str, nuevo: str) -> None:
+    click.echo(f"Aviso: `voight {viejo}` ahora es `voight {nuevo}`; el nombre anterior se va a retirar.", err=True)
 
 
 @tree_app.callback()
@@ -35,7 +39,8 @@ def export_cmd(
         help="Forzar el formato (por defecto se deduce de la extensión)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
-    """Exporta ARCHIVO (banco monolítico) a un árbol de directorios."""
+    """Exporta ARCHIVO (banco monolítico) a un árbol de directorios (ahora `voight split -o`)."""
+    _aviso("tree export", "split -o DIR")
     with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
         cantidad = core_tree.exportar(archivo, dir_salida, formato)
     if cantidad < 0:
@@ -65,11 +70,12 @@ def collect_cmd(
         help="Formato de imagen de los diagramas mermaid incrustados."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
-    """Recolecta DIRECTORIO en un banco monolítico único.
+    """Recolecta DIRECTORIO en un banco monolítico único (ahora `voight unify`).
 
     En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`) y las
     imágenes con ruta relativa al archivo de la pregunta se incrustan en la salida.
     """
+    _aviso("tree collect", "unify")
     try:
         with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
             cantidad = core_tree.recolectar(directorio, archivo_salida, formato,

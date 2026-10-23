@@ -7,7 +7,7 @@ Guía rápida de 5 minutos para empezar a usar la nueva interfaz unificada.
 ### 1️⃣ Validar y Analizar un Directorio
 ```bash
 # Análisis completo con detección de duplicados
-uv run voight health validate ./preguntas -o informe.txt
+uv run voight health ./preguntas -r --md informe.md
 
 # Ver estadísticas rápidas
 uv run voight health stats ./preguntas
@@ -31,13 +31,13 @@ uv run voight fix code-indent ./preguntas/archivo.gift
 ### 4️⃣ Mantenimiento de archivos XML
 ```bash
 # Asegurar que usen CDATA
-uv run voight fix xml cdata ./preguntas
+uv run voight fix format ./preguntas -r
 
 # Renombrar archivos según el nombre de la pregunta
-uv run voight fix xml rename ./preguntas/*.xml
+uv run voight fix name-from-title ./preguntas -r
 
 # Eliminar tags innecesarios
-uv run voight fix xml clean-tags ./preguntas
+uv run voight fix clean-tags ./preguntas -r
 ```
 
 ### 5️⃣ Procesamiento con IA (Gemini)

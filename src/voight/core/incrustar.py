@@ -4,7 +4,7 @@ Las preguntas se escriben como texto: un diagrama es un bloque ```mermaid (o un
 ``<pre class="mermaid">``/``<div class="mermaid">``) y una imagen se referencia con
 una ruta relativa al archivo de la pregunta (``![alt](img/a.png)`` o
 ``<img src="img/a.png">``). Los archivos fuente no se tocan: sólo al fusionarlos
-(`unify`, `tree collect`) cada diagrama se renderiza con mermaid-cli (`mmdc`) y cada
+(`unify`) cada diagrama se renderiza con mermaid-cli (`mmdc`) y cada
 imagen se adjunta al campo que la usa como ``<file encoding="base64">``, con la
 referencia cambiada por ``@@PLUGINFILE@@/<nombre>``, que es como Moodle importa los
 archivos de un campo de texto.

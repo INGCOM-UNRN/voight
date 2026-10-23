@@ -7,7 +7,7 @@ from voight.core.xml_tools import ensure_cdata_in_text_blocks, sanitize_filename
 
 from voight.commands.common import LLM_OPTION
 
-xml_app = typer.Typer(help="Herramientas para archivos XML de Moodle (en la CLI: `voight fix xml`).")
+xml_app = typer.Typer(help="Herramientas para archivos XML de Moodle (en la CLI: `voight fix clean-tags`; cdata y rename quedan como nombres anteriores).")
 
 
 @xml_app.callback()

@@ -58,23 +58,34 @@ voight doctor
 | [`voight health`](#health) | Audita la salud del banco: claves de corrección, feedback, opciones, redacción, Bloom y dificultad, código y enlaces; con TUI para arreglar. |
 | [`voight ai`](#ai) | Procesa preguntas GIFT y Moodle XML con IA (Gemini o Claude) y las clasifica por Bloom y dificultad con Jev. |
 | [`voight verify`](#verify) | Compila y ejecuta el código C y Java de las preguntas y verifica que la clave coincida con la salida. |
-| [`voight health validate`](#validate) | Valida archivos o directorios de preguntas GIFT y Moodle XML. |
 | `voight health stats` · `voight health similar` | Estadísticas del repositorio y preguntas similares o duplicadas (GIFT y XML, también entre formatos). |
 | [`voight dedup`](#dedup) | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML), con log y revisión en TUI. |
 | [`voight fix format`](#format) | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵); `--check` para CI; `--gaff` da al código C el estilo de la cátedra. |
 | [`voight fix format-init`](#format) | Crea la plantilla `[format]` del `.voight.toml` en la raíz del árbol de preguntas. |
-| `voight fix xml cdata` · `clean-tags` · `rename` | Mantenimiento de archivos Moodle XML. |
-| [`voight fix`](#fix) | Correcciones puntuales: lenguaje y formato del código, caracteres, nombres de archivo y títulos. |
+| [`voight fix`](#fix) | Correcciones puntuales: lenguaje y formato del código, caracteres, nombres de archivo y títulos, HTML obsoleto (`clean-html`) y tags de Moodle XML (`clean-tags`). |
 | [`voight moodle subir`](#moodle-subir) | Sube un banco a un curso de Moodle por servicio web. |
-| [`voight split`](#split) | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
+| [`voight split`](#split) | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales (con `-o DIR`, en un árbol por categoría). |
 | [`voight unify`](#unify) | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | [`voight synth`](#synth) | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
 | [`voight ui`](#ui) | Abre el editor web local (cerebro) sobre DIRECTORIO. |
 | [`voight fix grammar`](#grammar) | Verifica y corrige ortografía y gramática en bancos GIFT y XML usando LanguageTool. |
 
-`voight health RUTAS` es lo mismo que `voight health check RUTAS`. Los nombres anteriores siguen funcionando, con un aviso, y se van a retirar: `validate` → `health validate`, `analyze stats|similar` → `health stats|similar`, `spellcheck`, `languagetool` y `grammar` → `fix grammar`, `format` → `fix format`, `xml …` → `fix xml …`.
+Hay una sola forma de hacer cada cosa: `health` diagnostica (no escribe), `fix` modifica, `split` divide y `unify` fusiona. Los nombres anteriores siguen funcionando, con un aviso por stderr, y se van a retirar:
 
-Todas las opciones largas en castellano aceptan también su nombre en inglés (`--aplicar`/`--apply`, `--conservar`/`--keep`, `--estricto`/`--strict`, `--desde`/`--since`, `--contexto`/`--context`…). Los comandos que escriben aceptan `-n/--dry-run`, y `health`, `health validate`, `fix format`, `verify` y `dedup` aceptan `--desde <rev>` para procesar sólo los archivos cambiados desde una revisión git (más los nuevos sin seguimiento). Los valores por defecto de cada banco pueden fijarse en un [`.voight.toml`](#configuracion-por-banco).
+| Nombre anterior | Ahora |
+| :--- | :--- |
+| `health check`, `health validate`, `validate` | `health` (validate daba el mismo informe que `health stats` y un subconjunto de los chequeos de `health`) |
+| `analyze stats` · `analyze similar` | `health stats` · `health similar` |
+| `health --clean-html` | `fix clean-html` |
+| `tree export BANCO -o DIR` | `split BANCO -o DIR` |
+| `tree collect DIR -o BANCO` | `unify DIR -o BANCO` |
+| `fix xml cdata`, `xml cdata` | `fix format` (formatea el XML con cada `<text>` en CDATA) |
+| `fix xml rename`, `xml rename` | `fix name-from-title` (GIFT y XML) |
+| `fix xml clean-tags`, `xml clean-tags` | `fix clean-tags` |
+| `spellcheck`, `languagetool`, `grammar` | `fix grammar` |
+| `format` | `fix format` |
+
+Todas las opciones largas en castellano aceptan también su nombre en inglés (`--aplicar`/`--apply`, `--conservar`/`--keep`, `--estricto`/`--strict`, `--desde`/`--since`, `--contexto`/`--context`…). Los comandos que escriben aceptan `-n/--dry-run`, y `health`, `fix format`, `verify` y `dedup` aceptan `--desde <rev>` para procesar sólo los archivos cambiados desde una revisión git (más los nuevos sin seguimiento). Los valores por defecto de cada banco pueden fijarse en un [`.voight.toml`](#configuracion-por-banco).
 
 ### `voight doctor`
 
@@ -109,7 +120,7 @@ Audita la salud del banco sobre el modelo unificado de preguntas: **da el mismo 
 
 `--tui` abre una interfaz de terminal (extra `tui`) con tres paneles: los errores y advertencias (🔧 marca los que tienen arreglo automático), las preguntas o archivos afectados y el archivo con la pregunta resaltada. `f` aplica el arreglo al archivo seleccionado y `F` a todos los del hallazgo (con confirmación): proteger el código con fullwidth y marcas, etiquetar el lenguaje de los bloques ``` o limpiar el HTML obsoleto. `e` abre el archivo en `$EDITOR` en la línea de la pregunta, `r` vuelve a auditar y `q` sale informando qué se arregló.
 
-El informe empieza con un **resultado** que separa errores de advertencias. Son errores lo que Moodle no importaría o importaría mal: archivos ilegibles, porcentajes rechazados o que no suman 100, preguntas sin respuesta correcta o sin enunciado y, en GIFT, código que el formato interpreta o con líneas en blanco. El resto (feedback, opciones, longitud, enlaces, HTML) son advertencias. **Sale con código 1 si hay errores** (con `--estricto`, también ante advertencias); el JSON lleva `ok` y `resumen`.
+El informe empieza con un **resultado** que separa errores de advertencias. Son errores lo que Moodle no importaría o importaría mal: archivos ilegibles, porcentajes rechazados o que no suman 100, preguntas sin respuesta correcta o sin enunciado, respuesta corta o numérica sin respuestas, emparejamiento con menos de 2 pares y, en GIFT, código que el formato interpreta o con líneas en blanco. El resto (feedback, opciones, longitud, enlaces, HTML, archivos sin preguntas) son advertencias. `health` no escribe nada: el HTML obsoleto lo limpia `voight fix clean-html`. **Sale con código 1 si hay errores** (con `--estricto`, también ante advertencias); el JSON lleva `ok` y `resumen`.
 
 #### Argumentos
 | Argumento | Tipo | Descripción |
@@ -121,7 +132,6 @@ El informe empieza con un **resultado** que separa errores de advertencias. Son 
 | :--- | :--- | :--- | :--- |
 | `-r`, `--recursive` | `<class 'bool'>` | `False` | Buscar recursivamente en los directorios. |
 | `--md` | `Optional[pathlib.Path]` | `None` | Exportar reporte en Markdown. |
-| `--clean-html` | `<class 'bool'>` | `False` | Limpiar etiquetas HTML obsoletas y estilos inline (GIFT y XML). |
 | `--min-opciones` | `<class 'int'>` | `3` | Mínimo de opciones esperado en opción múltiple. |
 | `--umbral-longitud` | `<class 'float'>` | `1.5` | Razón de largo correcta/distractores a partir de la cual se advierte. |
 | `--max-items` | `<class 'int'>` | `50` | Máximo de preguntas listadas por sección (0: todas). |
@@ -129,7 +139,6 @@ El informe empieza con un **resultado** que separa errores de advertencias. Son 
 | `--csv` | `Optional[pathlib.Path]` | `None` | Exportar una fila por pregunta con todas sus señales. |
 | `--tui` | `<class 'bool'>` | `False` | Recorrer los hallazgos y aplicar los arreglos en una interfaz de terminal. |
 | `--desde` | `Optional[str]` | `None` | Sólo los archivos cambiados desde esta revisión git. |
-| `-n`, `--dry-run` | `<class 'bool'>` | `False` | Con `--clean-html`: mostrar qué se limpiaría sin escribir. |
 | `--json` | `<class 'bool'>` | `False` | Emite el diagnóstico como JSON versionado (con `--md`, escribe también el informe). |
 
 #### Ejemplo de Invocación
@@ -224,25 +233,14 @@ voight ai preguntas/ -r --mode classify --calibrar referencias.csv
 voight ai preguntas/ -r --mode classify --revisar --referencias referencias.csv
 ```
 
-### `voight health validate`
+### `voight health stats` · `voight health similar`
 
-Valida archivos o directorios de preguntas GIFT y Moodle XML: errores de parseo, estadísticas por formato y tipo, preguntas sin respuesta correcta y duplicados (también entre un `.gift` y un `.xml`). `voight health stats` y `voight health similar` recorren los mismos repositorios mixtos; la búsqueda de duplicados filtra por prefijos y escala a miles de preguntas.
-
-#### Opciones y Banderas
-| Opción / Banderas | Tipo | Por Defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `--paths` | `Optional[List[pathlib.Path]]` | `None` | - |
-| `--llm` | `<class 'bool'>` | `False` | Muestra instrucciones para un LLM sobre este comando. |
-| `-o`, `--output` | `Optional[str]` | `None` | Archivo de salida para el informe |
-| `-r`, `--recursive` | `<class 'bool'>` | `False` | Buscar recursivamente |
-| `-v`, `--verbose` | `<class 'bool'>` | `False` | Información detallada |
-| `-s`, `--similarity` | `<class 'float'>` | `0.85` | Threshold para duplicados |
-| `-j`, `--json` | `<class 'bool'>` | `False` | Salida en JSON |
-| `--desde` | `Optional[str]` | `None` | Sólo los archivos cambiados desde esta revisión git. |
+`health stats` resume el repositorio (archivos y preguntas por formato, tipo, categoría y tags; sale con 1 si algún archivo no se puede interpretar) y `health similar` busca preguntas parecidas con TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; filtra por prefijos y escala a miles de preguntas. Para eliminar duplicados con un criterio conservador, `voight dedup`.
 
 #### Ejemplo de Invocación
 ```bash
-voight health validate preguntas/ -r
+voight health stats preguntas/ -r --json
+voight health similar preguntas/ -r -s 0.8
 ```
 
 ### `voight dedup`
@@ -343,6 +341,8 @@ Correcciones puntuales, en GIFT, Moodle XML y Markdown; todas aceptan `-r` y `-n
 - `fix code-format`: formatea el código C y Java con clang-format (el instalado o `uvx clang-format`), estilo LLVM con sangría de 4 (`--estilo` para otro; `--estilo allman` u otro estilo de llaves las aplica sobre ese estilo).
 - `fix code-chars --to-fullwidth|--to-normal` y `fix code-indent`: caracteres fullwidth y marcas del código, combinables: `code-chars` cambia los símbolos y conserva la indentación `·` y los `↵` (con `--to-fullwidth` los agrega; `--sin-marcas` no los agrega y, con `--to-normal`, los quita), y `code-indent` marca la indentación.
 - `fix slugify`, `fix name-from-title`, `fix title-from-name`: nombres de archivo y títulos.
+- `fix clean-html`: limpia el HTML obsoleto (`<font>`, `<center>`, `<marquee>`) y los estilos inline que informa `health`.
+- `fix clean-tags`: elimina las secciones `<tags>` de las preguntas Moodle XML.
 - `fix extension`: corrige la extensión según el contenido: un `.xml` con preguntas GIFT pasa a `.gift` y un `.gift` con Moodle XML, a `.xml`. Si el destino ya existe no lo pisa (lo informa y sale con 1); los archivos que no parecen GIFT ni Moodle XML quedan como están. `--json` lista los renombrados, los conflictos y los no reconocidos.
 
 ### `voight moodle subir`
@@ -357,7 +357,7 @@ voight moodle subir preguntas/ --url https://moodle.ejemplo.edu.ar --curso 1234 
 
 ### `voight split`
 
-Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. En XML, cada archivo lleva la categoría vigente.
+Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. Sin `-o`, cada pregunta queda al lado del original con la categoría vigente. Con `-o DIR`, cada banco se exporta a un árbol `DIR/<categoría>/<pregunta>.<ext>` (antes `tree export`); `voight unify DIR -o banco.gift|xml` lo vuelve a juntar.
 
 #### Opciones y Banderas
 | Opción / Banderas | Tipo | Por Defecto | Descripción |
@@ -365,11 +365,15 @@ Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individua
 | `--paths` | `Optional[List[pathlib.Path]]` | `None` | - |
 | `--llm` | `<class 'bool'>` | `False` | Muestra instrucciones para un LLM sobre este comando. |
 | `-r`, `--recursive` | `<class 'bool'>` | `False` | Procesar recursivamente. |
+| `-o`, `--output-dir` | `Optional[pathlib.Path]` | `None` | Exportar a un árbol de carpetas por categoría en este directorio. |
 | `--remove` | `<class 'bool'>` | `False` | Borrar el archivo original después de dividirlo. |
+| `-n`, `--dry-run` | `<class 'bool'>` | `False` | No crear ni borrar archivos; sólo contar. |
+| `--json` | `<class 'bool'>` | `False` | Emite el resultado como JSON versionado. |
 
 #### Ejemplo de Invocación
 ```bash
 voight split banco.xml
+voight split banco.gift -o arbol/      # un archivo por pregunta, en carpetas por categoría
 ```
 
 ### `voight convert`
@@ -390,7 +394,7 @@ voight convert html-to-md preguntas/ -n
 
 Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo.
 
-    Es la operación inversa a 'split' y 'tree export': recopila preguntas
+    Es la operación inversa a 'split' (también con -o): recopila preguntas
     recorriendo los directorios especificados, infiere y preserva las categorías,
     y genera un único banco monolítico (.gift o .xml).
 
@@ -412,6 +416,7 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 | `--remove` | `<class 'bool'>` | `False` | Borrar los archivos fuente después de unificarlos. |
 | `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: renderiza los diagramas mermaid e incrusta las imágenes relativas en la salida. |
 | `--diagramas` | `<class 'str'>` | `png` | Formato de imagen de los diagramas mermaid incrustados (`png` o `svg`). |
+| `--json` | `<class 'bool'>` | `False` | Emite el resultado como JSON versionado. |
 
 #### Ejemplo de Invocación
 ```bash
@@ -421,7 +426,7 @@ voight unify <output_file>
 #### Diagramas mermaid e imágenes relativas
 
 Las preguntas se escriben y versionan como texto; sólo el archivo fusionado
-(`voight unify … -o banco.xml` y `voight tree collect … -o banco.xml`) lleva las
+(`voight unify … -o banco.xml`) lleva las
 imágenes incrustadas. Los archivos fuente no se modifican.
 
 - **Diagramas**: un bloque ```` ```mermaid ```` (en campos `markdown`) o un
@@ -574,7 +579,7 @@ correct_first = false
 
 ### pre-commit y acción de GitHub
 
-El repositorio publica hooks de [pre-commit](https://pre-commit.com) (`voight-format`, `voight-health`, `voight-health-estricto`, `voight-validate`), que reciben sólo los `.gift`/`.xml` del commit:
+El repositorio publica hooks de [pre-commit](https://pre-commit.com) (`voight-format`, `voight-health`, `voight-health-estricto`; `voight-validate` queda por compatibilidad y es igual a `voight-health`), que reciben sólo los `.gift`/`.xml` del commit:
 
 ```yaml
 repos:
@@ -598,7 +603,7 @@ Y una acción de GitHub que corre `health` sobre lo que cambia en un pull reques
 
 ### Pruebas sobre bancos reales
 
-`tests/test_corpus.py` verifica invariantes (format no cambia las preguntas y es idempotente, la conversión GIFT ↔ XML no las parte ni las pierde, unify y tree export tampoco, health es consistente) sobre un corpus sintético en cada corrida. Las mismas verificaciones corren sobre bancos reales, que sólo se leen, sin copiarlos al repositorio:
+`tests/test_corpus.py` verifica invariantes (format no cambia las preguntas y es idempotente, la conversión GIFT ↔ XML no las parte ni las pierde, unify y split -o tampoco, health es consistente) sobre un corpus sintético en cada corrida. Las mismas verificaciones corren sobre bancos reales, que sólo se leen, sin copiarlos al repositorio:
 
 ```bash
 VOIGHT_BANCOS=/ruta/banco1:/ruta/banco2 uv run pytest tests/test_corpus.py

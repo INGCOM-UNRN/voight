@@ -32,7 +32,7 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
-- Diagramas mermaid al fusionar Moodle XML (`unify`, `tree collect`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
+- Diagramas mermaid al fusionar Moodle XML (`unify`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
 - `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con el comando `config`); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
@@ -83,10 +83,9 @@ uv run voight --help
 
 El CLI `voight` se organiza en subcomandos especializados:
 
-`health` agrupa la salud del banco (`voight health RUTAS`, igual a `health check`), la validación y el análisis; y `fix`, las correcciones, el formato, la revisión ortográfica (`fix grammar`) y el mantenimiento de Moodle XML. Los nombres anteriores (`validate`, `analyze`, `spellcheck`, `languagetool`, `grammar`, `format`, `xml`) siguen funcionando con un aviso y se van a retirar.
+Una sola forma de hacer cada cosa: `health` diagnostica sin escribir (con `stats` y `similar` como subcomandos), `fix` modifica (formato, código, nombres, HTML, tags, ortografía), `split` divide y `unify` fusiona. Los nombres anteriores (`health check`, `health validate`, `validate`, `analyze`, `health --clean-html`, `tree export|collect`, `fix xml …`, `spellcheck`, `languagetool`, `grammar`, `format`, `xml`) siguen funcionando con un aviso y se van a retirar; la tabla de equivalencias está en el [manual](MANUAL.md#3-guía-integral-de-comandos-cli).
 
 ### 1. Validación y Análisis (GIFT y XML)
-- `voight health validate`: Valida archivos o directorios GIFT y Moodle XML, genera informes detallados y detecta duplicados.
 - `voight health stats`: Genera estadísticas completas sobre un repositorio de preguntas (por formato, tipo, categoría y tags).
 - `voight health similar`: Encuentra preguntas similares usando TF-IDF + Jaccard, también entre un `.gift` y un `.xml`; escala a miles de preguntas.
 - `voight dedup`: Elimina preguntas duplicadas según un umbral de similitud configurable (`-s`, por defecto 0.95), en GIFT y XML. Sólo considera duplicadas las del mismo tipo, con la misma respuesta correcta y enunciados que también superan el umbral; conserva la más completa. Simula por defecto (`--aplicar` elimina) y registra cada eliminación con la ruta completa en `dedup.log`; guarda una copia de los originales y `--restaurar ultimo` lo deshace. `--confirmar-jev` confirma cada par con Jev y `--tui` abre una interfaz de terminal para revisar los grupos lado a lado y decidir cuáles eliminar (extra `tui`).
@@ -114,16 +113,17 @@ Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente
 - `voight convert gift-to-xml`: Convierte GIFT a Moodle XML con bloques CDATA correctos. Con un directorio, `xml-to-gift` y `gift-to-xml` convierten cada archivo al lado del original o, con `-o DIR`, replicando el árbol en `DIR`; no pisan archivos existentes salvo `--forzar` (`-n` simula). Con un solo archivo, la salida va a stdout o a `-o`. Ambos conversores viajan sobre el modelo unificado de preguntas del parser PEG y son estables en round-trip.
 
 ### 4. Árboles de Directorios (absorbe moodle-reorganizer)
-- `voight tree export banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta).
-- `voight tree collect dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías. En Moodle XML (también con `voight unify`), los bloques ```` ```mermaid ```` se renderizan con mermaid-cli (`mmdc`) y las imágenes con ruta relativa se incrustan en el archivo fusionado como `@@PLUGINFILE@@`; las preguntas fuente siguen siendo texto (`--no-incrustar` lo desactiva, `--diagramas svg` cambia el formato).
+- `voight split banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta); sin `-o`, divide cada archivo en el lugar.
+- `voight unify dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías. En Moodle XML, los bloques ```` ```mermaid ```` se renderizan con mermaid-cli (`mmdc`) y las imágenes con ruta relativa se incrustan en el archivo fusionado como `@@PLUGINFILE@@`; las preguntas fuente siguen siendo texto (`--no-incrustar` lo desactiva, `--diagramas svg` cambia el formato).
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
 - `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"`.
 
 ### 6. Mantenimiento XML
-- `voight fix xml cdata`: Asegura que los bloques `<text>` usen secciones CDATA.
-- `voight fix xml clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
-- `voight fix xml rename`: Renombra archivos XML basándose en el nombre interno de la pregunta.
+- `voight fix format`: Formatea el XML con cada `<text>` en CDATA (antes `fix xml cdata`).
+- `voight fix clean-tags`: Elimina secciones de etiquetas (`<tags>`) redundantes.
+- `voight fix name-from-title`: Renombra archivos (GIFT y XML) según el título interno de la pregunta (antes `fix xml rename`).
+- `voight fix clean-html`: Limpia el HTML obsoleto y los estilos inline que informa `health` (antes `health --clean-html`).
 
 ### 7. Inteligencia Artificial (Gemini, servidor local, OpenCode o Claude)
 - `voight ai`: Mejora la calidad pedagógica (`improve`), crea variaciones (`multiply`), completa sólo la retroalimentación que falta (`feedback`) o agrega distractores donde faltan (`distractors`) en preguntas GIFT y Moodle XML, con Google Gemini, un servidor local con la API de OpenAI (Ollama, llama.cpp, LM Studio, vLLM), OpenCode o Claude (`--proveedor google|local|opencode|claude`, y `--model`). El proveedor se configura igual que en el resto del ecosistema (yutani.ia): `--proveedor`, `VOIGHT_PROVEEDOR`, `P1_IA_PROVEEDOR`, `P1_IA_MODELO`, `P1_IA_URL` o `~/.config/p1/ia.toml` (con `[herramientas.voight]` para lo propio); sin nada configurado sigue siendo Gemini, y `voight doctor` muestra cuál quedó y si está disponible. El modelo recibe GIFT compacto (sin metadatos ni marcas, código en ASCII) y la respuesta se aplica sobre el archivo original. Además, cada modo envía y recibe sólo lo que necesita: `--parte enunciado` manda y recibe sólo el enunciado, `--parte respuestas` el enunciado como contexto y las opciones sin retroalimentación (vuelven sólo las opciones), `feedback` sólo las opciones y qué retroalimentación falta (vuelve sólo esa) y `distractors` las opciones sin retroalimentación (vuelven sólo los distractores nuevos); lo devuelto se aplica sobre la pregunta original, que nunca viaja entera. Estima tokens y costo antes de llamar al modelo, guarda las respuestas en caché y `--dry-run` muestra lo que se enviaría.

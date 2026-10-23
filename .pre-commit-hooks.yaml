@@ -31,9 +31,10 @@
   language: python
   files: \.(gift|xml)$
 
+# Nombre anterior: `health validate` ahora es `health`, así que es igual a voight-health.
 - id: voight-validate
-  name: validación de GIFT y Moodle XML
+  name: validación de GIFT y Moodle XML (igual a voight-health)
   description: Falla si algún archivo no se puede interpretar o tiene preguntas sin respuesta correcta o vacías.
-  entry: voight health validate
+  entry: voight health --max-items 20
   language: python
   files: \.(gift|xml)$

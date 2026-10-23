@@ -8,7 +8,7 @@ from voight.core.naming import rename_to_slug, rename_from_title, set_question_t
 
 from voight.commands.common import LLM_OPTION, emitir_json
 
-fix_app = typer.Typer(help="Comandos para corregir problemas comunes, el formato (format), la ortografía (grammar) y Moodle XML (xml).")
+fix_app = typer.Typer(help="Todo lo que modifica archivos: formato (format), código, nombres, HTML, tags y ortografía (grammar).")
 
 
 @fix_app.callback()
@@ -151,6 +151,32 @@ def title_from_name_cmd(
             modified_count += 1
     
     click.echo(f"\nFinalizado: {modified_count} títulos actualizados.")
+
+@fix_app.command(name="clean-html")
+def clean_html_cmd(
+    paths: Optional[List[str]] = typer.Argument(None, exists=True),
+    recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar recursivamente"),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="No aplicar cambios"),
+):
+    """Limpia el HTML obsoleto (<font>, <center>, <marquee>) y los estilos inline (GIFT y XML).
+
+    `voight health` informa los archivos que lo tienen.
+    """
+    from voight.core.moodle_health import limpiar_html_archivo
+
+    files = expandir_rutas(paths or ['.'], recursive)
+
+    modified_count = 0
+    for f in sorted(files):
+        content = f.read_text(encoding='utf-8', errors='replace')
+        new_content = limpiar_html_archivo(content, formato_de(f) or "gift")
+        if new_content != content:
+            if not dry_run:
+                f.write_text(new_content, encoding='utf-8')
+            click.echo(f"{'[SIMULACIÓN] ' if dry_run else '✓ '}{f}")
+            modified_count += 1
+
+    click.echo(f"\nFinalizado: {modified_count} archivos {'a modificar' if dry_run else 'modificados'}.")
 
 @fix_app.command(name="code-indent")
 def code_indent(

@@ -1,36 +1,39 @@
 # Mantenimiento XML
 
-Documentación para las herramientas de limpieza y mantenimiento de archivos XML de Moodle integradas en el comando `voight xml`.
+Herramientas de limpieza y mantenimiento de archivos Moodle XML. Viven en `voight fix`
+junto con el resto de las correcciones; los nombres anteriores (`voight fix xml cdata`,
+`fix xml clean-tags`, `fix xml rename`) siguen funcionando con un aviso.
 
 ## Comandos Incluidos
 
-1. [`voight fix xml cdata`](#voight-fix-xml-cdata)
-2. [`voight fix xml clean-tags`](#voight-fix-xml-clean-tags)
-3. [`voight fix xml rename`](#voight-fix-xml-rename)
+1. [`voight fix format`](#voight-fix-format) (antes `fix xml cdata`)
+2. [`voight fix clean-tags`](#voight-fix-clean-tags) (antes `fix xml clean-tags`)
+3. [`voight fix name-from-title`](#voight-fix-name-from-title) (antes `fix xml rename`)
 
 ---
 
-## `voight fix xml cdata`
+## `voight fix format`
 
 ### Descripción
 
-Asegura que todos los bloques `<text>` con contenido tengan su contenido envuelto en secciones CDATA. Esto previene problemas con caracteres especiales XML como `<`, `>`, `&`, etc.
+Formatea el XML (sangría de 2 espacios) y envuelve el contenido de cada bloque `<text>`
+en una sección CDATA. Esto previene problemas con caracteres especiales XML como `<`, `>`, `&`, etc.
 
 ### Uso
 
 ```bash
-# Procesar directorio recursivamente
-uv run voight fix xml cdata ./preguntas
+# Procesar un directorio recursivamente
+uv run voight fix format ./preguntas -r
 
-# Procesar solo en el directorio actual (no recursivo)
-uv run voight fix xml cdata ./preguntas --no-recursive
+# Ver qué cambiaría sin escribir
+uv run voight fix format ./preguntas -r --diff
 ```
 
 ### Ejemplo de Transformación
 
 **Antes:**
 ```xml
-<text>Código con operador: x < 10</text>
+<text>Código con operador: x &lt; 10</text>
 ```
 
 **Después:**
@@ -40,26 +43,26 @@ uv run voight fix xml cdata ./preguntas --no-recursive
 
 ---
 
-## `voight fix xml clean-tags`
+## `voight fix clean-tags`
 
 ### Descripción
 
-Elimina recursivamente la sección `<tags>` de todos los archivos XML de preguntas de Moodle. Útil cuando se quiere reorganizar completamente el sistema de etiquetado.
+Elimina la sección `<tags>` de todos los archivos XML de preguntas de Moodle. Útil cuando se quiere reorganizar completamente el sistema de etiquetado.
 
 ### Uso
 
 ```bash
-# Procesar directorio recursivamente
-uv run voight fix xml clean-tags ./preguntas
+uv run voight fix clean-tags ./preguntas -r
 ```
 
 ---
 
-## `voight fix xml rename`
+## `voight fix name-from-title`
 
 ### Descripción
 
-Renombra archivos XML usando el nombre de la pregunta contenida en el XML. Sanitiza el nombre para crear nombres de archivo válidos y descriptivos.
+Renombra cada archivo (GIFT o XML) usando el título de la pregunta que contiene,
+slugificado para que sea un nombre de archivo válido y descriptivo.
 
 ### Reglas de Sanitización
 
@@ -71,8 +74,8 @@ Renombra archivos XML usando el nombre de la pregunta contenida en el XML. Sanit
 ### Uso
 
 ```bash
-# Renombrar todos los archivos en un directorio
-uv run voight fix xml rename ./preguntas/*.xml
+uv run voight fix name-from-title ./preguntas -r -n   # simular
+uv run voight fix name-from-title ./preguntas -r
 ```
 
 ---
@@ -82,14 +85,14 @@ uv run voight fix xml rename ./preguntas/*.xml
 ### Limpieza de Banco de Preguntas
 
 ```bash
-# 1. Asegurar CDATA en todos los bloques de texto
-uv run voight fix xml cdata ./banco
+# 1. Formato y CDATA en todos los bloques de texto
+uv run voight fix format ./banco -r
 
 # 2. Eliminar tags obsoletos
-uv run voight fix xml clean-tags ./banco
+uv run voight fix clean-tags ./banco -r
 
 # 3. Renombrar archivos descriptivamente
-uv run voight fix xml rename ./banco/*.xml
+uv run voight fix name-from-title ./banco -r
 ```
 
 ---

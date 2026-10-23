@@ -3,7 +3,7 @@
 `elementos(resultado, clave)` devuelve, para cada clave del resumen (errores y
 advertencias), los elementos afectados con su archivo, título y un detalle legible.
 `ARREGLOS` dice qué hallazgos tienen un arreglo automático (los mismos que hacen
-`fix code-chars --to-fullwidth`, `fix code-lang` y `health --clean-html`) y
+`fix code-chars --to-fullwidth`, `fix code-lang` y `fix clean-html`) y
 `arreglar` lo aplica a un archivo.
 """
 from __future__ import annotations
@@ -28,6 +28,9 @@ _LISTAS: Dict[str, Callable[[dict], List[dict]]] = {
     "porcentajes_inconsistentes": lambda r: r["porcentajes"]["preguntas_inconsistentes"],
     "sin_correcta": lambda r: r["porcentajes"]["preguntas_sin_correcta"],
     "sin_enunciado": lambda r: r["estructura"]["preguntas_sin_enunciado"],
+    "sin_respuestas": lambda r: r["estructura"].get("preguntas_sin_respuestas", []),
+    "pocos_pares": lambda r: r["estructura"].get("preguntas_pocos_pares", []),
+    "archivos_sin_preguntas": lambda r: [{"archivo": a} for a in r["archivos"].get("sin_preguntas", [])],
     "codigo_gift_sin_proteger": lambda r: _codigo(r, lambda a: _gift(a) and a["sin_proteger"]),
     "codigo_gift_lineas_vacias": lambda r: _codigo(r, lambda a: _gift(a) and a["lineas_vacias"]),
     "sin_feedback": lambda r: r["retroalimentacion"]["preguntas_sin_feedback"],

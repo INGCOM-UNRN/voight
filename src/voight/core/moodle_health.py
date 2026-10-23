@@ -355,9 +355,12 @@ def auditar_moodle(preguntas: Iterable[dict]) -> Dict[str, Any]:
 
 
 def auditar_estructura(preguntas: Iterable[dict]) -> Dict[str, Any]:
-    """Preguntas sin título o sin enunciado, código sin cerrar y conteo por tipo."""
+    """Preguntas sin título, sin enunciado o incompletas (respuesta corta o numérica sin
+    respuestas, emparejamiento con menos de 2 pares, que Moodle no importa), código sin
+    cerrar y conteo por tipo."""
     por_tipo: Counter = Counter()
     sin_titulo, sin_enunciado, sin_cerrar = [], [], []
+    sin_respuestas, pocos_pares = [], []
     for p in preguntas:
         tipo = p.get("type")
         if tipo == "Category":
@@ -367,6 +370,10 @@ def auditar_estructura(preguntas: Iterable[dict]) -> Dict[str, Any]:
             sin_titulo.append(_ref(p))
         if not _plano(_texto(p.get("stem"))):
             sin_enunciado.append(_ref(p))
+        if tipo in ("Short", "Numerical") and not p.get("choices"):
+            sin_respuestas.append(_ref(p))
+        if tipo == "Matching" and len(p.get("matchPairs") or []) < 2:
+            pocos_pares.append({**_ref(p), "pares": len(p.get("matchPairs") or [])})
         textos = [p.get("stem"), p.get("globalFeedback"), p.get("trueFeedback"), p.get("falseFeedback")]
         for o in p.get("choices", []):
             textos += [o.get("text"), o.get("feedback")]
@@ -379,6 +386,8 @@ def auditar_estructura(preguntas: Iterable[dict]) -> Dict[str, Any]:
         "preguntas_sin_titulo": sin_titulo,
         "preguntas_sin_enunciado": sin_enunciado,
         "preguntas_codigo_sin_cerrar": sin_cerrar,
+        "preguntas_sin_respuestas": sin_respuestas,
+        "preguntas_pocos_pares": pocos_pares,
     }
 
 
@@ -575,6 +584,7 @@ def auditar_archivos(
               "comentarios": 0, "sin_lenguaje": 0}
     archivos_codigo: List[dict] = []
     html_obsoleto: List[dict] = []
+    sin_preguntas: List[str] = []
     archivos = list(archivos)
     # Cada carpeta se resuelve una sola vez (resolve es lo más caro de recorrer el banco).
     padres = {a: Path(a).resolve().parent for a in archivos}
@@ -596,6 +606,8 @@ def auditar_archivos(
             # Categoría: la última $CATEGORY / <question type="category"> del archivo o, en un
             # árbol de una pregunta por archivo, la carpeta relativa a la raíz del banco.
             categoria, carpeta = None, None
+            if not any(p.get("type") != "Category" for p in resultado["questions"]):
+                sin_preguntas.append(str(ruta))
             for p in resultado["questions"]:
                 if p.get("type") == "Category":
                     categoria = _categoria_legible(p.get("title") or "")
@@ -621,7 +633,8 @@ def auditar_archivos(
     formatos = sorted(por_formato)
     resultado = {
         "formato": formatos[0] if len(formatos) == 1 else ("mixto" if formatos else None),
-        "archivos": {"total": len(archivos), "por_formato": dict(por_formato), "errores": errores},
+        "archivos": {"total": len(archivos), "por_formato": dict(por_formato), "errores": errores,
+                     "sin_preguntas": sin_preguntas},
         **auditar_preguntas(preguntas, min_opciones, umbral_longitud),
         "codigo": codigo,
         "enlaces": enlaces,
@@ -656,6 +669,9 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
         ("sin_correcta", "preguntas sin ninguna respuesta con puntaje positivo", len(pct["preguntas_sin_correcta"])),
         ("sin_enunciado", "preguntas sin enunciado (en GIFT, suele ser una línea en blanco antes de `{`)",
          len(est["preguntas_sin_enunciado"])),
+        ("sin_respuestas", "preguntas de respuesta corta o numérica sin respuestas",
+         len(est.get("preguntas_sin_respuestas", []))),
+        ("pocos_pares", "preguntas de emparejamiento con menos de 2 pares", len(est.get("preguntas_pocos_pares", []))),
         ("codigo_gift_sin_proteger", "archivos GIFT con código que GIFT interpreta (sin fullwidth ni escape)",
          sum(1 for a in codigo_gift if a["sin_proteger"])),
         ("codigo_gift_lineas_vacias", "archivos GIFT con líneas en blanco dentro del código (cortan la pregunta)",
@@ -670,6 +686,7 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
         ("correcta_mas_corta", "preguntas donde la correcta es notablemente más corta", len(lon["preguntas_correcta_mas_corta"])),
         ("codigo_sin_cerrar", "preguntas con un ` o ``` sin cerrar", len(est["preguntas_codigo_sin_cerrar"])),
         ("sin_titulo", "preguntas sin título", len(est["preguntas_sin_titulo"])),
+        ("archivos_sin_preguntas", "archivos sin preguntas", len(resultado["archivos"].get("sin_preguntas", []))),
         ("opciones_problematicas", "preguntas con opciones como «todas/ninguna de las anteriores»",
          len(resultado.get("redaccion", {}).get("preguntas_opciones_problematicas", []))),
         ("negacion_sin_resaltar", "enunciados con una negación sin resaltar (excepto, incorrecta, no es…)",
@@ -991,10 +1008,22 @@ def generar_reporte_markdown(resultado: Dict[str, Any], nombre: str, max_items: 
     if enl["urls_sospechosas"]:
         _lista(lineas, enl["urls_sospechosas"], lambda u: f"{u['url']} ({u['motivo']})", max_items)
     if resultado["html_obsoleto"]:
-        lineas.append("> [!TIP]\n> `voight health --clean-html` elimina esas etiquetas y estilos.\n")
+        lineas.append("> [!TIP]\n> `voight fix clean-html` elimina esas etiquetas y estilos.\n")
 
-    if est["preguntas_sin_titulo"] or est["preguntas_sin_enunciado"] or est["preguntas_codigo_sin_cerrar"]:
+    sin_respuestas, pocos_pares = est.get("preguntas_sin_respuestas", []), est.get("preguntas_pocos_pares", [])
+    sin_preguntas = resultado["archivos"].get("sin_preguntas", [])
+    if (est["preguntas_sin_titulo"] or est["preguntas_sin_enunciado"] or est["preguntas_codigo_sin_cerrar"]
+            or sin_respuestas or pocos_pares or sin_preguntas):
         lineas.append("## Estructura")
+        if sin_respuestas:
+            lineas.append(f"### Respuesta corta o numérica sin respuestas ({len(sin_respuestas)})")
+            _lista(lineas, sin_respuestas, lambda i: i["titulo"], max_items)
+        if pocos_pares:
+            lineas.append(f"### Emparejamiento con menos de 2 pares ({len(pocos_pares)})")
+            _lista(lineas, pocos_pares, lambda i: f"{i['titulo']} ({i['pares']} pares)", max_items)
+        if sin_preguntas:
+            lineas.append(f"### Archivos sin preguntas ({len(sin_preguntas)})")
+            _lista(lineas, [{"archivo": a} for a in sin_preguntas], lambda i: i["archivo"], max_items)
         if est["preguntas_codigo_sin_cerrar"]:
             lineas.append(f"### Código sin cerrar: un ` o ``` sin pareja ({len(est['preguntas_codigo_sin_cerrar'])})")
             _lista(lineas, est["preguntas_codigo_sin_cerrar"],

@@ -145,7 +145,7 @@ def test_validate_y_analyze_con_xml(tmp_path):
     assert "Archivo válido" in res.output and "Preguntas encontradas: 6" in res.output
     res = runner.invoke(cli, ["health", "validate", str(tmp_path), "--json"])
     assert res.exit_code == 0, res.output
-    assert json.loads(res.output)["directories"]["stats"]["byFormat"] == {"xml": 1}
+    assert json.loads(res.stdout)["directories"]["stats"]["byFormat"] == {"xml": 1}
     res = runner.invoke(cli, ["health", "stats", str(tmp_path), "--json"])
     datos = json.loads(res.output)
     assert datos["stats"]["byType"]["MC"] == 1 and datos["stats"]["byCategory"] == {"$course$/C/Punteros": 1}
