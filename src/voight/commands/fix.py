@@ -181,11 +181,17 @@ def code_chars(
     to_normal: bool = typer.Option(True, "--to-normal", help="Convertir a normal (default)"),
     to_fullwidth: bool = typer.Option(False, "--to-fullwidth", help="Convertir a fullwidth"),
     marcas: bool = typer.Option(
-        True, "--marcas/--sin-marcas", "--marks/--no-marks", help="Con --to-fullwidth, agregar las marcas · y ↵ (por defecto, sí)."
+        True, "--marcas/--sin-marcas", "--marks/--no-marks",
+        help="Con --to-fullwidth, agregar las marcas · y ↵; con --to-normal, conservar las que hay "
+             "(por defecto, sí). --sin-marcas con --to-normal las quita."
     ),
     dry_run: bool = typer.Option(False, "-n", "--dry-run", help="No aplicar cambios"),
 ):
-    """Convierte los caracteres del código entre normal y fullwidth (GIFT, XML y Markdown)."""
+    """Convierte los caracteres del código entre normal y fullwidth (GIFT, XML y Markdown).
+
+    Sólo cambia los símbolos: la indentación con · y los ↵ de `code-indent` se conservan
+    al volver a normal (salvo --sin-marcas), así que los dos comandos se combinan.
+    """
     if to_fullwidth:
         to_normal = False
 
@@ -196,6 +202,7 @@ def code_chars(
         content = f.read_text(encoding='utf-8')
         new_content, count = transformar_archivo(
             content, formato_de(f) or "md", fullwidth=not to_normal, espacios=marcas, saltos=marcas,
+            conservar_marcas=marcas,
         )
         if count > 0:
             if not dry_run:

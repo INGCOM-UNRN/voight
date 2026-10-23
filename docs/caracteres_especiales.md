@@ -63,7 +63,8 @@ int main（） ｛↵
 - Al restaurar sólo se quita el `↵` que precede a un salto real. Uno a mitad de línea
   (por ejemplo la salida `hola↵mundo` en una opción) es contenido del autor.
 - `voight fix format --fullwidth --sin-marcas` aplica sólo los símbolos;
-  `voight fix code-indent` sólo la indentación con `·` (con `--saltos`, también `↵`).
+  `voight fix code-indent` sólo la indentación con `·` (con `--saltos`, también `↵`) y
+  `voight fix code-chars` sólo los símbolos (las marcas quedan como están).
 
 ## Variantes históricas
 
@@ -80,6 +81,7 @@ Unicode NFC lo convierte silenciosamente en un `;` común. `；` no tiene ese pr
 
 ## Forma normal en GIFT
 
-`voight fix format --normal` (o `fix code-chars --to-normal`) restaura el código a
-ASCII y, en GIFT, escapa con `\` lo que GIFT interpretaría (`\{`, `\=`, `\#`, `\~`,
+`voight fix format --normal` restaura el código a ASCII sin marcas; `fix code-chars
+--to-normal` cambia sólo los símbolos y conserva la indentación `·` y los `↵` (con
+`--sin-marcas` también los quita), así que se combina con `fix code-indent`. En ambos casos, en GIFT, escapa con `\` lo que GIFT interpretaría (`\{`, `\=`, `\#`, `\~`,
 `\:`, `\\`): el resultado sigue siendo GIFT válido y Moodle muestra el código original.

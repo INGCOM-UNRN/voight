@@ -99,7 +99,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
 - `voight fix code-format`: Formatea el código C y Java con clang-format (`--estilo allman` u otro estilo de llaves aplica esas llaves sobre el estilo por defecto; un estilo que clang-format no acepta da error).
 - `voight fix code-indent`: Marca la indentación del código con `·`.
-- `voight fix code-chars`: Convierte los caracteres del código entre normal y fullwidth.
+- `voight fix code-chars`: Convierte los caracteres del código entre normal y fullwidth; conserva la indentación `·` y los `↵`, así que se combina con `code-indent`.
 - `voight fix slugify`: Normaliza nombres de archivos (minúsculas, sin acentos).
 - `voight fix name-from-title`: Renombra archivos según el título de la pregunta.
 - `voight fix title-from-name`: Actualiza el título interno según el nombre del archivo.

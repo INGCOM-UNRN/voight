@@ -109,6 +109,23 @@ def test_fix_code_indent_y_code_chars_en_xml(tmp_path):
     res = runner.invoke(cli, ["fix", "code-chars", str(xml), "--to-fullwidth", "--sin-marcas"])
     assert res.exit_code == 0, res.output
     assert "····int a ＝ 1 ＆＆ 2；\n```" in xml.read_text(encoding="utf-8")
+    # Volver a normal conserva la indentación de code-indent: no se excluyen.
+    res = runner.invoke(cli, ["fix", "code-chars", str(xml)])
+    assert res.exit_code == 0, res.output
+    assert "····int a = 1 && 2;\n```" in xml.read_text(encoding="utf-8")
+    runner.invoke(cli, ["fix", "code-chars", str(xml), "--sin-marcas"])
+    assert "    int a = 1 && 2;\n```" in xml.read_text(encoding="utf-8")
+
+
+def test_code_chars_conserva_indentacion_y_saltos_en_gift(tmp_path):
+    gift = tmp_path / "a.gift"
+    gift.write_text("::P:: Ver\n```c\nif (a == b) {\n    x = 1;\n}\n```\n{=a ~b}\n", encoding="utf-8")
+    runner.invoke(cli, ["fix", "code-indent", str(gift), "--saltos"])
+    runner.invoke(cli, ["fix", "code-chars", str(gift), "--to-fullwidth"])
+    assert "····x ＝ 1；↵" in gift.read_text(encoding="utf-8")
+    runner.invoke(cli, ["fix", "code-chars", str(gift)])
+    texto = gift.read_text(encoding="utf-8")
+    assert "if (a \\=\\= b) \\{↵\n····x \\= 1;↵\n\\}↵\n```" in texto
 
 
 def test_split_xml_un_archivo_por_pregunta(tmp_path):

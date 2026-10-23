@@ -8,6 +8,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Cambiado
 
+- **code-chars**: ya no excluye a `code-indent`: `--to-normal` cambia sólo los símbolos y conserva la indentación `·` y los `↵`; `--sin-marcas` los quita como antes.
 - **nombres anteriores retirados**: ya no se instalan los comandos `questions` ni `moodle-toolbox`, ni se leen `.questions.toml`, `~/.questions`, `QUESTIONS_DEBUG`, `QUESTIONS_PROVEEDOR`, `QUESTIONS_SIN_CACHE` ni `QUESTIONS_SIN_PROGRESO` (ahora `VOIGHT_*`); la caché pasa a `~/.cache/voight` y los hooks `questions-*` se quitaron. Se quitó `manual/plugins.md`, que describía un sistema de plugins que voight no tiene.
 - **comandos**: sin duplicados. `health` absorbe `validate` y `analyze` (`health check`, predeterminado: `voight health RUTAS` funciona igual; `health validate`, `health stats`, `health similar`); `fix` absorbe `format`, `xml` y la revisión ortográfica (`fix format`, `fix xml cdata|clean-tags|rename`, `fix grammar`, antes `spellcheck`, `languagetool` y `grammar`). Los nombres anteriores quedan ocultos, avisan y se van a retirar. Los hooks de pre-commit usan los nombres nuevos.
 - **format**: `--gaff` formatea el código C con gaff y lo vuelve a proteger; en los bloques ``` la última línea de código también lleva `↵`; en Moodle XML cada guarda ``` queda sola en su línea.

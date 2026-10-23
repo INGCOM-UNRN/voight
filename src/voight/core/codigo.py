@@ -40,6 +40,8 @@ _VARIANTES_A_CANONICA = {**{c: MARCA_ESPACIO for c in _VARIANTES_ESPACIO}, "\u03
 _A_NORMAL = {chr(c): chr(c - 0xFEE0) for c in range(0xFF01, 0xFF5F)}
 _A_NORMAL.update({"⩵": "==", "\u037e": ";", MARCA_ESPACIO: " "})
 _A_NORMAL.update({c: " " for c in _VARIANTES_ESPACIO})
+# Sólo los símbolos: la indentación `·` queda (ver `conservar_marcas`).
+_A_NORMAL_SIN_MARCAS = {c: n for c, n in _A_NORMAL.items() if n != " "}
 
 # Entidades que aparecen en el código de preguntas exportadas como HTML. Lista
 # cerrada a propósito: html.unescape también reconoce `&not`, `&copy`… sin `;`, que
@@ -130,16 +132,20 @@ def _proteger_lineas_vacias(texto: str) -> str:
     )
 
 
-def _restaurar(texto: str, conservar_lineas_vacias: bool) -> str:
+def _restaurar(texto: str, conservar_lineas_vacias: bool, conservar_marcas: bool = False) -> str:
     """Vuelve a ASCII. Sólo se quita el `↵` que precede a un salto real: uno a mitad de
-    línea (p. ej. la salida `hola↵mundo` en código en línea) es contenido del autor."""
+    línea (p. ej. la salida `hola↵mundo` en código en línea) es contenido del autor.
+    Con `conservar_marcas` sólo cambian los símbolos: `·` y `↵` quedan (en su forma canónica)."""
+    if conservar_marcas:
+        texto = _canonizar_marcas(texto)
+    tabla = _A_NORMAL_SIN_MARCAS if conservar_marcas else _A_NORMAL
     lineas = texto.split("\n")
     ultima = len(lineas) - 1
     salida = []
     for i, linea in enumerate(lineas):
-        if i < ultima and linea.endswith(MARCA_SALTO):
+        if i < ultima and linea.endswith(MARCA_SALTO) and not conservar_marcas:
             linea = linea[:-1]
-        linea = "".join(_A_NORMAL.get(c, c) for c in linea)
+        linea = "".join(tabla.get(c, c) for c in linea)
         if conservar_lineas_vacias and 0 < i < ultima and not linea.strip():
             linea = MARCA_SALTO
         salida.append(linea)
@@ -157,11 +163,13 @@ def transformar_fragmento(
     multilinea: bool = True,
     escapes: bool = True,
     bloque: bool = False,
+    conservar_marcas: bool = False,
 ) -> str:
     """Transforma el contenido de UNA sección de código.
 
     `fullwidth`: True lleva los símbolos a fullwidth, False los restaura a ASCII
-    (quitando también las marcas `·` y `↵`) y None no los toca. `espacios` y `saltos`
+    (quitando también las marcas `·` y `↵`, salvo con `conservar_marcas`) y None no
+    los toca. `espacios` y `saltos`
     agregan las marcas `·` y `↵` (sólo si no se está restaurando). `html` indica que
     el código está dentro de `<pre>`/`<code>`: las entidades se interpretan al
     proteger y `< > &` se vuelven a escapar al restaurar. `multilinea` en falso
@@ -176,7 +184,8 @@ def transformar_fragmento(
     if fullwidth is False:
         if desescapar:
             codigo = _ESCAPE_GIFT.sub(r"\1", codigo)
-        codigo = _restaurar(_sin_entidades(codigo) if html else codigo, conservar_lineas_vacias=gift)
+        codigo = _restaurar(_sin_entidades(codigo) if html else codigo, conservar_lineas_vacias=gift,
+                            conservar_marcas=conservar_marcas)
         if html:
             codigo = codigo.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         if gift:
@@ -254,6 +263,7 @@ def transformar_codigo(
     espacios: bool = True,
     saltos: bool = True,
     escapes: bool = True,
+    conservar_marcas: bool = False,
 ) -> tuple[str, int]:
     """Transforma todas las secciones de código de un texto (ver `transformar_fragmento`)."""
 
@@ -261,6 +271,7 @@ def transformar_codigo(
         return transformar_fragmento(
             codigo, contexto=contexto, fullwidth=fullwidth, espacios=espacios,
             saltos=saltos, html=html, multilinea=multilinea, escapes=escapes, bloque=bloque,
+            conservar_marcas=conservar_marcas,
         )
 
     return transformar_secciones(texto, funcion, contexto)
@@ -343,15 +354,18 @@ def transformar_archivo(
     fullwidth: bool | None = True,
     espacios: bool = True,
     saltos: bool = True,
+    conservar_marcas: bool = False,
 ) -> tuple[str, int]:
     """Transforma el código de un archivo completo según su formato (`gift`, `xml` o `md`)."""
     if formato == "xml":
         return transformar_textos_xml(
             contenido,
-            lambda t: transformar_codigo(t, contexto="xml", fullwidth=fullwidth, espacios=espacios, saltos=saltos),
+            lambda t: transformar_codigo(t, contexto="xml", fullwidth=fullwidth, espacios=espacios, saltos=saltos,
+                                         conservar_marcas=conservar_marcas),
         )
     contexto = "gift" if formato == "gift" else "xml"
-    return transformar_codigo(contenido, contexto=contexto, fullwidth=fullwidth, espacios=espacios, saltos=saltos)
+    return transformar_codigo(contenido, contexto=contexto, fullwidth=fullwidth, espacios=espacios, saltos=saltos,
+                              conservar_marcas=conservar_marcas)
 
 
 # ---------------------------------------------------------------------------
