@@ -372,6 +372,20 @@ Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individua
 voight split banco.xml
 ```
 
+### `voight convert`
+
+Conversión entre formatos. Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente (`--no-recursive` para un solo nivel; los directorios ocultos y lo que ignora el `.voight.toml` quedan afuera).
+
+- `convert html-to-md RUTAS`: convierte las etiquetas HTML a Markdown (en XML, campo por campo: sólo los campos que cambian pasan a `format="markdown"`). `-n` simula.
+- `convert xml-to-gift RUTAS` y `convert gift-to-xml RUTAS`: con un solo archivo (o stdin, `-`), la salida va a stdout o al archivo `-o`. Con un directorio o varias rutas, cada archivo se convierte al lado del original o, con `-o DIR`, replicando el árbol en `DIR`. No pisan archivos existentes (lo informan y salen con 1) salvo `--forzar`; `-n` muestra qué se convertiría.
+
+#### Ejemplo de Invocación
+```bash
+voight convert gift-to-xml preguntas/ -o preguntas-xml/
+voight convert xml-to-gift banco.xml > banco.gift
+voight convert html-to-md preguntas/ -n
+```
+
 ### `voight unify`
 
 Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo.

@@ -107,9 +107,11 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight fix extension`: Corrige la extensión según el contenido (`.xml` con GIFT adentro pasa a `.gift` y viceversa); no pisa archivos existentes.
 
 ### 3. Conversión
+
+Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente (`--no-recursive` para un solo nivel).
 - `voight convert html-to-md`: Convierte etiquetas HTML a Markdown en archivos XML o GIFT.
 - `voight convert xml-to-gift`: Convierte Moodle XML a GIFT (soporta categorías, selección múltiple con pesos, V/F, emparejamiento, numérica con tolerancia, ensayo y descripción).
-- `voight convert gift-to-xml`: Convierte GIFT a Moodle XML con bloques CDATA correctos. Ambos conversores viajan sobre el modelo unificado de preguntas del parser PEG y son estables en round-trip.
+- `voight convert gift-to-xml`: Convierte GIFT a Moodle XML con bloques CDATA correctos. Con un directorio, `xml-to-gift` y `gift-to-xml` convierten cada archivo al lado del original o, con `-o DIR`, replicando el árbol en `DIR`; no pisan archivos existentes salvo `--forzar` (`-n` simula). Con un solo archivo, la salida va a stdout o a `-o`. Ambos conversores viajan sobre el modelo unificado de preguntas del parser PEG y son estables en round-trip.
 
 ### 4. Árboles de Directorios (absorbe moodle-reorganizer)
 - `voight tree export banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta).
