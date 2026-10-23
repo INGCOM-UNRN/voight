@@ -18,7 +18,7 @@ from voight.commands.dedup import dedup
 from voight.commands.doctor import doctor_cmd
 from voight.commands.fix import fix_app
 from voight.commands.moodle import moodle_app
-from voight.commands.format import format_cmd
+from voight.commands.format import format_cmd, format_init_cmd
 from voight.commands.health import health_cmd
 from voight.commands.spellcheck import spellcheck
 from voight.commands.split import split
@@ -106,6 +106,7 @@ health_app.command("similar")(similar)
 
 # fix: también el formato (format), la ortografía (grammar) y Moodle XML (xml).
 fix_app.command("format")(format_cmd)
+fix_app.command("format-init")(format_init_cmd)
 fix_app.command("grammar")(spellcheck)
 xml_app = typer.Typer(help="Herramientas para archivos XML de Moodle.")
 xml_app.callback()(xml_group)

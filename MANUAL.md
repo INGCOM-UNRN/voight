@@ -62,6 +62,7 @@ voight doctor
 | `voight health stats` · `voight health similar` | Estadísticas del repositorio y preguntas similares o duplicadas (GIFT y XML, también entre formatos). |
 | [`voight dedup`](#dedup) | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML), con log y revisión en TUI. |
 | [`voight fix format`](#format) | Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵); `--check` para CI; `--gaff` da al código C el estilo de la cátedra. |
+| [`voight fix format-init`](#format) | Crea la plantilla `[format]` del `.voight.toml` en la raíz del árbol de preguntas. |
 | `voight fix xml cdata` · `clean-tags` · `rename` | Mantenimiento de archivos Moodle XML. |
 | [`voight fix`](#fix) | Correcciones puntuales: lenguaje y formato del código, caracteres, nombres de archivo y títulos. |
 | [`voight moodle subir`](#moodle-subir) | Sube un banco a un curso de Moodle por servicio web. |
@@ -290,6 +291,8 @@ Formatea archivos GIFT y Moodle XML y transforma el código. GIFT: `::Título::`
 
 Las transformaciones de código son las mismas en ambos formatos (ver [caracteres especiales](docs/caracteres_especiales.md)): `--fullwidth` reemplaza los símbolos que chocan con GIFT (`{ } = ~ # : \ //`, y además `; < > [ ] ( ) * " &`) por sus formas fullwidth, marca la indentación con `·` (un punto por espacio) y cada fin de línea con `↵`; `--normal` lo deshace (en GIFT, escapando con `\` lo que GIFT interpretaría).
 
+Los valores por defecto de todas las opciones de formato salen de la sección `[format]` del [`.voight.toml`](#configuracion-por-banco) (o `.voight`) de la raíz del árbol, así todo el banco se formatea igual; `voight fix format-init [DIR]` la crea con cada clave explicada. Una opción en la línea de comandos gana (`--fullwidth` sobre `normal = true` y viceversa).
+
 #### Opciones y Banderas
 | Opción / Banderas | Tipo | Por Defecto | Descripción |
 | :--- | :--- | :--- | :--- |
@@ -301,6 +304,7 @@ Las transformaciones de código son las mismas en ambos formatos (ver [caractere
 | `--fullwidth` | `<class 'bool'>` | `False` | Proteger el código: símbolos fullwidth y marcas · (indentación) y ↵ (fin de línea) |
 | `--normal` | `<class 'bool'>` | `False` | Restaurar el código a caracteres normales (sin marcas) |
 | `--marcas/--sin-marcas` | `<class 'bool'>` | `True` | Con --fullwidth, agregar las marcas · y ↵. |
+| `--gaff` | `<class 'bool'>` | `False` | Formatear el código C con gaff (estilo de la cátedra). |
 | `--correct-first` | `<class 'bool'>` | `False` | Ordena las opciones de opción múltiple por porcentaje (la correcta primero). |
 | `--check` | `<class 'bool'>` | `False` | No escribir: salir con 1 si algún archivo cambiaría (CI y pre-commit). |
 | `--diff` | `<class 'bool'>` | `False` | No escribir: mostrar los cambios como diff unificado. |
@@ -312,6 +316,7 @@ Las transformaciones de código son las mismas en ambos formatos (ver [caractere
 voight fix format preguntas/ -r --fullwidth
 voight fix format banco.xml --correct-first
 voight fix format preguntas/ -r --check --desde origin/main
+voight fix format-init preguntas/   # plantilla de [format] en preguntas/.voight.toml
 ```
 
 ### `voight verify`
@@ -525,7 +530,7 @@ voight doctor --json
 <a id="configuracion-por-banco"></a>
 ### Configuración por banco (`.voight.toml`)
 
-En la raíz del repositorio de preguntas, un `.voight.toml` fija los valores por defecto de cada comando (una opción en la línea de comandos siempre gana). Se busca subiendo desde la ruta indicada hasta la raíz del repositorio git.
+En la raíz del repositorio de preguntas, un `.voight.toml` (o `.voight`, con el mismo contenido TOML) fija los valores por defecto de cada comando (una opción en la línea de comandos siempre gana). Se busca subiendo desde la ruta indicada hasta la raíz del repositorio git. `voight fix format-init` agrega la sección `[format]` completa, con un comentario por clave.
 
 ```toml
 [general]
@@ -544,9 +549,13 @@ conservar = "completa"
 min_opciones = 4
 umbral_longitud = 1.5
 
-[format]
-fullwidth = true
+[format]              # todas las opciones de `fix format`
+fullwidth = true      # o normal = true (excluyentes)
+normal = false
 marcas = true
+indentacion = false   # --code
+gaff = false
+correct_first = false
 ```
 
 ### pre-commit y acción de GitHub

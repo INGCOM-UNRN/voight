@@ -1,7 +1,8 @@
-"""Configuración por repositorio de preguntas: `.voight.toml`.
+"""Configuración por repositorio de preguntas: `.voight.toml` (o `.voight`).
 
 Se busca subiendo desde la ruta indicada (o el directorio actual) hasta encontrar un
-`.voight.toml`, la raíz del repositorio git o la raíz del sistema. Da los valores
+`.voight.toml` o `.voight` (ambos TOML), la raíz del repositorio git o la raíz del
+sistema. `voight fix format-init` crea la sección [format] con todas sus claves. Da los valores
 por defecto de cada comando; una opción pasada en la línea de comandos siempre gana.
 
     [general]
@@ -21,7 +22,7 @@ por defecto de cada comando; una opción pasada en la línea de comandos siempre
     umbral_longitud = 1.5
     max_items = 50
 
-    [format]
+    [format]           # ver PLANTILLA_FORMAT
     fullwidth = true
     marcas = true
 """
@@ -34,6 +35,29 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 NOMBRE = ".voight.toml"
+# En el mismo directorio, el primero gana.
+NOMBRES = (NOMBRE, ".voight")
+
+# Claves de [format]: la configuración completa de `voight fix format` para el banco.
+CLAVES_FORMAT = ("fullwidth", "normal", "marcas", "indentacion", "gaff", "correct_first")
+
+PLANTILLA_FORMAT = """\
+# Formato del banco de preguntas: `voight fix format` toma estos valores para todo el
+# árbol (se busca subiendo desde la ruta indicada). Una opción de la línea de comandos gana.
+[format]
+# Caracteres del código: fullwidth = true los protege (＝ ｛ ； …) y normal = true los
+# restaura a ASCII. Son excluyentes; con las dos en false, no se tocan.
+fullwidth = false
+normal = false
+# Con fullwidth: agregar las marcas · (indentación) y ↵ (fin de línea).
+marcas = true
+# Marcar la indentación del código con · (un punto por espacio), también con normal.
+indentacion = false
+# Formatear el código C con gaff (estilo de la cátedra); requiere gaff instalado.
+gaff = false
+# Ordenar las opciones de opción múltiple por porcentaje (la correcta primero).
+correct_first = false
+"""
 
 
 @lru_cache(maxsize=64)
@@ -42,16 +66,17 @@ def _buscar(inicio: str) -> Optional[Path]:
     if actual.is_file():
         actual = actual.parent
     for directorio in (actual, *actual.parents):
-        candidato = directorio / NOMBRE
-        if candidato.is_file():
-            return candidato
+        for nombre in NOMBRES:
+            candidato = directorio / nombre
+            if candidato.is_file():
+                return candidato
         if (directorio / ".git").exists():
             return None
     return None
 
 
 def buscar(rutas: Iterable = ()) -> Optional[Path]:
-    """El .voight.toml que corresponde a la primera ruta (o al directorio actual)."""
+    """El .voight.toml (o .voight) que corresponde a la primera ruta (o al directorio actual)."""
     rutas = [Path(r) for r in rutas] or [Path.cwd()]
     return _buscar(str(rutas[0]))
 
@@ -87,6 +112,30 @@ def ignorado(ruta: Path, config: dict) -> bool:
     except ValueError:
         return False
     return any(fnmatch.fnmatch(relativa, p) or fnmatch.fnmatch(Path(relativa).name, p) for p in patrones)
+
+
+def crear_plantilla_format(directorio: Path) -> Path:
+    """Escribe la sección [format] en el archivo de configuración de `directorio`.
+
+    Usa el `.voight.toml` o `.voight` que ya esté ahí (agrega la sección al final) o
+    crea un `.voight.toml`. Si el archivo ya tiene [format], no lo toca: ValueError.
+    """
+    existente = next((directorio / n for n in NOMBRES if (directorio / n).is_file()), None)
+    if existente is None:
+        destino = directorio / NOMBRE
+        destino.write_text(PLANTILLA_FORMAT, encoding="utf-8")
+        return destino
+    texto = existente.read_text(encoding="utf-8")
+    try:
+        datos = tomllib.loads(texto)
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"No se pudo leer {existente}: {e}") from None
+    if "format" in datos:
+        raise ValueError(f"{existente} ya tiene una sección [format]")
+    separador = "" if not texto or texto.endswith("\n\n") else ("\n" if texto.endswith("\n") else "\n\n")
+    existente.write_text(texto + separador + PLANTILLA_FORMAT, encoding="utf-8")
+    limpiar_cache()
+    return existente
 
 
 def limpiar_cache() -> None:

@@ -45,11 +45,30 @@ def format_cmd(
 ):
     """Formatea archivos GIFT y Moodle XML y transforma el código (fullwidth, · y ↵).
 
+    Los valores por defecto salen de la sección [format] del .voight.toml (o .voight)
+    de la raíz del árbol, que `voight fix format-init` crea; una opción explícita gana.
     Con --check o --diff no escribe nada; --check sale con código 1 si algún archivo
     cambiaría (también si algún archivo no se pudo procesar).
     """
     if fullwidth and normal:
         fail("--fullwidth y --normal son excluyentes.")
+    try:
+        opciones = con_configuracion(ctx, paths, "format", {
+            "fullwidth": fullwidth, "normal": normal, "marcas": marcas, "code": (code, "indentacion"),
+            "gaff": gaff, "correct_first": correct_first})
+    except ValueError as e:
+        fail(str(e))
+    for parametro, valor in opciones.items():
+        if not isinstance(valor, bool):
+            clave = "indentacion" if parametro == "code" else parametro
+            fail(f"[format] {clave} debe ser true o false (es {valor!r}).")
+    # Lo explícito en la línea de comandos gana sobre el .voight.toml.
+    if opciones["fullwidth"] and opciones["normal"]:
+        if not (fullwidth or normal):
+            fail("[format]: fullwidth y normal son excluyentes.")
+        opciones["fullwidth"], opciones["normal"] = fullwidth, normal
+    fullwidth, normal, code, gaff = opciones["fullwidth"], opciones["normal"], opciones["code"], opciones["gaff"]
+    marcas, correct_first = opciones["marcas"], opciones["correct_first"]
     comando_gaff = None
     if gaff:
         from voight.core.formato_codigo import comando_gaff as buscar_gaff
@@ -57,11 +76,6 @@ def format_cmd(
         comando_gaff = buscar_gaff()
         if comando_gaff is None:
             fail("--gaff necesita gaff instalado (uv tool install git+https://github.com/INGCOM-UNRN-P1/gaff).")
-    opciones = con_configuracion(ctx, paths, "format", {
-        "fullwidth": fullwidth, "marcas": marcas, "correct_first": correct_first})
-    # --normal explícito gana sobre fullwidth = true del .voight.toml.
-    fullwidth = bool(opciones["fullwidth"]) and not normal
-    marcas, correct_first = opciones["marcas"], opciones["correct_first"]
     if not paths:
         paths = [Path('.')]
 
@@ -161,3 +175,22 @@ def _modo(check: bool, diff: bool, dry_run: bool) -> str:
     if diff:
         return "diff"
     return "simulacion" if dry_run else "escritura"
+
+
+def format_init_cmd(
+    directorio: Path = typer.Argument(
+        Path("."), exists=True, file_okay=False, help="Raíz del árbol de preguntas (por defecto, el directorio actual)."),
+):
+    """Crea la plantilla de [format] en el .voight.toml de la raíz del árbol de preguntas.
+
+    Lleva todas las claves de formato con sus valores por defecto y una explicación de
+    cada una. Si ya hay un .voight.toml o .voight en el directorio, agrega la sección
+    al final; si ya tiene [format], no lo toca.
+    """
+    from voight.core.configuracion import crear_plantilla_format
+
+    try:
+        destino = crear_plantilla_format(directorio)
+    except ValueError as e:
+        fail(str(e))
+    click.echo(f"✓ Plantilla de formato en {destino}: editala y `voight fix format -r {directorio}` la aplica.")

@@ -82,6 +82,59 @@ def test_configuracion_de_dedup_y_format(tmp_path):
     assert runner.invoke(cli, ["fix", "format", str(raiz), "--fullwidth", "--normal"]).exit_code == 1
 
 
+def test_format_init_crea_la_plantilla_y_format_la_aplica(tmp_path):
+    from voight.core.configuracion import CLAVES_FORMAT, cargar
+
+    raiz = tmp_path / "banco"
+    (raiz / "tema").mkdir(parents=True)
+    pregunta = raiz / "tema" / "a.gift"
+    pregunta.write_text("::P:: Ver\n```c\nint main() {\n    x ＝ 1；\n}\n```\n{=a ~b}\n", encoding="utf-8")
+
+    assert runner.invoke(cli, ["fix", "format-init", str(raiz)]).exit_code == 0
+    config = cargar([pregunta])
+    assert sorted(config["format"]) == sorted(CLAVES_FORMAT)
+    # Ya tiene [format]: no se pisa.
+    assert runner.invoke(cli, ["fix", "format-init", str(raiz)]).exit_code == 1
+
+    plantilla = raiz / ".voight.toml"
+    plantilla.write_text(plantilla.read_text(encoding="utf-8")
+                         .replace("normal = false", "normal = true")
+                         .replace("indentacion = false", "indentacion = true"), encoding="utf-8")
+    from voight.core.configuracion import limpiar_cache
+
+    limpiar_cache()
+    assert runner.invoke(cli, ["fix", "format", "-r", str(raiz / "tema")]).exit_code == 0
+    assert "····x \\= 1;\n" in pregunta.read_text(encoding="utf-8")
+    # La opción explícita gana sobre normal = true del archivo.
+    assert runner.invoke(cli, ["fix", "format", str(pregunta), "--fullwidth"]).exit_code == 0
+    assert "····x ＝ 1；↵" in pregunta.read_text(encoding="utf-8")
+
+
+def test_format_init_agrega_a_un_archivo_existente_y_acepta_punto_voight(tmp_path):
+    from voight.core.configuracion import cargar
+
+    (tmp_path / ".voight").write_text('[dedup]\numbral = 0.8\n', encoding="utf-8")
+    assert runner.invoke(cli, ["fix", "format-init", str(tmp_path)]).exit_code == 0
+    assert not (tmp_path / ".voight.toml").exists()
+    config = cargar([tmp_path])
+    assert config["dedup"]["umbral"] == 0.8
+    assert config["format"]["marcas"] is True
+
+    (tmp_path / "a.gift").write_text("::P:: ¿Cuál? {=a ~b}\n", encoding="utf-8")
+    texto = (tmp_path / ".voight").read_text(encoding="utf-8")
+    (tmp_path / ".voight").write_text(texto.replace("fullwidth = false", "fullwidth = true")
+                                      .replace("normal = false", "normal = true"), encoding="utf-8")
+    from voight.core.configuracion import limpiar_cache
+
+    limpiar_cache()
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path / "a.gift")])
+    assert res.exit_code == 1 and "excluyentes" in res.output
+    (tmp_path / ".voight").write_text('[format]\nindentacion = "si"\n', encoding="utf-8")
+    limpiar_cache()
+    res = runner.invoke(cli, ["fix", "format", str(tmp_path / "a.gift")])
+    assert res.exit_code == 1 and "true o false" in res.output
+
+
 def test_configuracion_contexto_de_classify(tmp_path, monkeypatch):
     import voight.core.clasificacion as cl
 

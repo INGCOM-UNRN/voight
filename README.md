@@ -98,6 +98,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 - `voight fix format --check` / `--diff`: Verifican el formato sin escribir (para CI y pre-commit).
 - `voight fix code-lang`: Etiqueta el lenguaje (C o Java) de los bloques ``` que no lo tienen.
 - `voight fix code-format`: Formatea el código C y Java con clang-format (`--estilo allman` u otro estilo de llaves aplica esas llaves sobre el estilo por defecto; un estilo que clang-format no acepta da error).
+- `voight fix format-init [dir]`: Crea en la raíz del árbol de preguntas la sección `[format]` del `.voight.toml` (o `.voight`) con todas las opciones de formato; `fix format` la toma para formatear todo el banco igual.
 - `voight fix code-indent`: Marca la indentación del código con `·`.
 - `voight fix code-chars`: Convierte los caracteres del código entre normal y fullwidth; conserva la indentación `·` y los `↵`, así que se combina con `code-indent`.
 - `voight fix slugify`: Normaliza nombres de archivos (minúsculas, sin acentos).
@@ -128,7 +129,7 @@ El CLI `voight` se organiza en subcomandos especializados:
 
 ### 8. Moodle e integración
 - `voight moodle subir`: Sube un banco a un curso de Moodle por servicio web (requiere el plugin `local_questions_importer_ws` en el sitio).
-- `.voight.toml`: valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, fullwidth de format, rutas a ignorar…).
+- `.voight.toml`: valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, todas las opciones de format, rutas a ignorar…); también puede llamarse `.voight`.
 - `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/voight@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
 
 ## 📚 Documentación Detallada
