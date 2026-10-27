@@ -396,19 +396,33 @@ def auditar_estructura(preguntas: Iterable[dict]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 _HTML_OBSOLETO = re.compile(r"<(font|center|marquee)\b|\sstyle\s*=", re.IGNORECASE)
+# Los bloques de `voight fix highlight` llevan sus colores en `style`, a propósito: no son HTML obsoleto.
+_RESALTADO_VOIGHT = re.compile(r'<pre\b[^>]*\bclass="voight-resaltado"[^>]*>.*?</pre>', re.IGNORECASE | re.S)
+
+
+def _sin_resaltado(texto: str) -> str:
+    return _RESALTADO_VOIGHT.sub("", texto)
 
 
 def limpiar_html_y_estilos_obsoletos(texto_html: str) -> str:
     """
-    Elimina etiquetas HTML obsoletas (<font>, <center>, <marquee>) y estilos CSS inline contaminantes.
+    Elimina etiquetas HTML obsoletas (<font>, <center>, <marquee>) y estilos CSS inline contaminantes,
+    salvo dentro de los bloques resaltados por `voight fix highlight`.
     """
-    limpio = texto_html
+    resaltados: List[str] = []
+
+    def apartar(m: re.Match) -> str:
+        resaltados.append(m.group(0))
+        return f"\x00VOIGHT{len(resaltados) - 1}\x00"
+
+    limpio = _RESALTADO_VOIGHT.sub(apartar, texto_html)
     limpio = re.sub(r"</?font[^>]*>", "", limpio, flags=re.IGNORECASE)
     limpio = re.sub(r"</?center[^>]*>", "", limpio, flags=re.IGNORECASE)
     limpio = re.sub(r"</?marquee[^>]*>", "", limpio, flags=re.IGNORECASE)
     limpio = re.sub(r'\s*style="[^"]*"', "", limpio, flags=re.IGNORECASE)
     limpio = re.sub(r"\s*color='[^']*'", "", limpio, flags=re.IGNORECASE)
     limpio = re.sub(r"\s*face='[^']*'", "", limpio, flags=re.IGNORECASE)
+    limpio = re.sub(r"\x00VOIGHT(\d+)\x00", lambda m: resaltados[int(m.group(1))], limpio)
     return limpio.strip()
 
 
@@ -468,7 +482,7 @@ def auditar_texto(contenido: str, formato: str) -> Dict[str, Any]:
         visible = contenido
     return {
         "enlaces": auditar_enlaces_y_multimedia(visible),
-        "html_obsoleto": len(_HTML_OBSOLETO.findall(visible)),
+        "html_obsoleto": len(_HTML_OBSOLETO.findall(_sin_resaltado(visible))),
         "codigo": codigo,
     }
 

@@ -261,6 +261,37 @@ def code_lang(
 
     click.echo(f"\nFinalizado: {modified_count} archivos {'a modificar' if dry_run else 'modificados'}.")
 
+@fix_app.command(name="highlight")
+def highlight_cmd(
+    paths: Optional[List[str]] = typer.Argument(None, exists=True),
+    recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar recursivamente"),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="No aplicar cambios"),
+):
+    """Resalta la sintaxis de los bloques ``` de C de un Moodle XML con HTML y CSS en línea (sin scripts en el navegador).
+
+    Cada bloque pasa a ser un `<pre>` con un `<span style="color:…">` por token, que se ve en la vista
+    de cuestionarios de Moodle. En `format="markdown"` queda como HTML crudo y el resto del texto no
+    cambia. Sólo Moodle XML: un GIFT se convierte antes con `voight convert gift-to-xml`.
+    """
+    from voight.core.resaltado import resaltar_xml
+
+    todos = expandir_rutas(paths or ['.'], recursive, ('.gift', '.xml'))
+    gift = [f for f in todos if formato_de(f) == "gift"]
+    if gift:
+        click.echo(f"Se omiten {len(gift)} archivos GIFT: en GIFT el CSS en línea choca con la sintaxis "
+                   "(convertilos con `voight convert gift-to-xml`).", err=True)
+    modificados = 0
+    for f in sorted(set(todos) - set(gift)):
+        contenido = f.read_text(encoding='utf-8')
+        nuevo, bloques = resaltar_xml(contenido)
+        if bloques:
+            if not dry_run:
+                f.write_text(nuevo, encoding='utf-8')
+            click.echo(f"{'[SIMULACIÓN] ' if dry_run else '✓ '}{f}: {bloques} bloques de C resaltados")
+            modificados += 1
+    click.echo(f"\nFinalizado: {modificados} archivos {'a modificar' if dry_run else 'modificados'}.")
+
+
 @fix_app.command(name="code-format")
 def code_format(
     paths: Optional[List[str]] = typer.Argument(None, exists=True),
