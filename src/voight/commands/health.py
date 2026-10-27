@@ -45,6 +45,12 @@ def health_cmd(
         None, "--desde", "--since", help="Sólo los archivos cambiados desde esta revisión git (y los nuevos sin seguimiento)."),
     tui: bool = typer.Option(False, "--tui", help="Recorrer los hallazgos y aplicar los arreglos en una interfaz de terminal (extra 'tui')."),
     output_json: bool = typer.Option(False, "--json", help="Emite el diagnóstico como JSON versionado."),
+    compilar: bool = typer.Option(
+        False, "--compilar", "--compile",
+        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): errores, warnings y comportamiento indefinido son errores del banco."),
+    permitir: List[str] = typer.Option(
+        [], "--permitir-warning", help="Con --compilar: un warning que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
+    sin_ejecutar: bool = typer.Option(False, "--sin-ejecutar", help="Con --compilar: sólo compilar, sin ejecutar con sanitizers."),
 ):
     """Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces.
 
@@ -107,6 +113,15 @@ def health_cmd(
     with barra(len(archivos), "Auditando") as avance:
         resultado = auditar_archivos(archivos, min_opciones=min_opciones, umbral_longitud=umbral_longitud,
                                      con_preguntas=output_csv is not None, avance=avance)
+    if compilar:
+        from voight.core.certificar import SinDaedalus, certificar_banco
+        from voight.core.moodle_health import resumir_hallazgos
+
+        try:
+            resultado["compilacion"] = certificar_banco(archivos, ejecutar=not sin_ejecutar, permitir=permitir)
+        except SinDaedalus as e:
+            fail(str(e))
+        resultado["resumen"] = resumir_hallazgos(resultado)
     if output_csv is not None:
         filas = escribir_csv(resultado.pop("_preguntas"), output_csv)
         if not output_json:

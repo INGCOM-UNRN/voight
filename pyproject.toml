@@ -57,6 +57,11 @@ tui = [
     "textual>=6.0",
 ]
 
+# Certificar el código C de las preguntas (`voight health validate --compilar`, Ola 14).
+compilar = [
+    "daedalus @ git+https://github.com/INGCOM-UNRN-P1/daedalus@2f98e3974baa3ced1293739bf08a858ef81d6104",
+]
+
 # Revisión ortográfica con LanguageTool (delegada en myst-tools).
 languagetool = [
     "myst-tools @ git+https://github.com/martinvilu/mystmd-tools@a55f7db83b03aa1da9485b3cf70c49b71ece2664",

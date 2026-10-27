@@ -1,5 +1,6 @@
 import contextlib
 import io
+import json
 from pathlib import Path
 from typing import List, Optional
 
@@ -22,6 +23,11 @@ def validate(
     output_json: bool = typer.Option(False, "-j", "--json", help="Salida en JSON"),
     desde: Optional[str] = typer.Option(
         None, "--desde", "--since", help="Sólo los archivos cambiados desde esta revisión git (y los nuevos sin seguimiento)."),
+    compilar: bool = typer.Option(
+        False, "--compilar", "--compile",
+        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): rechaza errores, warnings y comportamiento indefinido."),
+    permitir: List[str] = typer.Option(
+        [], "--permitir-warning", help="Con --compilar: un warning que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
 ):
     """Valida archivos o directorios de preguntas GIFT y Moodle XML.
 
@@ -87,12 +93,26 @@ def validate(
             if not output:
                 click.echo(report)
     else:
-        import json
         output_data = {
             "files": all_results,
             "directories": analyzer.to_json() if dirs_to_validate else None
         }
         click.echo(json.dumps(output_data, indent=2, ensure_ascii=False))
 
-    if analyzer.stats.invalid_files or analyzer.issues:
+    rechazadas = 0
+    if compilar:
+        from voight.core.banco import expandir_rutas
+        from voight.core.certificar import SinDaedalus, certificar_banco, seccion_markdown
+
+        try:
+            datos = certificar_banco(files_to_validate + expandir_rutas(dirs_to_validate, recursive), permitir=permitir)
+        except SinDaedalus as e:
+            fail(str(e))
+        rechazadas = len(datos["rechazadas"])
+        if output_json:
+            click.echo(json.dumps({"compilacion": datos}, indent=2, ensure_ascii=False))
+        else:
+            click.echo(seccion_markdown(datos))
+
+    if analyzer.stats.invalid_files or analyzer.issues or rechazadas:
         raise typer.Exit(code=1)

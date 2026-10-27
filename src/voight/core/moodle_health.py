@@ -676,6 +676,8 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
          sum(1 for a in codigo_gift if a["sin_proteger"])),
         ("codigo_gift_lineas_vacias", "archivos GIFT con líneas en blanco dentro del código (cortan la pregunta)",
          sum(1 for a in codigo_gift if a["lineas_vacias"])),
+        ("codigo_c_rechazado", "preguntas con código C que no compila limpio con daedalus o tiene comportamiento indefinido",
+         len(resultado.get("compilacion", {}).get("rechazadas", []))),
     )
     advertencias = items(
         ("sin_feedback", "preguntas sin ningún feedback", fb["sin_feedback_count"]),
@@ -706,6 +708,8 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
          sum(1 for a in cod["archivos"] if a.get("sin_lenguaje"))),
         ("enlaces_sospechosos", "enlaces http:// o locales", len(resultado["enlaces"]["urls_sospechosas"])),
         ("html_obsoleto", "archivos con HTML obsoleto", len(resultado["html_obsoleto"])),
+        ("codigo_c_fragmento", "preguntas con un fragmento de C que no se puede compilar solo (identificadores sin declarar)",
+         len(resultado.get("compilacion", {}).get("fragmentos", []))),
     )
     return {
         "ok": not errores,
@@ -1035,6 +1039,10 @@ def generar_reporte_markdown(resultado: Dict[str, Any], nombre: str, max_items: 
             lineas.append(f"### Sin enunciado ({len(est['preguntas_sin_enunciado'])})")
             _lista(lineas, est["preguntas_sin_enunciado"], lambda i: i["titulo"], max_items)
 
+    if "compilacion" in resultado:
+        from voight.core.certificar import seccion_markdown
+
+        lineas.append(seccion_markdown(resultado["compilacion"], max_items))
     return "\n".join(lineas).rstrip() + "\n"
 
 
