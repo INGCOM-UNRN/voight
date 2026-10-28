@@ -74,19 +74,20 @@ def test_cli_ai_prompt_file(tmp_path):
 
 def test_comandos_desduplicados_y_nombres_anteriores(tmp_path):
     """Una sola forma de hacer cada cosa; los nombres anteriores avisan y siguen funcionando."""
+    import re
     from click.testing import CliRunner
 
     f = tmp_path / "ok.gift"
     f.write_text("::P:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
     runner = CliRunner()
-    ayuda = runner.invoke(cli, ["--help"], terminal_width=200).output
+    ayuda = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", runner.invoke(cli, ["--help"], terminal_width=200).output)
     for oculto in ("validate", "analyze", "spellcheck", "languagetool", "grammar", "format", "xml", "tree"):
         assert f"│ {oculto} " not in ayuda
     # health ES el diagnóstico: su ayuda muestra sus opciones y los subcomandos.
-    ayuda = runner.invoke(cli, ["health", "--help"], terminal_width=200).output
+    ayuda = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", runner.invoke(cli, ["health", "--help"], terminal_width=200).output)
     assert "--estricto" in ayuda and "stats" in ayuda and "similar" in ayuda
     assert " check " not in ayuda and " validate " not in ayuda
-    ayuda = runner.invoke(cli, ["fix", "--help"], terminal_width=200).output
+    ayuda = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", runner.invoke(cli, ["fix", "--help"], terminal_width=200).output)
     assert "clean-html" in ayuda and "clean-tags" in ayuda and "│ xml " not in ayuda
     res = runner.invoke(cli, ["health", "check", str(f)])
     assert res.stdout == runner.invoke(cli, ["health", str(f)]).stdout

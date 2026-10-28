@@ -23,11 +23,20 @@ def configuracion_limpia():
 
 
 @pytest.fixture(autouse=True)
-def entorno_restaurado():
+def entorno_restaurado(monkeypatch):
     """La CLI carga ~/.voight/.env en os.environ al arrancar: cada test deja el entorno como estaba."""
     import os
 
     from voight.core import config
+
+    # Desactiva colores para que las aserciones de salida de CLI sean determinísticas en CI y local.
+    monkeypatch.setenv("NO_COLOR", "1")
+    # Evita que llamadas a servidores de prueba en localhost (127.0.0.1) fallen si hay un proxy configurado.
+    no_proxy = os.environ.get("no_proxy", "")
+    if "127.0.0.1" not in no_proxy:
+        nuevo = f"127.0.0.1,localhost,{no_proxy}" if no_proxy else "127.0.0.1,localhost"
+        monkeypatch.setenv("no_proxy", nuevo)
+        monkeypatch.setenv("NO_PROXY", nuevo)
 
     antes = dict(os.environ)
     yield
