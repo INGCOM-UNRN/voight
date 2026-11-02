@@ -15,9 +15,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, List, Sequence, Union
 
-from voight.core.converter import gift_to_xml
-from voight.core.moodle_xml import parse_moodle_xml
-from voight.core.unifier import unificar
+from voight.core.quiz_plan import planificar_categorias
 
 
 def _cdata_xml(text: str) -> str:
@@ -37,57 +35,12 @@ def recolectar_banco_unificado(
     rutas: Sequence[Union[str, Path]], recursivo: bool = True
 ) -> List[dict]:
     """Unifica las preguntas de las rutas dadas y las devuelve agrupadas por categoría."""
-    with tempfile.TemporaryDirectory(prefix="voight-backup-") as tmp:
-        # Probamos primero unificar a XML si hay XMLs o si unificar genera el archivo
-        archivos = []
-        for r in rutas:
-            p = Path(r)
-            if p.is_file() and p.suffix.lower() in (".gift", ".xml"):
-                archivos.append(p)
-            elif p.is_dir():
-                pattern = "**/*" if recursivo else "*"
-                archivos.extend([f for f in p.glob(pattern) if f.is_file() and f.suffix.lower() in (".gift", ".xml")])
-
-        if not archivos:
-            return []
-
-        # Usamos unificar_gift o unificar_xml
-        # Si unificamos a gift, luego lo convertimos a xml
-        tiene_solo_xml = all(a.suffix.lower() == ".xml" for a in archivos)
-        if tiene_solo_xml:
-            salida = Path(tmp) / "unificado.xml"
-            unificar(rutas, salida, formato="xml", recursivo=recursivo)
-            xml_content = salida.read_text(encoding="utf-8")
-        else:
-            salida = Path(tmp) / "unificado.gift"
-            unificar(rutas, salida, formato="gift", recursivo=recursivo)
-            xml_content = gift_to_xml(salida.read_text(encoding="utf-8"))
-
-        preguntas_modelo = parse_moodle_xml(xml_content)
+    from voight.core.lectura import leer_preguntas
 
     categorias: Dict[str, List[dict]] = {}
-    categoria_actual = "General"
-
-    for q in preguntas_modelo:
-        if q.type == "Category":
-            cat_name = (q.title or "").replace("$course$/", "").replace("$course$", "").strip("/")
-            categoria_actual = cat_name or "General"
-            if categoria_actual not in categorias:
-                categorias[categoria_actual] = []
-            continue
-
-        if categoria_actual not in categorias:
-            categorias[categoria_actual] = []
-
-        q_dict = q.to_dict()
-        categorias[categoria_actual].append(q_dict)
-
-    resultado = []
-    for cat_name, qs in categorias.items():
-        if qs:  # solo categorías con preguntas
-            resultado.append({"name": cat_name, "questions": qs})
-
-    return resultado
+    for pregunta in leer_preguntas(rutas, recursivo):
+        categorias.setdefault(pregunta["categoria"], []).append(pregunta)
+    return [{"name": nombre, "questions": preguntas} for nombre, preguntas in categorias.items()]
 
 
 def generar_quiz_mbz(
@@ -107,6 +60,11 @@ def generar_quiz_mbz(
     categorias = recolectar_banco_unificado(rutas, recursivo=recursivo)
     if not categorias:
         raise ValueError("No se encontraron preguntas en las rutas especificadas.")
+
+    plan = planificar_categorias(categorias, preguntas_por_categoria, titulo, tiempo_limite,
+                                calificacion_maxima, intentos, shuffle_respuestas)
+    if not plan["ok"]:
+        raise ValueError("No se puede generar el cuestionario: " + " ".join(plan["errores"]))
 
     timestamp = int(time.time())
     quiz_id = 50001
