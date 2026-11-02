@@ -28,6 +28,7 @@ from voight.commands.ui import ui
 from voight.commands.unify import unify
 from voight.commands.validate import validate
 from voight.commands.verify import verify
+from voight.commands.docente import accesibilidad, catalogo, muestra
 from voight.commands.xml import cdata, clean_tags, rename, xml_group
 
 
@@ -130,6 +131,7 @@ health_app = typer.Typer(
 health_app.command("check", hidden=True)(health_cmd)
 health_app.command("stats")(stats)
 health_app.command("similar")(similar)
+health_app.command("accesibilidad")(accesibilidad)
 # validate daba el mismo informe que stats y un subconjunto de los chequeos de health.
 health_app.command("validate", hidden=True)(_deprecado(validate, "health validate", "health"))
 
@@ -151,6 +153,8 @@ app.add_typer(health_app, name="health")
 app.command("ai")(ai)
 app.command("dedup")(dedup)
 app.command("verify")(verify)
+app.command("catalogo")(catalogo)
+app.command("muestra")(muestra)
 app.command("split")(split)
 app.command("unify")(unify)
 app.command("synth")(synth)

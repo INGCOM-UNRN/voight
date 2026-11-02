@@ -1,18 +1,19 @@
-"""Simulador de examen balanceado a partir del banco de preguntas."""
+"""Muestreo uniforme reproducible, sin reemplazo, de preguntas de un banco."""
 
 from __future__ import annotations
 
 import random
-from typing import List, Dict, Any
+from typing import Any
 
 
 def simular_examen_aleatorio(
-    banco: List[Dict[str, Any]],
-    cantidad_preguntas: int = 10,
-    seed: int | None = 42,
-) -> List[Dict[str, Any]]:
-    """Extrae una muestra aleatoria balanceada de preguntas del banco."""
-    rng = random.Random(seed)
-    if len(banco) <= cantidad_preguntas:
-        return list(banco)
-    return rng.sample(banco, cantidad_preguntas)
+    banco: list[dict[str, Any]], cantidad_preguntas: int = 10, seed: int | None = 42
+) -> list[dict[str, Any]]:
+    """Selecciona exactamente la cantidad solicitada sin modificar el banco."""
+    if type(cantidad_preguntas) is not int or cantidad_preguntas < 1:
+        raise ValueError("La cantidad de preguntas debe ser un entero mayor que cero.")
+    if cantidad_preguntas > len(banco):
+        raise ValueError(
+            f"Se piden {cantidad_preguntas} preguntas, pero el banco tiene {len(banco)}."
+        )
+    return random.Random(seed).sample(banco, cantidad_preguntas)
