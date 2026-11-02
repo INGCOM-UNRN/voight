@@ -665,3 +665,21 @@ Ante comportamientos inesperados, verificá el estado operativo con:
 voight doctor
 ```
 Comprueba la presencia de las dependencias requeridas y la integridad de los componentes del paquete.
+
+## Inspección de MBZ, planificación y herramientas docentes
+
+Ver la [guía con ejemplos y contratos de salida](docs/qol_docente.md).
+
+```sh
+voight moodle inspeccionar cuestionario.mbz --json
+voight moodle backup-quiz banco/ --plan -k 2 --json
+voight catalogo banco/ -o catalogo.md
+voight muestra banco/ -n 10 --semilla 42 -o muestra.md
+voight health accesibilidad banco/ --json
+```
+
+El plan y la inspección no generan ni extraen archivos. La generación MBZ valida
+los mismos cupos que el plan y rechaza los tipos que el escritor no implementa
+(actualmente exporta selección múltiple y V/F). El catálogo y la muestra incluyen
+las claves de respuesta y referencias de origen: son vistas para revisión docente.
+La auditoría de imágenes informa texto alternativo faltante sin modificar preguntas.

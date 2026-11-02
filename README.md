@@ -136,6 +136,21 @@ Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente
 - `.voight.toml`: valores por defecto de cada comando para un banco (umbral de dedup, contexto de classify, todas las opciones de format, rutas a ignorar…); también puede llamarse `.voight`.
 - `--desde <rev>` procesa sólo lo cambiado desde una revisión git; hooks de [pre-commit](./.pre-commit-hooks.yaml) y una acción de GitHub (`uses: INGCOM-UNRN/voight@main`, ejemplo en [docs/ejemplos/salud-banco.yml](./docs/ejemplos/salud-banco.yml)) para revisar la salud de cada PR.
 
+### 9. Inspección de cuestionarios y revisión docente
+
+- `voight moodle inspeccionar copia.mbz`: inventario de preguntas, categorías,
+  versiones, slots y configuración, sin extraer ni restaurar (tar/ZIP).
+- `voight moodle backup-quiz banco/ --plan -k 2`: revisa cupos y detecta categorías
+  insuficientes o tipos no exportables antes de generar el MBZ; no requiere salida.
+- `voight catalogo banco/ -o catalogo.md`: catálogo docente con opciones, claves
+  y referencias a sus archivos de origen.
+- `voight muestra banco/ -n 10 --semilla 42 -o muestra.md`: muestreo uniforme,
+  reproducible y sin reemplazo, para revisión docente.
+- `voight health accesibilidad banco/`: localiza imágenes sin texto alternativo
+  en enunciados, opciones y feedback, con HTML y Markdown.
+
+Todos admiten `--json`. Ver [ejemplos, formatos y límites](docs/qol_docente.md).
+
 ## 📚 Documentación Detallada
 
 Para más información sobre funcionalidades específicas, consulta la carpeta [docs/](./docs):
@@ -175,6 +190,8 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 | `voight ai` | Procesamiento de preguntas GIFT y Moodle XML usando IA (Gemini, un servidor local, OpenCode o Claude). |
 | `voight dedup` | Elimina preguntas duplicadas según un umbral de similitud (GIFT y Moodle XML). |
 | `voight verify` | Compila y ejecuta el código de las preguntas de salida y compara con las opciones (gcc, javac). |
+| `voight catalogo` | Exporta un catálogo docente con enunciados, opciones y claves de respuesta. |
+| `voight muestra` | Selecciona una muestra reproducible para revisión docente (incluye las claves). |
 | `voight split` | Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. |
 | `voight unify` | Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único archivo. |
 | `voight synth` | daedalus en belmont: sintetiza preguntas de C verificadas con GCC. |
@@ -189,7 +206,7 @@ Ayuda de cada comando: `voight <comando> -h`.
 
 ### Salida JSON
 
-Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight split`, `voight unify`, `voight synth`, `voight health`. El de `doctor --json` lleva `schema_version` y `ok`.
+Con `--json`, estos comandos emiten el resultado como JSON por la salida estándar, para usarlo desde scripts, ripley o dredd: `voight doctor`, `voight dedup`, `voight verify`, `voight catalogo`, `voight muestra`, `voight split`, `voight unify`, `voight synth`, `voight health`. El de `doctor --json` lleva `schema_version` y `ok`.
 
 ### Códigos de salida
 
