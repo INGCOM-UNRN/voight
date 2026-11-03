@@ -220,3 +220,12 @@ def test_bloque_lleva_salto_tambien_en_la_ultima_linea():
     assert "`a ＝ 1；`" in protegido and "<pre>a↵\nb</pre>" in protegido
     assert transformar_codigo(protegido, fullwidth=True)[0] == protegido
     assert transformar_codigo(protegido, fullwidth=False)[0] == texto
+
+
+def test_quitar_marcas_no_toca_los_simbolos():
+    from voight.core.codigo import quitar_marcas
+
+    texto = "Uso: `x····y`\n```c\nint main（void） ｛↵\n····return 0；↵\n↵\n｝↵\n```"
+    limpio, cambios = quitar_marcas(texto)
+    assert cambios == 1  # el código en línea no tiene marcas de indentación ni de salto
+    assert limpio == "Uso: `x····y`\n```c\nint main（void） ｛\n    return 0；\n\n｝\n```"

@@ -85,7 +85,7 @@ def test_arbol_opciones_xml(cliente):
     assert {i["name"]: i["options"] for i in arbol} == {"banco.gift": 2, "pregunta.xml": 2}
 
 
-# --- Conversión del código en el editor (fullwidth) ---------------------------------
+# --- Conversión del código en el editor (fullwidth y marcas) ---------------------------------
 
 ENUNCIADO = 'Elegí: ¿qué hace {esto}?\n```c\nint main(void) {\n    if (x == 1) { return 0; }\n\n    return 1;\n}\n```\ny `a[i]` fin'
 
@@ -101,13 +101,17 @@ def test_fullwidth_convierte_el_codigo_y_deja_el_texto(cliente):
     texto = datos['texto']
     assert texto.startswith('Elegí: ¿qué hace {esto}?')  # el texto fuera del código no se toca
     assert 'int main（void） ｛' in texto and 'x ⩵ 1' in texto and '`a［i］`' in texto
-    assert '·' not in texto and '↵' not in texto
+    assert '·' not in texto and '↵' not in texto  # las marcas son otro botón
 
 
-def test_ida_y_vuelta_fullwidth(cliente):
+def test_ida_y_vuelta_con_marcas(cliente):
     _, fw = _transformar(cliente, ENUNCIADO, 'fullwidth')
-    _, normal = _transformar(cliente, fw['texto'], 'normal')
-    assert normal['texto'] == ENUNCIADO
+    _, marcado = _transformar(cliente, fw['texto'], 'marcas')
+    assert '····if （x ⩵ 1）' in marcado['texto'] and 'int main（void） ｛↵' in marcado['texto']
+    _, normal = _transformar(cliente, marcado['texto'], 'normal')
+    assert '····if (x == 1)' in normal['texto']  # deshacer fullwidth conserva las marcas
+    _, limpio = _transformar(cliente, normal['texto'], 'sin-marcas')
+    assert limpio['texto'] == ENUNCIADO
 
 
 def test_sin_cambios_y_operacion_desconocida(cliente):
@@ -115,3 +119,16 @@ def test_sin_cambios_y_operacion_desconocida(cliente):
     assert datos['cambios'] == 0 and datos['texto'] == 'sin código'
     codigo, datos = _transformar(cliente, ENUNCIADO, 'otra')
     assert codigo == 400 and 'operación desconocida' in datos['error']
+
+
+def test_la_pagina_tiene_los_botones_de_marcas(cliente):
+    html = cliente.get('/').get_data(as_text=True)
+    assert 'id="add-marks-btn"' in html and 'id="remove-marks-btn"' in html
+
+
+def test_quitar_marcas_en_gift_conserva_las_lineas_vacias(cliente):
+    marcado = 'x\n```c\nint a；↵\n↵\nint b；↵\n```'
+    r = cliente.post('/api/codigo', json={'texto': marcado, 'operacion': 'sin-marcas', 'formato': 'gift'})
+    assert r.get_json()['texto'] == 'x\n```c\nint a；\n↵\nint b；\n```'
+    r = cliente.post('/api/codigo', json={'texto': marcado, 'operacion': 'sin-marcas', 'formato': 'xml'})
+    assert r.get_json()['texto'] == 'x\n```c\nint a；\n\nint b；\n```'

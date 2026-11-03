@@ -494,6 +494,13 @@ Abre el editor web local (cerebro) sobre DIRECTORIO.
 
 Edita todos los tipos de pregunta de Moodle, cada uno con su editor: respuestas con porcentaje (opción múltiple, respuesta corta), valor y tolerancia (numérica), fórmula y tolerancia (calculadas), verdadero/falso con la retroalimentación de cada opción, pares (emparejamiento), elementos en orden (ordenamiento) y opciones por grupo para los huecos `[[n]]` (seleccionar palabras faltantes, arrastrar sobre texto). Ensayo, descripción, cloze, emparejamiento aleatorio y arrastrar sobre imagen editan los campos comunes y sus opciones. Al guardar sólo cambia lo que el editor muestra: en XML se conservan unidades, variables, imágenes y zonas, y en GIFT la categoría, los comentarios y las demás preguntas del archivo.
 
+Debajo del enunciado, cuatro botones transforman sólo el código (bloques ```, código en línea y `<pre>`/`<code>`); el resto del texto queda igual. Usan el mismo motor que `fix code-chars` y `fix code-indent`:
+
+- **Aplicar Fullwidth**: los símbolos del código a ancho completo (`（`, `｛`, `⩵`…).
+- **Deshacer Fullwidth**: los símbolos a su forma normal; las marcas `·` y `↵` quedan.
+- **Agregar marcas ↵**: la indentación con `·` (un punto por espacio) y cada salto de línea con `↵`.
+- **Quitar marcas**: saca `·` y `↵` sin tocar los símbolos. En una pregunta GIFT, una línea en blanco del código conserva su `↵` (sin él cortaría la pregunta).
+
 Cada pregunta del árbol muestra su cantidad de opciones (respuestas en opción múltiple y respuesta corta, pares en emparejamiento). El filtro **Opciones: menos de / exactamente / más de N** de la barra lateral deja sólo las preguntas que cumplen la condición, para encontrar las que tienen pocas opciones; la navegación anterior/siguiente recorre sólo las filtradas. Las preguntas sin opciones (verdadero/falso, ensayo, descripción) quedan afuera mientras el filtro está activo.
 
 #### Opciones y Banderas

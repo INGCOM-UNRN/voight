@@ -8,6 +8,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Agregado
 
+- **ui**: botones «Agregar marcas ↵» y «Quitar marcas» en el editor: marcan la indentación del código con `·` y los saltos con `↵`, o los sacan sin tocar los símbolos (en GIFT una línea en blanco del código conserva su `↵`). `core.codigo.quitar_marcas`.
 - `moodle inspeccionar`: inventario de MBZ tar/ZIP sin extracción, con versiones de
   preguntas, categorías, tipos, cupos y configuración de cuestionarios.
 - `moodle backup-quiz --plan`: revisión de cupos y tipos exportables sin generar
@@ -61,6 +62,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **ui**: «Aplicar Fullwidth» y «Deshacer Fullwidth» convierten el código (antes protegían los bloques de código y cambiaban el texto de alrededor) con el mismo motor que `fix code-chars` (`f0ef754`).
 - **config unset-key** borraba todo `~/.voight/.env` (también las claves de Claude, Jev y Moodle), y `tests/test_coverage_boost.py` lo ejecutaba sobre el directorio real del usuario en cada corrida de la suite. Ahora quita sólo la clave de Gemini y los tests usan un `VOIGHT_CONFIG_DIR` temporal.
 - **fix code-format**: `--estilo allman` (u otro estilo de llaves) no cambiaba nada: clang-format no lo acepta como estilo y cada bloque fallaba en silencio. Ahora se aplica como `BreakBeforeBraces` sobre el estilo por defecto, y un estilo inválido termina con error.
 - **health / fix code-lang**: con varios bloques ``` seguidos, el cierre de uno se tomaba por la apertura de otro (y se etiquetaba con un lenguaje equivocado); «código sin cerrar» ya no marca los backticks que están dentro de un bloque.

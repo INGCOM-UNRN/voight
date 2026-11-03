@@ -277,6 +277,34 @@ def transformar_codigo(
     return transformar_secciones(texto, funcion, contexto)
 
 
+def quitar_marcas_fragmento(codigo: str) -> str:
+    """Saca las marcas de UNA sección de código sin tocar sus símbolos: la indentación `·`
+    (y sus variantes históricas) vuelve a espacios y se quita el `↵` del final de cada línea.
+    Un `·` o un `↵` a mitad de línea es contenido del autor y queda."""
+    marcas = MARCA_ESPACIO + _VARIANTES_ESPACIO
+    salida = []
+    for linea in codigo.split("\n"):
+        cuerpo = linea.lstrip(marcas)
+        linea = " " * (len(linea) - len(cuerpo)) + cuerpo
+        if linea.endswith(MARCA_SALTO):
+            linea = linea[:-1]
+        salida.append(linea)
+    return "\n".join(salida)
+
+
+def quitar_marcas(texto: str, contexto: str = "xml", proteger_vacias: bool = False) -> tuple[str, int]:
+    """Saca las marcas `·` y `↵` de todas las secciones de código (ver `quitar_marcas_fragmento`).
+
+    Con `proteger_vacias` (preguntas GIFT) una línea en blanco del código conserva su `↵`: sin él,
+    cortaría la pregunta.
+    """
+    def funcion(codigo: str, html: bool, multilinea: bool, bloque: bool = False) -> str:
+        limpio = quitar_marcas_fragmento(codigo)
+        return _proteger_lineas_vacias(limpio) if proteger_vacias else limpio
+
+    return transformar_secciones(texto, funcion, contexto)
+
+
 def usa_convencion(texto: str, contexto: str = "xml") -> tuple[bool, bool]:
     """(símbolos fullwidth, marcas) que usa el código del texto, para restaurar la misma
     convención después de transformarlo."""

@@ -73,10 +73,10 @@ def create_app(questions_dir: str) -> Flask:
         """Transforma las secciones de código del enunciado con el mismo motor que `voight fix
         code-chars` y `code-indent`: el texto fuera del código no se toca.
 
-        operacion: `fullwidth` (símbolos a ancho completo) o `normal` (símbolos a ASCII, las
-        marcas · y ↵ quedan).
+        operacion: `fullwidth` (símbolos a ancho completo), `normal` (símbolos a ASCII, las marcas
+        quedan), `marcas` (indentación con · y saltos con ↵) o `sin-marcas` (las saca).
         """
-        from voight.core.codigo import transformar_codigo
+        from voight.core.codigo import quitar_marcas, transformar_codigo
 
         data = request.get_json(force=True) or {}
         texto = data.get('texto', '')
@@ -87,6 +87,11 @@ def create_app(questions_dir: str) -> Flask:
             nuevo, cambios = transformar_codigo(texto, contexto='xml', fullwidth=True, espacios=False, saltos=False)
         elif operacion == 'normal':
             nuevo, cambios = transformar_codigo(texto, contexto='xml', fullwidth=False, conservar_marcas=True)
+        elif operacion == 'marcas':
+            nuevo, cambios = transformar_codigo(texto, contexto='xml', fullwidth=None, espacios=True, saltos=True)
+        elif operacion == 'sin-marcas':
+            # En GIFT una línea en blanco corta la pregunta: dentro del código conserva su ↵.
+            nuevo, cambios = quitar_marcas(texto, contexto='xml', proteger_vacias=data.get('formato') == 'gift')
         else:
             return jsonify({'error': f'operación desconocida: {operacion!r}'}), 400
         return jsonify({'texto': nuevo, 'cambios': cambios})

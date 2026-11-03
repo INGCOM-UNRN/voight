@@ -102,6 +102,8 @@ class MxvizApp {
         // Fullwidth character conversion buttons
         document.getElementById('apply-fullwidth-btn').addEventListener('click', () => this.applyFullwidthConversion());
         document.getElementById('undo-fullwidth-btn').addEventListener('click', () => this.undoFullwidthConversion());
+        document.getElementById('add-marks-btn').addEventListener('click', () => this.addCodeMarks());
+        document.getElementById('remove-marks-btn').addEventListener('click', () => this.removeCodeMarks());
     }
 
     async loadTree() {
@@ -923,7 +925,7 @@ class MxvizApp {
         }
     }
 
-    // Conversión del código del enunciado a fullwidth y de vuelta. La hace el servidor con el mismo
+    // Conversión del código del enunciado (fullwidth y marcas). La hace el servidor con el mismo
     // motor que `voight fix code-chars` y `code-indent`: sólo cambian las secciones de código
     // (bloques ```, código en línea y <pre>/<code>); el resto del texto queda igual.
     async transformarCodigo(operacion, mensajes) {
@@ -932,7 +934,11 @@ class MxvizApp {
             const response = await fetch('/api/codigo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texto: textarea.value, operacion }),
+                body: JSON.stringify({
+                    texto: textarea.value,
+                    operacion,
+                    formato: this.currentQuestion ? this.currentQuestion.source_format : null,
+                }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -961,6 +967,20 @@ class MxvizApp {
         return this.transformarCodigo('normal', {
             hecho: 'Símbolos del código en forma normal (las marcas · y ↵ quedan)',
             sinCambios: 'El código no tiene caracteres fullwidth',
+        });
+    }
+
+    addCodeMarks() {
+        return this.transformarCodigo('marcas', {
+            hecho: 'Indentación marcada con · y saltos de línea con ↵',
+            sinCambios: 'El código ya tiene las marcas (o no hay código)',
+        });
+    }
+
+    removeCodeMarks() {
+        return this.transformarCodigo('sin-marcas', {
+            hecho: 'Marcas · y ↵ quitadas del código',
+            sinCambios: 'El código no tiene marcas',
         });
     }
 
