@@ -923,260 +923,45 @@ class MxvizApp {
         }
     }
 
-    // Fullwidth character conversion
-    applyFullwidthConversion() {
+    // Conversión del código del enunciado a fullwidth y de vuelta. La hace el servidor con el mismo
+    // motor que `voight fix code-chars` y `code-indent`: sólo cambian las secciones de código
+    // (bloques ```, código en línea y <pre>/<code>); el resto del texto queda igual.
+    async transformarCodigo(operacion, mensajes) {
         const textarea = document.getElementById('question-text');
-        const text = textarea.value;
-        
-        // Diccionario de sustituciones: normal -> fullwidth
-        const substitutions = {
-            "==": "⩵",
-            "=": "＝",
-            ";": ";",
-            "#": "＃",
-            "{": "｛",
-            "}": "｝",
-            " ": " ",
-            ">": "＞",
-            "<": "＜",
-            "[": "［",
-            "]": "］",
-            "(": "（",
-            ")": "）",
-            "*": "＊",
-            '"': "＂",
-            ":": "："
-        };
-        
-        let converted = text;
-        
-        // PROTEGER guardas CDATA - guardar las guardas completas sin modificar
-        const cdataStartPattern = /<!\[CDATA\[/g;
-        const cdataEndPattern = /\]\]>/g;
-        const cdataStarts = [];
-        const cdataEnds = [];
-        
-        // Reemplazar guardas de inicio con placeholders
-        converted = converted.replace(cdataStartPattern, (match) => {
-            const placeholder = `__CDATA_START_${cdataStarts.length}__`;
-            cdataStarts.push(match);
-            return placeholder;
-        });
-        
-        // Reemplazar guardas de cierre con placeholders
-        converted = converted.replace(cdataEndPattern, (match) => {
-            const placeholder = `__CDATA_END_${cdataEnds.length}__`;
-            cdataEnds.push(match);
-            return placeholder;
-        });
-        
-        // PROTEGER sintaxis Markdown
-        // IMPORTANTE: El orden importa - de más específico a más general
-        const markdownBlocks = [];
-        let mdIndex = 0;
-        
-        // 1. Proteger bloques de código primero (más específico)
-        converted = converted.replace(/(```[\s\S]*?```)/g, (match) => {
-            const placeholder = `__MD_CODE_BLOCK_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 2. Proteger código inline
-        converted = converted.replace(/(`[^`\n]+`)/g, (match) => {
-            const placeholder = `__MD_INLINE_CODE_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 3. Proteger blockquotes (líneas completas que empiezan con >)
-        converted = converted.replace(/^(>\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_BLOCKQUOTE_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 4. Proteger headers (# al inicio de línea)
-        converted = converted.replace(/^(#{1,6}\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_HEADER_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 5. Proteger listas (*, - al inicio de línea)
-        converted = converted.replace(/^(\s*[*\-]\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_LIST_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 6. Proteger negrita/cursiva (**texto** o *texto*)
-        converted = converted.replace(/(\*{1,2}[^\*\n]+?\*{1,2})/g, (match) => {
-            const placeholder = `__MD_EMPHASIS_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // Aplicar sustituciones
-        // Primero aplicar == para que no se confunda con =
-        if (substitutions["=="]) {
-            converted = converted.replace(/==/g, substitutions["=="]);
-        }
-        
-        // Luego aplicar el resto de sustituciones
-        for (const [normal, fullwidth] of Object.entries(substitutions)) {
-            if (normal !== "==") {
-                // Escapar caracteres especiales para regex
-                const escapedNormal = normal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(escapedNormal, 'g');
-                converted = converted.replace(regex, fullwidth);
+        try {
+            const response = await fetch('/api/codigo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texto: textarea.value, operacion }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP ${response.status}`);
             }
+            if (!data.cambios) {
+                this.showNotification(mensajes.sinCambios, 'info');
+                return;
+            }
+            textarea.value = data.texto;
+            this.updatePreview();
+            this.showNotification(mensajes.hecho, 'success');
+        } catch (error) {
+            this.showNotification(`No se pudo transformar el código: ${error.message}`, 'error');
         }
-        
-        // Restaurar bloques Markdown sin modificar
-        markdownBlocks.forEach(({ placeholder, original }) => {
-            converted = converted.replace(placeholder, original);
+    }
+
+    applyFullwidthConversion() {
+        return this.transformarCodigo('fullwidth', {
+            hecho: 'Símbolos del código en fullwidth',
+            sinCambios: 'No hay código para convertir (o ya está en fullwidth)',
         });
-        
-        // Agregar ↵ al final de cada línea para hacer explícitos los saltos de línea
-        converted = converted.replace(/\n/g, '↵\n');
-        
-        // Restaurar guardas CDATA sin modificar
-        cdataStarts.forEach((guard, index) => {
-            const placeholder = `__CDATA_START_${index}__`;
-            converted = converted.replace(placeholder, guard);
-        });
-        
-        cdataEnds.forEach((guard, index) => {
-            const placeholder = `__CDATA_END_${index}__`;
-            converted = converted.replace(placeholder, guard);
-        });
-        
-        textarea.value = converted;
-        this.updatePreview();
-        this.showNotification('Conversión a fullwidth aplicada (saltos de línea marcados con ↵)', 'success');
     }
 
     undoFullwidthConversion() {
-        const textarea = document.getElementById('question-text');
-        const text = textarea.value;
-        
-        // Diccionario de sustituciones: fullwidth -> normal
-        const reverseSubstitutions = {
-            "⩵": "==",
-            "＝": "=",
-            ";": ";",
-            "＃": "#",
-            "｛": "{",
-            "｝": "}",
-            " ": " ",
-            "＞": ">",
-            "＜": "<",
-            "［": "[",
-            "］": "]",
-            "（": "(",
-            "）": ")",
-            "＊": "*",
-            "＂": '"',
-            "：": ":",
-            "↵": ""  // Eliminar marcadores de salto de línea
-        };
-        
-        let converted = text;
-        
-        // PROTEGER guardas CDATA antes de revertir
-        const cdataStartPattern = /<!\[CDATA\[/g;
-        const cdataEndPattern = /\]\]>/g;
-        const cdataStarts = [];
-        const cdataEnds = [];
-        
-        // Reemplazar guardas de inicio con placeholders
-        converted = converted.replace(cdataStartPattern, (match) => {
-            const placeholder = `__CDATA_START_${cdataStarts.length}__`;
-            cdataStarts.push(match);
-            return placeholder;
+        return this.transformarCodigo('normal', {
+            hecho: 'Símbolos del código en forma normal (las marcas · y ↵ quedan)',
+            sinCambios: 'El código no tiene caracteres fullwidth',
         });
-        
-        // Reemplazar guardas de cierre con placeholders
-        converted = converted.replace(cdataEndPattern, (match) => {
-            const placeholder = `__CDATA_END_${cdataEnds.length}__`;
-            cdataEnds.push(match);
-            return placeholder;
-        });
-        
-        // PROTEGER sintaxis Markdown (mismo orden que en apply)
-        const markdownBlocks = [];
-        let mdIndex = 0;
-        
-        // 1. Proteger bloques de código primero
-        converted = converted.replace(/(```[\s\S]*?```)/g, (match) => {
-            const placeholder = `__MD_CODE_BLOCK_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 2. Proteger código inline
-        converted = converted.replace(/(`[^`\n]+`)/g, (match) => {
-            const placeholder = `__MD_INLINE_CODE_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 3. Proteger blockquotes
-        converted = converted.replace(/^(>\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_BLOCKQUOTE_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 4. Proteger headers
-        converted = converted.replace(/^(#{1,6}\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_HEADER_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 5. Proteger listas
-        converted = converted.replace(/^(\s*[*\-]\s+.*)$/gm, (match) => {
-            const placeholder = `__MD_LIST_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // 6. Proteger negrita/cursiva
-        converted = converted.replace(/(\*{1,2}[^\*\n]+?\*{1,2})/g, (match) => {
-            const placeholder = `__MD_EMPHASIS_${mdIndex++}__`;
-            markdownBlocks.push({ placeholder, original: match });
-            return placeholder;
-        });
-        
-        // Aplicar sustituciones reversas
-        for (const [fullwidth, normal] of Object.entries(reverseSubstitutions)) {
-            // Escapar caracteres especiales en fullwidth para regex
-            const escapedFullwidth = fullwidth.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(escapedFullwidth, 'g');
-            converted = converted.replace(regex, normal);
-        }
-        
-        // Restaurar bloques Markdown sin modificar
-        markdownBlocks.forEach(({ placeholder, original }) => {
-            converted = converted.replace(placeholder, original);
-        });
-        
-        // Restaurar guardas CDATA sin modificar
-        cdataStarts.forEach((guard, index) => {
-            const placeholder = `__CDATA_START_${index}__`;
-            converted = converted.replace(placeholder, guard);
-        });
-        
-        cdataEnds.forEach((guard, index) => {
-            const placeholder = `__CDATA_END_${index}__`;
-            converted = converted.replace(placeholder, guard);
-        });
-        
-        textarea.value = converted;
-        this.updatePreview();
-        this.showNotification('Conversión fullwidth revertida', 'success');
     }
 
     showNotification(message, type = 'info') {

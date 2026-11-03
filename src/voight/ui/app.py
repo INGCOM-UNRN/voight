@@ -68,6 +68,29 @@ def create_app(questions_dir: str) -> Flask:
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
+    @app.route('/api/codigo', methods=['POST'])
+    def transformar_codigo_api():
+        """Transforma las secciones de código del enunciado con el mismo motor que `voight fix
+        code-chars` y `code-indent`: el texto fuera del código no se toca.
+
+        operacion: `fullwidth` (símbolos a ancho completo) o `normal` (símbolos a ASCII, las
+        marcas · y ↵ quedan).
+        """
+        from voight.core.codigo import transformar_codigo
+
+        data = request.get_json(force=True) or {}
+        texto = data.get('texto', '')
+        operacion = data.get('operacion')
+        # El editor tiene el enunciado sin los escapes de GIFT (se agregan al guardar): para el
+        # motor es texto plano, como el de un <text> de Moodle XML.
+        if operacion == 'fullwidth':
+            nuevo, cambios = transformar_codigo(texto, contexto='xml', fullwidth=True, espacios=False, saltos=False)
+        elif operacion == 'normal':
+            nuevo, cambios = transformar_codigo(texto, contexto='xml', fullwidth=False, conservar_marcas=True)
+        else:
+            return jsonify({'error': f'operación desconocida: {operacion!r}'}), 400
+        return jsonify({'texto': nuevo, 'cambios': cambios})
+
     @app.route('/api/search')
     def search_questions():
         query = request.args.get('q', '')

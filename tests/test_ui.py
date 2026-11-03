@@ -83,3 +83,35 @@ def test_arbol_informa_la_cantidad_de_opciones(tmp_path):
 def test_arbol_opciones_xml(cliente):
     arbol = cliente.get("/api/tree").get_json()
     assert {i["name"]: i["options"] for i in arbol} == {"banco.gift": 2, "pregunta.xml": 2}
+
+
+# --- Conversión del código en el editor (fullwidth) ---------------------------------
+
+ENUNCIADO = 'Elegí: ¿qué hace {esto}?\n```c\nint main(void) {\n    if (x == 1) { return 0; }\n\n    return 1;\n}\n```\ny `a[i]` fin'
+
+
+def _transformar(cliente, texto, operacion):
+    r = cliente.post('/api/codigo', json={'texto': texto, 'operacion': operacion})
+    return r.status_code, r.get_json()
+
+
+def test_fullwidth_convierte_el_codigo_y_deja_el_texto(cliente):
+    codigo, datos = _transformar(cliente, ENUNCIADO, 'fullwidth')
+    assert codigo == 200 and datos['cambios'] == 2
+    texto = datos['texto']
+    assert texto.startswith('Elegí: ¿qué hace {esto}?')  # el texto fuera del código no se toca
+    assert 'int main（void） ｛' in texto and 'x ⩵ 1' in texto and '`a［i］`' in texto
+    assert '·' not in texto and '↵' not in texto
+
+
+def test_ida_y_vuelta_fullwidth(cliente):
+    _, fw = _transformar(cliente, ENUNCIADO, 'fullwidth')
+    _, normal = _transformar(cliente, fw['texto'], 'normal')
+    assert normal['texto'] == ENUNCIADO
+
+
+def test_sin_cambios_y_operacion_desconocida(cliente):
+    _, datos = _transformar(cliente, 'sin código', 'fullwidth')
+    assert datos['cambios'] == 0 and datos['texto'] == 'sin código'
+    codigo, datos = _transformar(cliente, ENUNCIADO, 'otra')
+    assert codigo == 400 and 'operación desconocida' in datos['error']
