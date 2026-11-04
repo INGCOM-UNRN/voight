@@ -8,6 +8,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Agregado
 
+- **unify / tree collect**: al fusionar Moodle XML, los diagramas de estructuras de datos (bloques ```` ```estructura ````/```` ```statics ```` con el formato de statics, o `<pre><code class="language-estructura">`) se dibujan como SVG con el renderizador de alucarD y se incrustan como imagen `@@PLUGINFILE@@`, igual que los mermaid. Los mermaid también se reconocen como `<pre><code class="language-mermaid">` y con vallas `~~~` o de más de tres comillas. Sin alucarD, la fusión avisa cómo instalarlo; `doctor` informa si está.
 - **ui**: botones «Agregar marcas ↵» y «Quitar marcas» en el editor: marcan la indentación del código con `·` y los saltos con `↵`, o los sacan sin tocar los símbolos (en GIFT una línea en blanco del código conserva su `↵`). `core.codigo.quitar_marcas`.
 - `moodle inspeccionar`: inventario de MBZ tar/ZIP sin extracción, con versiones de
   preguntas, categorías, tipos, cupos y configuración de cuestionarios.

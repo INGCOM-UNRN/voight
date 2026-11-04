@@ -176,3 +176,103 @@ def test_render_real_con_mmdc(tmp_path, monkeypatch):
     archivos = _archivos(_campo(salida, "questiontext"))
     (diagrama,) = [n for n in archivos if n.startswith("mermaid-")]
     assert archivos[diagrama].startswith(b"\x89PNG")
+
+
+# ── Diagramas de estructuras de datos (bloques de statics, dibujados por alucarD) ──
+
+ESTRUCTURAS = """<quiz><question type="essay"><name><text>Lista</text></name>
+<questiontext format="markdown"><text><![CDATA[¿Qué vale `cabeza->sig->dato`?
+
+```estructura
+type: linked_list
+values: [10, 20, 30]
+```
+]]></text></questiontext>
+<generalfeedback format="html"><text><![CDATA[<pre><code class="language-estructura">type: array
+values: [1, 2]</code></pre><pre><code class="language-mermaid">graph LR
+A --&gt; B</code></pre>]]></text></generalfeedback>
+</question></quiz>"""
+
+
+class _MotorFalso:
+    """Imita `generador_examenes.diagramas`: un <svg> con el YAML que recibió."""
+
+    class ErrorDiagrama(ValueError):
+        pass
+
+    @staticmethod
+    def leer_bloques(texto):
+        if "ROTO" in texto:
+            raise _MotorFalso.ErrorDiagrama("tipo de bloque no soportado: 'ROTO'")
+        return [texto]
+
+    @staticmethod
+    def renderizar(bloque):
+        return f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><!--{bloque}--></svg>'
+
+
+@pytest.fixture
+def motor_falso(monkeypatch):
+    from voight.core import incrustar
+    monkeypatch.setattr(incrustar, "motor_estructuras", lambda: _MotorFalso)
+
+
+def _arbol_estructuras(tmp_path: Path, contenido: str = ESTRUCTURAS) -> Path:
+    arbol = tmp_path / "arbol"
+    arbol.mkdir()
+    (arbol / "q.xml").write_text(contenido, encoding="utf-8")
+    return arbol
+
+
+def test_unify_incrusta_las_estructuras_como_svg(tmp_path, mmdc_falso, motor_falso):
+    salida = tmp_path / "banco.xml"
+    unificar([_arbol_estructuras(tmp_path)], salida)
+
+    enunciado = _campo(salida, "questiontext")
+    texto = enunciado.findtext("text")
+    assert "```estructura" not in texto
+    (nombre,) = _archivos(enunciado)
+    assert nombre.startswith("estructura-") and nombre.endswith(".svg")
+    assert f"![diagrama de estructura](@@PLUGINFILE@@/{nombre})" in texto
+    assert b"values: [10, 20, 30]" in _archivos(enunciado)[nombre]
+
+    # En HTML, también los <pre><code class="language-…"> (estructura y mermaid).
+    retro = _campo(salida, "generalfeedback")
+    texto = retro.findtext("text")
+    assert "<pre>" not in texto
+    archivos = _archivos(retro)
+    (estructura,) = [n for n in archivos if n.startswith("estructura-")]
+    (diagrama,) = [n for n in archivos if n.startswith("mermaid-")]
+    assert f'<img src="@@PLUGINFILE@@/{estructura}"' in texto
+    assert f'<img src="@@PLUGINFILE@@/{diagrama}"' in texto
+    assert archivos[diagrama].decode() == "graph LR\nA --> B\n"
+
+
+def test_estructura_invalida_es_error(tmp_path, mmdc_falso, motor_falso):
+    arbol = _arbol_estructuras(tmp_path, ESTRUCTURAS.replace("linked_list", "ROTO"))
+    with pytest.raises(ErrorIncrustacion, match="Lista <questiontext>: diagrama de estructura inválido"):
+        unificar([arbol], tmp_path / "banco.xml")
+
+
+def test_sin_alucard_avisa_como_instalarlo(tmp_path, mmdc_falso, monkeypatch):
+    from voight.core import incrustar
+    monkeypatch.setattr(incrustar, "motor_estructuras", lambda: None)
+    with pytest.raises(ErrorIncrustacion, match="alucarD"):
+        unificar([_arbol_estructuras(tmp_path)], tmp_path / "banco.xml")
+
+
+def test_varios_bloques_quedan_en_una_sola_imagen():
+    from voight.core.incrustar import _apilar_svgs
+    svg = _apilar_svgs(['<svg width="30" height="10"></svg>', '<svg width="20" height="5"></svg>'])
+    assert 'width="30" height="23"' in svg
+    assert '<svg x="0" y="18"' in svg
+    ET.fromstring(svg)
+
+
+def test_render_real_con_alucard(tmp_path, mmdc_falso):
+    pytest.importorskip("generador_examenes.diagramas")
+    salida = tmp_path / "banco.xml"
+    unificar([_arbol_estructuras(tmp_path)], salida)
+    archivos = _archivos(_campo(salida, "questiontext"))
+    (svg,) = archivos.values()
+    assert ET.fromstring(svg).tag.endswith("svg")

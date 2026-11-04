@@ -63,6 +63,18 @@ def doctor_cmd(
         "detalle": mmdc_path or "No encontrado: `npm install -g @mermaid-js/mermaid-cli` (o VOIGHT_MMDC)",
     })
 
+    # Diagramas de estructuras (```estructura) incrustados al fusionar: el renderizador de alucarD.
+    from voight.core.incrustar import motor_estructuras
+
+    estructuras_ok = motor_estructuras() is not None
+    diagnostico.append({
+        "componente": "Diagramas de estructuras (alucarD, en unify)",
+        "estado": "OK" if estructuras_ok else "ADVERTENCIA",
+        "requerido": False,
+        "detalle": ("generador_examenes.diagramas disponible" if estructuras_ok
+                    else "No instalado: los bloques ```estructura los dibuja alucarD"),
+    })
+
     # Proveedor de IA de `voight ai` (opcional): el diagnóstico común de yutani.ia.
     from yutani import ia
 

@@ -63,17 +63,18 @@ def collect_cmd(
         help="Forzar el formato (por defecto se deduce de la extensión de salida)."),
     incrustar: bool = typer.Option(
         True, "--incrustar/--no-incrustar",
-        help="XML: renderiza los diagramas mermaid e incrusta las imágenes relativas en la salida."),
+        help="XML: cambia los diagramas mermaid y de estructuras y las imágenes relativas por imágenes incrustadas en la salida."),
     formato_diagrama: str = typer.Option(
         "png", "--diagramas",
         click_type=click.Choice(["png", "svg"]),
-        help="Formato de imagen de los diagramas mermaid incrustados."),
+        help="Formato de imagen de los diagramas mermaid incrustados (las estructuras van siempre en SVG)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
     """Recolecta DIRECTORIO en un banco monolítico único (ahora `voight unify`).
 
-    En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`) y las
-    imágenes con ruta relativa al archivo de la pregunta se incrustan en la salida.
+    En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`), los
+    ```estructura con alucarD, y esos diagramas y las imágenes con ruta relativa al
+    archivo de la pregunta quedan como imágenes incrustadas en la salida.
     """
     _aviso("tree collect", "unify")
     try:

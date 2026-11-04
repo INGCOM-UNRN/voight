@@ -1,15 +1,23 @@
-"""Incrustación de diagramas mermaid e imágenes relativas al fusionar Moodle XML.
+"""Incrustación de diagramas e imágenes relativas al fusionar Moodle XML.
 
-Las preguntas se escriben como texto: un diagrama es un bloque ```mermaid (o un
-``<pre class="mermaid">``/``<div class="mermaid">``) y una imagen se referencia con
-una ruta relativa al archivo de la pregunta (``![alt](img/a.png)`` o
-``<img src="img/a.png">``). Los archivos fuente no se tocan: sólo al fusionarlos
-(`unify`) cada diagrama se renderiza con mermaid-cli (`mmdc`) y cada
-imagen se adjunta al campo que la usa como ``<file encoding="base64">``, con la
-referencia cambiada por ``@@PLUGINFILE@@/<nombre>``, que es como Moodle importa los
-archivos de un campo de texto.
+Las preguntas se escriben como texto:
 
-Los renders se guardan en la caché de voight por contenido (ver `cache.py`).
+- un diagrama mermaid es un bloque ```mermaid (o ``<pre class="mermaid">``,
+  ``<div class="mermaid">`` o ``<pre><code class="language-mermaid">``);
+- un diagrama de estructura de datos es un bloque ```estructura (o ```statics) con
+  el bloque de statics en YAML/JSON (o sus equivalentes HTML con la clase
+  ``estructura``), el mismo formato que dibuja alucarD;
+- una imagen se referencia con una ruta relativa al archivo de la pregunta
+  (``![alt](img/a.png)`` o ``<img src="img/a.png">``).
+
+Los archivos fuente no se tocan: sólo al fusionarlos (`unify`) cada mermaid se
+renderiza con mermaid-cli (`mmdc`), cada estructura con el renderizador SVG de
+alucarD, y la imagen resultante (o la referenciada) se adjunta al campo que la usa
+como ``<file encoding="base64">``, con el bloque o la referencia cambiados por una
+imagen ``@@PLUGINFILE@@/<nombre>``, que es como Moodle importa los archivos de un
+campo de texto.
+
+Los renders de mermaid se guardan en la caché de voight por contenido (ver `cache.py`).
 """
 from __future__ import annotations
 
@@ -31,11 +39,25 @@ from voight.core.codigo import transformar_fragmento
 
 FORMATOS_DIAGRAMA = ("png", "svg")
 
-_FENCE_MERMAID = re.compile(r"^[ \t]*```[ \t]*mermaid[ \t]*\n(?P<codigo>.*?\n)[ \t]*```[ \t]*$",
-                            re.S | re.M | re.I)
-_HTML_MERMAID = re.compile(
-    r"<(?P<tag>pre|div)\b[^>]*\bclass\s*=\s*[\"'][^\"']*\bmermaid\b[^\"']*[\"'][^>]*>"
-    r"(?P<codigo>.*?)</(?P=tag)>", re.S | re.I)
+
+def _fence(lenguajes: str) -> re.Pattern:
+    """Bloque de código Markdown (``` o ~~~, de 3 o más) de alguno de `lenguajes`."""
+    return re.compile(r"^[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*(?:" + lenguajes + r")[ \t]*\n"
+                      r"(?P<codigo>.*?\n)[ \t]*(?P=valla)[ \t]*$", re.S | re.M | re.I)
+
+
+def _html(clases: str) -> re.Pattern:
+    """`<pre>`/`<div>` con alguna de `clases`, o `<pre><code class="language-…">`."""
+    clase = r"\bclass\s*=\s*[\"'][^\"']*\b(?:language-)?(?:" + clases + r")\b[^\"']*[\"']"
+    return re.compile(
+        r"<pre\b[^>]*>\s*<code\b[^>]*" + clase + r"[^>]*>(?P<codigo>.*?)</code>\s*</pre>"
+        r"|<(?P<tag>pre|div)\b[^>]*" + clase + r"[^>]*>(?P<codigo2>.*?)</(?P=tag)>", re.S | re.I)
+
+
+_FENCE_MERMAID = _fence("mermaid")
+_HTML_MERMAID = _html("mermaid")
+_FENCE_ESTRUCTURA = _fence("estructura|statics")
+_HTML_ESTRUCTURA = _html("estructura|statics")
 _IMG_MD = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<src><[^>]+>|[^)\s]+)(?P<titulo>\s+\"[^\"]*\")?\)")
 _IMG_HTML = re.compile(r"(?P<antes><img\b[^>]*?\bsrc\s*=\s*)(?P<q>[\"'])(?P<src>.*?)(?P=q)", re.S | re.I)
 # Absolutas, de Moodle o embebidas: quedan como están.
@@ -54,11 +76,58 @@ def comando_mermaid() -> Optional[str]:
     return os.environ.get("VOIGHT_MMDC") or shutil.which("mmdc")
 
 
-def _limpiar_mermaid(codigo: str, es_html: bool) -> str:
-    """Código mermaid en ASCII: sin entidades, símbolos fullwidth ni marcas `·`/`↵`."""
+def _limpiar_codigo(codigo: str, es_html: bool) -> str:
+    """Código de un diagrama (mermaid o estructura) en ASCII: sin entidades, símbolos fullwidth ni marcas `·`/`↵`."""
     if es_html:
         codigo = html.unescape(re.sub(r"<br\s*/?>", "\n", codigo, flags=re.I))
     return transformar_fragmento(codigo, contexto="xml", fullwidth=False).strip() + "\n"
+
+
+def _codigo_html(m: re.Match) -> str:
+    return m.group("codigo") if m.group("codigo") is not None else m.group("codigo2")
+
+
+def motor_estructuras():
+    """El módulo de diagramas de alucarD (`generador_examenes.diagramas`), o None."""
+    try:
+        from generador_examenes import diagramas
+    except ImportError:
+        return None
+    return diagramas
+
+
+def renderizar_estructura(codigo: str) -> bytes:
+    """Dibuja los bloques de statics de `codigo` (YAML/JSON) como un único SVG."""
+    motor = motor_estructuras()
+    if motor is None:
+        raise ErrorIncrustacion(
+            "los diagramas ```estructura los dibuja alucarD (generador-examenes), que no está "
+            "instalado. Sumalo al entorno de voight: uv tool install --with "
+            "\"generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD\" "
+            "\"voight @ git+https://github.com/INGCOM-UNRN/voight\"")
+    try:
+        svgs = [motor.renderizar(b) for b in motor.leer_bloques(codigo)]
+    except ValueError as e:  # ErrorDiagrama
+        raise ErrorIncrustacion(f"diagrama de estructura inválido: {e}") from e
+    if len(svgs) == 1:
+        return svgs[0].encode("utf-8")
+    return _apilar_svgs(svgs).encode("utf-8")
+
+
+def _apilar_svgs(svgs: list) -> str:
+    """Varios `<svg>` uno debajo del otro en un único SVG (una sola imagen por bloque)."""
+    def medida(svg: str, atributo: str) -> int:
+        m = re.search(r'\b' + atributo + r'="(\d+(?:\.\d+)?)"', svg)
+        return int(float(m.group(1))) if m else 0
+
+    ancho, y, partes = 0, 0, []
+    for svg in svgs:
+        w, h = medida(svg, "width"), medida(svg, "height")
+        partes.append(re.sub(r"^<svg\b", f'<svg x="0" y="{y}"', svg, count=1))
+        ancho, y = max(ancho, w), y + h + 8
+    alto = max(y - 8, 0)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{ancho}" height="{alto}" '
+            f'viewBox="0 0 {ancho} {alto}">' + "".join(partes) + "</svg>")
 
 
 def renderizar_mermaid(codigo: str, formato: str = "png", cache: Optional[Cache] = None) -> bytes:
@@ -117,14 +186,22 @@ def incrustar_texto(texto: str, formato_texto: str, base: Path, adjuntos: _Adjun
     """Reemplaza diagramas e imágenes relativas de un texto por referencias a `adjuntos`."""
     markdown = formato_texto == "markdown"
 
-    def diagrama(m: re.Match, es_html: bool) -> str:
-        codigo = _limpiar_mermaid(m.group("codigo"), es_html)
+    def diagrama(codigo: str, es_html: bool) -> str:
+        codigo = _limpiar_codigo(codigo, es_html)
         datos = renderizar_mermaid(codigo, formato_diagrama, cache)
         nombre = f"mermaid-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.{formato_diagrama}"
         return _imagen(adjuntos.agregar(nombre, datos), "diagrama", markdown)
 
-    texto = _FENCE_MERMAID.sub(lambda m: diagrama(m, False), texto)
-    texto = _HTML_MERMAID.sub(lambda m: diagrama(m, True), texto)
+    def estructura(codigo: str, es_html: bool) -> str:
+        codigo = _limpiar_codigo(codigo, es_html)
+        datos = renderizar_estructura(codigo)
+        nombre = f"estructura-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.svg"
+        return _imagen(adjuntos.agregar(nombre, datos), "diagrama de estructura", markdown)
+
+    texto = _FENCE_MERMAID.sub(lambda m: diagrama(m.group("codigo"), False), texto)
+    texto = _HTML_MERMAID.sub(lambda m: diagrama(_codigo_html(m), True), texto)
+    texto = _FENCE_ESTRUCTURA.sub(lambda m: estructura(m.group("codigo"), False), texto)
+    texto = _HTML_ESTRUCTURA.sub(lambda m: estructura(_codigo_html(m), True), texto)
 
     def leer(src: str) -> Optional[str]:
         """La URL @@PLUGINFILE@@ de una imagen relativa, o None si no es relativa."""
