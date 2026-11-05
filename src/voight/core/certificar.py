@@ -270,8 +270,8 @@ def seccion_markdown(datos: dict, max_items: int = 50) -> str:
     lineas = [f"\n## Código C certificado con daedalus ({datos['certificadas']} de {datos['con_codigo_c']})\n"]
     if datos["sin_sanitizers"]:
         lineas.append("> El toolchain no trae los sanitizers: el comportamiento indefinido se detecta sólo por los "
-                      "warnings de `-O2`, no al ejecutar.\n")
-    for clave, titulo in (("rechazadas", "Rechazadas: errores, warnings o comportamiento indefinido"),
+                      "advertencias de `-O2`, no al ejecutar.\n")
+    for clave, titulo in (("rechazadas", "Rechazadas: errores, advertencias o comportamiento indefinido"),
                           ("fragmentos", "Fragmentos que no se pueden compilar solos"),
                           ("intencionales", "Con problemas a propósito (la pregunta trata sobre el error)")):
         if not datos[clave]:

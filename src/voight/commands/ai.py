@@ -77,7 +77,7 @@ def ai(
     nivel de Bloom y la dificultad (1–5) del enunciado y de las respuestas.
     """
     if not inputs:
-        fail("Debes proporcionar al menos una ruta de entrada.")
+        fail("Indicá al menos una ruta de entrada.")
 
     opciones = con_configuracion(ctx, inputs, "ai", {
         "contexto": contexto, "proveedor": proveedor, "model": (model, "modelo"), "opciones": opciones})

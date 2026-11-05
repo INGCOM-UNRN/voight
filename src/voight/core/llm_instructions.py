@@ -2,11 +2,11 @@ VALIDATE_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Validación de Preguntas
 `health` (y sus subcomandos `stats` y `similar`) acepta GIFT y Moodle XML (también repositorios mixtos). `health` sólo diagnostica: lo que modifica archivos está en `fix` (por ejemplo `fix clean-html`).
 Al generar o corregir preguntas GIFT:
-1. **Evita líneas en blanco internas**: No insertes líneas vacías entre el título, el enunciado y el bloque de respuestas. En GIFT, una línea en blanco termina la pregunta.
-2. **Escapa los dos puntos**: No uses `:` en enunciados o respuestas a menos que lo escapes como `\:`. Para separadores visuales usa `：` (fullwidth).
-3. **Títulos obligatorios**: Usa siempre `::Título::` al inicio para facilitar la organización.
-4. **Resuelve duplicados**: Si el validador indica alta similitud, asegúrate de que la nueva pregunta aporte un valor distinto.
-5. **Salud del banco** (`health`): la respuesta correcta no debe ser notablemente más larga que los distractores; incluye feedback en cada opción; usa al menos 3 opciones; los porcentajes parciales deben ser los que Moodle acepta (`%33.33333%`, no `%33.33%`).
+1. **Evitá líneas en blanco internas**: No insertes líneas vacías entre el título, el enunciado y el bloque de respuestas. En GIFT, una línea en blanco termina la pregunta.
+2. **Escapá los dos puntos**: No uses `:` en enunciados o respuestas a menos que lo escapes como `\:`. Para separadores visuales usá `：` (fullwidth).
+3. **Títulos obligatorios**: Usá siempre `::Título::` al inicio para facilitar la organización.
+4. **Resolvé duplicados**: Si el validador indica alta similitud, asegurate de que la nueva pregunta aporte un valor distinto.
+5. **Salud del banco** (`health`): la respuesta correcta no debe ser notablemente más larga que los distractores; incluí feedback en cada opción; usá al menos 3 opciones; los porcentajes parciales deben ser los que Moodle acepta (`%33.33333%`, no `%33.33%`).
 6. **Redacción** (`health` la revisa): no uses «todas/ninguna de las anteriores» (se rompen al mezclar las opciones); resaltá las negaciones del enunciado (**NO**, **EXCEPTO**, **INCORRECTA**); los distractores deben ser plausibles y de largo parecido a la correcta; no pongas la correcta siempre primera.
 7. **Código**: protegé el código (`format --fullwidth`), etiquetá su lenguaje (```c, ```java; `fix code-lang`) y no empieces líneas con `//` dentro del código sin proteger (GIFT las descarta como comentario).
 8. **Revisión incremental**: `--desde origin/main` revisa sólo lo que cambió; `health --tui` recorre los hallazgos y aplica los arreglos automáticos.
@@ -19,8 +19,8 @@ Genera archivos GIFT siguiendo este estándar visual estricto:
 1. **Título**: Primera línea, formato `::Título::`.
 2. **Enunciado**: Siguiente línea inmediata, preferiblemente con prefijo `[markdown]`.
 3. **Bloque de respuestas**: Abrir `{` en su propia línea, cerrar `}` en su propia línea.
-4. **Indentación**: Usa exactamente 4 espacios para cada opción de respuesta (`=`, `~`, `#`).
-5. **Sin espacios extra**: Evita líneas en blanco innecesarias dentro de la estructura.
+4. **Indentación**: Usá exactamente 4 espacios para cada opción de respuesta (`=`, `~`, `#`).
+5. **Sin espacios extra**: Evitá líneas en blanco innecesarias dentro de la estructura.
 6. **Verificar sin escribir**: `format --check` sale con código 1 si algún archivo cambiaría y `format --diff` muestra los cambios; usalos antes de dar por terminado un cambio.
 7. **Código** (C/Java): `format --fullwidth` reemplaza `{ } = ~ # : \ //` (y `; < > [ ] ( ) * " &`) por formas fullwidth, marca la indentación con `·` (un punto por espacio) y cada fin de línea con `↵`. Una línea en blanco dentro del código debe quedar como `↵`.
 """
@@ -29,14 +29,14 @@ XML_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Mantenimiento XML
 Al manipular archivos XML de Moodle:
 1. **Secciones CDATA**: Envuelve SIEMPRE el contenido de los nodos `<text>` en `<![CDATA[ ... ]]>`.
-2. **Atributo Format**: Asegúrate de que los bloques de texto tengan `format="markdown"` si el contenido lo requiere.
-3. **Nombres de archivo**: Usa el subcomando `rename` para normalizar nombres basados en el título interno.
+2. **Atributo Format**: Asegurate de que los bloques de texto tengan `format="markdown"` si el contenido lo requiere.
+3. **Nombres de archivo**: Usá el subcomando `rename` para normalizar nombres basados en el título interno.
 """
 
 CONVERT_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Conversión de Formatos
-1. **HTML a Markdown**: Prefiere siempre el formato Markdown. Usa backticks (`) para código y negritas (**) para énfasis.
-2. **Atributos de Formato**: Al convertir tags HTML, asegúrate de actualizar el atributo `format="html"` a `format="markdown"` en el XML resultante.
+1. **HTML a Markdown**: Preferí siempre el formato Markdown. Usá backticks (`) para código y negritas (**) para énfasis.
+2. **Atributos de Formato**: Al convertir tags HTML, asegurate de actualizar el atributo `format="html"` a `format="markdown"` en el XML resultante.
 """
 
 AI_INSTRUCTIONS = r"""
@@ -52,8 +52,8 @@ AI_INSTRUCTIONS = r"""
 
 FIX_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Correcciones y Renombrado
-1. **Indentación en Código**: En bloques de código (```), usa `·` por cada espacio de indentación (`····` = 4 espacios) y `↵` al final de cada línea salvo la última; vale igual para GIFT y XML.
-2. **Slugificación**: Usa `fix slugify` para normalizar nombres de archivos a minúsculas y sin acentos.
+1. **Indentación en Código**: En bloques de código (```), usá `·` por cada espacio de indentación (`····` = 4 espacios) y `↵` al final de cada línea salvo la última; vale igual para GIFT y XML.
+2. **Slugificación**: Usá `fix slugify` para normalizar nombres de archivos a minúsculas y sin acentos.
 3. **Sincronización de Nombres**:
    - `fix name-from-title`: Sincroniza el nombre del archivo con el título interno `::Título::`.
    - `fix title-from-name`: Actualiza el título interno `::Título::` basándose en el nombre del archivo.
@@ -65,17 +65,17 @@ FIX_INSTRUCTIONS = r"""
 
 GENERAL_INSTRUCTIONS = r"""
 # Instrucciones Generales para LLM (Questions CLI)
-- Prioriza siempre el formato GIFT por su legibilidad sobre el XML.
-- Usa el CLI para validar cada cambio antes de dar por finalizada una tarea.
-- Mantén la consistencia en el etiquetado (`// [tag:nombre]`) e identificadores (`// [id:id]`).
-- `-r` es el flag para procesamiento recursivo en directorios, asegúrate de usarlo cuando trabajes con múltiples archivos.
+- Priorizá siempre el formato GIFT por su legibilidad sobre el XML.
+- Usá el CLI para validar cada cambio antes de dar por finalizada una tarea.
+- Mantené la consistencia en el etiquetado (`// [tag:nombre]`) e identificadores (`// [id:id]`).
+- `-r` es el flag para procesamiento recursivo en directorios, asegurate de usarlo cuando trabajes con múltiples archivos.
 """
 
 SPLIT_INSTRUCTIONS = r"""
 # Instrucciones para LLM: Dividir Archivos GIFT
-1. **Un solo archivo por pregunta**: El repositorio sigue la política de una pregunta por archivo. Usa `split` para desglosar bancos masivos.
-2. **Nombres automáticos**: El comando usará el título `::Título::` para nombrar el nuevo archivo. Asegúrate de que los títulos sean descriptivos y únicos.
-3. **Consistencia**: Al dividir, se mantiene el contenido exacto de cada bloque. Verifica que cada bloque resultante sea una pregunta GIFT válida e independiente.
+1. **Un solo archivo por pregunta**: El repositorio sigue la política de una pregunta por archivo. Usá `split` para desglosar bancos masivos.
+2. **Nombres automáticos**: El comando usará el título `::Título::` para nombrar el nuevo archivo. Asegurate de que los títulos sean descriptivos y únicos.
+3. **Consistencia**: Al dividir, se mantiene el contenido exacto de cada bloque. Verificá que cada bloque resultante sea una pregunta GIFT válida e independiente.
 """
 
 UNIFY_INSTRUCTIONS = r"""

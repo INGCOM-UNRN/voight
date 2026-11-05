@@ -47,9 +47,9 @@ def health_cmd(
     output_json: bool = typer.Option(False, "--json", help="Emite el diagnóstico como JSON versionado."),
     compilar: bool = typer.Option(
         False, "--compilar", "--compile",
-        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): errores, warnings y comportamiento indefinido son errores del banco."),
+        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): errores, advertencias y comportamiento indefinido son errores del banco."),
     permitir: List[str] = typer.Option(
-        [], "--permitir-warning", help="Con --compilar: un warning que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
+        [], "--permitir-warning", help="Con --compilar: una advertencia que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
     sin_ejecutar: bool = typer.Option(False, "--sin-ejecutar", help="Con --compilar: sólo compilar, sin ejecutar con sanitizers."),
 ):
     """Audita la salud del banco: claves de corrección, feedback, cantidad y longitud de opciones, código y enlaces.

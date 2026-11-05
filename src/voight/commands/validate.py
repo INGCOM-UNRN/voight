@@ -25,9 +25,9 @@ def validate(
         None, "--desde", "--since", help="Sólo los archivos cambiados desde esta revisión git (y los nuevos sin seguimiento)."),
     compilar: bool = typer.Option(
         False, "--compilar", "--compile",
-        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): rechaza errores, warnings y comportamiento indefinido."),
+        help="Certificar el código C de cada pregunta con daedalus (extra 'compilar'): rechaza errores, advertencias y comportamiento indefinido."),
     permitir: List[str] = typer.Option(
-        [], "--permitir-warning", help="Con --compilar: un warning que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
+        [], "--permitir-warning", help="Con --compilar: una advertencia que no rechaza la pregunta (sin -W: unused-parameter). Repetible."),
 ):
     """Valida archivos o directorios de preguntas GIFT y Moodle XML.
 
