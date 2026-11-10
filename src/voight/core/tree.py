@@ -16,6 +16,7 @@ from pathlib import Path
 from voight.core.converter import _cdata_sub, _serializar_quiz
 from voight.core.formulas import fuera_de_plantuml
 from voight.core.incrustar import incrustar_pregunta
+from voight.core.moodle_gift import quitar_cortes, sin_cortes
 from voight.core.xml_tools import sanitize_filename
 
 
@@ -157,7 +158,7 @@ def gift_collect(base_input_dir: Path, output_file: Path) -> int:
         question_count += 1
         print(f"  Agregada: {rel_path}")
 
-    output_file.write_text('\n'.join(lineas_salida), encoding='utf-8')
+    output_file.write_text(sin_cortes('\n'.join(lineas_salida)), encoding='utf-8')
     print(f"\n✓ Colección completada: {question_count} preguntas en {output_file}")
     return question_count
 
@@ -265,6 +266,7 @@ def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
             for question in tree.getroot().findall('question'):
                 if question.get('type') == 'category':
                     continue
+                quitar_cortes(question)
                 if incrustar:
                     incrustar_pregunta(question, filepath.parent, formato_diagrama)
                 quiz_root.append(question)

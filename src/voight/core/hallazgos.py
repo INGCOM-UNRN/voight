@@ -53,6 +53,7 @@ _LISTAS: Dict[str, Callable[[dict], List[dict]]] = {
     "enlaces_sospechosos": lambda r: r["enlaces"]["urls_sospechosas"],
     "html_obsoleto": lambda r: r["html_obsoleto"],
     "gift_a_preprocesar": lambda r: r.get("gift_a_preprocesar", []),
+    "gift_incompatible": lambda r: r.get("gift_incompatible", []),
 }
 
 

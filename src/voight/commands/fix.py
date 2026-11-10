@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 from voight.core.banco import expandir_rutas, formato_de, formato_por_contenido
 from voight.core.codigo import etiquetar_lenguaje_archivo, transformar_archivo
+from voight.core.moodle_gift import corregir, revisar
 from voight.core.naming import rename_to_slug, rename_from_title, set_question_title
 
 from voight.commands.common import LLM_OPTION, emitir_json
@@ -199,6 +200,26 @@ def code_indent(
             modified_count += 1
     
     click.echo(f"\nFinalizado: {modified_count} archivos modificados.")
+
+@fix_app.command(name="moodle")
+def moodle_cmd(
+    paths: Optional[List[str]] = typer.Argument(None, exists=True),
+    recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar recursivamente"),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="No aplicar cambios"),
+):
+    """Deja los GIFT importables en Moodle: `[tag, a]` y `[category, C]` en comentarios, `{}` y sin `:` sueltos."""
+    modified_count = 0
+    for f in sorted(expandir_rutas(paths or ['.'], recursive, ('.gift',))):
+        content = f.read_text(encoding='utf-8')
+        problemas = revisar(content)
+        if problemas:
+            if not dry_run:
+                f.write_text(corregir(content), encoding='utf-8')
+            click.echo(f"{'[SIMULACIÓN] ' if dry_run else '✓ '}{f}: {len(problemas)} problemas corregidos")
+            modified_count += 1
+
+    click.echo(f"\nFinalizado: {modified_count} archivos modificados.")
+
 
 @fix_app.command(name="code-chars")
 def code_chars(

@@ -18,6 +18,16 @@ from voight.core.gift_semantics import (  # noqa: F401
 )
 
 
+# Las marcas de alucarD para el PDF: `// [corte]`, `// [numerar]` y `// [sin-numerar]`. En XML, comentarios de HTML.
+MARCA_DEL_PDF = r"<!--(corte|numerar|sin-numerar)-->"
+_CORTE = re.compile(r"//\s*\[(corte|numerar|sin-numerar)\]", re.I)
+_CORTE_EN_EL_BORDE = re.compile(rf"(?:\s*{MARCA_DEL_PDF})+\s*$")
+_CATEGORIA = re.compile(r"\[category[:,]\s*(.+?)\s*\]", re.I)
+# La sintaxis anterior de alucarD, que Moodle no entiende: `voight fix moodle` la migra.
+_METADATO_VIEJO = re.compile(r"[ \t]*\[(?P<clave>tags?|category):\s*(?P<valor>[^\]\n]+?)\s*\][ \t]*", re.I)
+_DESARROLLO_VIEJO = re.compile(r"\{\s*desarrollo(?::(?P<tamano>pequeno|mediano|grande))?\s*\}", re.I)
+
+
 def _partir_sin_escapar(texto: str, marcas: str) -> list:
     """Trozos que empiezan en cada carácter de `marcas` sin escapar (sin la marca)."""
     trozos, actual, en_trozo, i = [], [], False, 0
@@ -58,8 +68,8 @@ class GiftParser:
     def _manual_parse(self, content: str) -> list:
         """Parsea contenido GIFT línea a línea y devuelve la lista de preguntas (único parser del paquete)."""
         questions = []
-        
         lines = proteger_gift(content).split('\n')
+
         current_block: list = []
         current_comments: list = []
         
@@ -85,6 +95,9 @@ class GiftParser:
             
             # Comments (may contain tags/ids)
             if stripped.startswith('//'):
+                marca = _CORTE.fullmatch(stripped)
+                if marca and current_block:
+                    current_block += ["", f"<!--{marca.group(1).lower()}-->", ""]
                 current_comments.append(stripped[2:])
                 i += 1
                 continue
@@ -120,10 +133,27 @@ class GiftParser:
         if not lines:
             return None
         
-        text = '\n'.join(lines)
+        text = _CORTE_EN_EL_BORDE.sub("", '\n'.join(lines))
         semantics = GiftSemantics()
         tags, question_id = semantics._extract_tags_and_id(comments)
-        
+        en_comentario = _CATEGORIA.search(" ".join(str(c) for c in comments))
+        categoria: Optional[str] = en_comentario.group(1) if en_comentario else None
+
+        def metadato_viejo(m: re.Match) -> str:
+            nonlocal categoria
+            if m.group("clave").lower() == "category":
+                categoria = m.group("valor")
+            else:
+                tags.extend(t.strip() for t in m.group("valor").split(",") if t.strip())
+            return ""
+
+        def desarrollo_viejo(m: re.Match) -> str:
+            if m.group("tamano"):
+                tags.append(f"desarrollo-{m.group('tamano').lower()}")
+            return "{}"
+
+        text = _DESARROLLO_VIEJO.sub(desarrollo_viejo, _METADATO_VIEJO.sub(metadato_viejo, text))
+
         # Extract title
         title = None
         title_match = re.match(r'^::([^:]+(?::(?!:)[^:]*)*)::(.*)$', text, re.DOTALL)
@@ -147,6 +177,7 @@ class GiftParser:
             question.tags = tags
             question.has_embedded_answers = bool(despues.strip())
             question.metadata = leer_clasificacion(" ".join(str(c) for c in comments), tags)
+            question.categoria = categoria
             return question
         if partes is None:
             # Description (no answer block)
@@ -158,6 +189,7 @@ class GiftParser:
                 id=question_id,
                 tags=tags,
                 metadata=leer_clasificacion(" ".join(str(c) for c in comments), tags),
+                categoria=categoria,
             )
         
         stem_before, answer_block = partes
@@ -192,12 +224,13 @@ class GiftParser:
         question.tags = tags
         question.has_embedded_answers = bool(stem_after)
         question.metadata = leer_clasificacion(" ".join(str(c) for c in comments), tags)
-        
+        question.categoria = categoria
+
         return question
     
     def _parse_stem(self, before: str, after: str, semantics: GiftSemantics) -> FormattedText:
         """Parse the question stem, handling format specification."""
-        text = before
+        text = _CORTE_EN_EL_BORDE.sub("", before)
         fmt = "moodle"
         
         # Check for format at start
@@ -205,7 +238,9 @@ class GiftParser:
         if format_match:
             fmt = format_match.group(1)
             text = format_match.group(2)
-        
+        if fmt == "plain":  # ahí un comentario de HTML se vería
+            text = re.sub(rf"\s*{MARCA_DEL_PDF}\s*", "\n", text)
+
         if after:
             text = text + " _____ " + after
         
@@ -213,6 +248,7 @@ class GiftParser:
     
     def _parse_answers(self, block: str, semantics: GiftSemantics) -> Question:
         """Parse the answer block and determine question type."""
+        block = re.sub(MARCA_DEL_PDF, "", block).strip()
         block = block.strip()
         
         # Essay (empty block)

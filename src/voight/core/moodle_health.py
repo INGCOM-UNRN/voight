@@ -31,6 +31,7 @@ from voight.core.codigo import diagnosticar_codigo, transformar_textos_xml
 from voight.core.metadatos import NIVELES_BLOOM, codigo_bloom
 from voight.core.moodle_xml import parse_xml
 from voight.core.formulas import a_preprocesar
+from voight.core.moodle_gift import revisar as revisar_gift
 from voight.core.parser import parse_gift
 
 # Fracciones que Moodle acepta al importar (question_bank::fraction_options_full);
@@ -600,6 +601,7 @@ def auditar_archivos(
     archivos_codigo: List[dict] = []
     html_obsoleto: List[dict] = []
     a_preprocesar_gift: List[dict] = []
+    gift_incompatible: List[dict] = []
     sin_preguntas: List[str] = []
     archivos = list(archivos)
     # Cada carpeta se resuelve una sola vez (resolve es lo más caro de recorrer el banco).
@@ -644,6 +646,9 @@ def auditar_archivos(
         cuenta = a_preprocesar(contenido) if formato == "gift" else {}
         if any(cuenta.values()):
             a_preprocesar_gift.append({"archivo": str(ruta), **cuenta})
+        problemas = revisar_gift(contenido) if formato == "gift" else []
+        if problemas:
+            gift_incompatible.append({"archivo": str(ruta), "problemas": len(problemas), "primero": problemas[0]})
         if texto["html_obsoleto"]:
             html_obsoleto.append({"archivo": str(ruta), "ocurrencias": texto["html_obsoleto"]})
 
@@ -659,6 +664,7 @@ def auditar_archivos(
         "enlaces": enlaces,
         "html_obsoleto": html_obsoleto,
         "gift_a_preprocesar": a_preprocesar_gift,
+        "gift_incompatible": gift_incompatible,
     }
     resultado["resumen"] = resumir_hallazgos(resultado)
     if con_preguntas:
@@ -730,6 +736,8 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
         ("html_obsoleto", "archivos con HTML obsoleto", len(resultado["html_obsoleto"])),
         ("gift_a_preprocesar", "archivos GIFT con diagramas, tablas o fórmulas, que Moodle no dibuja (pasalos a XML y "
          "fusionalos con `voight unify`)", len(resultado.get("gift_a_preprocesar", []))),
+        ("gift_incompatible", "archivos GIFT con metadatos, `{desarrollo}` o `:` que Moodle no importa bien "
+         "(corregilos con `voight fix moodle`)", len(resultado.get("gift_incompatible", []))),
         ("codigo_c_fragmento", "preguntas con un fragmento de C que no se puede compilar solo (identificadores sin declarar)",
          len(resultado.get("compilacion", {}).get("fragmentos", []))),
     )

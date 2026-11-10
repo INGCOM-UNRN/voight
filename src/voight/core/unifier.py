@@ -15,6 +15,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 from voight.core.converter import _cdata_sub
 from voight.core.formatter import _bloques_gift
 from voight.core.incrustar import incrustar_pregunta
+from voight.core.moodle_gift import corregir, quitar_cortes, sin_cortes
 from voight.core.tree import (
     _protect_backslashes_in_code,
     serializar_quiz,
@@ -81,7 +82,7 @@ def unificar_gift(
         archivos_procesados.append(filepath)
 
     archivo_salida.parent.mkdir(parents=True, exist_ok=True)
-    archivo_salida.write_text("\n".join(lineas_salida).strip() + "\n", encoding="utf-8")
+    archivo_salida.write_text(corregir(sin_cortes("\n".join(lineas_salida).strip() + "\n")), encoding="utf-8")
 
     if eliminar_origen:
         for f in archivos_procesados:
@@ -103,7 +104,8 @@ def unificar_xml(
 
     Preserva las categorías de carpetas y las etiquetas de categoría internas. Con
     `incrustar`, los diagramas, las fórmulas y las imágenes relativas de cada pregunta se
-    adjuntan a la salida (ver `incrustar.py`); los archivos fuente no cambian.
+    adjuntan a la salida (ver `incrustar.py`). La salida no lleva marcas de corte. Los archivos
+    fuente no cambian.
     """
     archivos_xml: List[Tuple[str, Path]] = []
 
@@ -153,6 +155,7 @@ def unificar_xml(
                 ruta_cat = f"$course$/{cat_rel}" if cat_rel else "$course$"
                 _cdata_sub(cat, "text", ruta_cat)
 
+            quitar_cortes(question)
             if incrustar:
                 incrustar_pregunta(question, filepath.parent, formato_diagrama)
             quiz_root.append(question)

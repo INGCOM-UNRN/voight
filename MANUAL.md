@@ -345,6 +345,7 @@ Correcciones puntuales, en GIFT, Moodle XML y Markdown; todas aceptan `-r` y `-n
 - `fix code-lang`: agrega la etiqueta de lenguaje a los bloques ``` que no la tienen (detecta C o Java; `--lenguaje` fija uno).
 - `fix code-format`: formatea el código C y Java con clang-format (el instalado o `uvx clang-format`), estilo LLVM con sangría de 4 (`--estilo` para otro; `--estilo allman` u otro estilo de llaves las aplica sobre ese estilo).
 - `fix code-chars --to-fullwidth|--to-normal` y `fix code-indent`: caracteres fullwidth y marcas del código, combinables: `code-chars` cambia los símbolos y conserva la indentación `·` y los `↵` (con `--to-fullwidth` los agrega; `--sin-marcas` no los agrega y, con `--to-normal`, los quita), y `code-indent` marca la indentación.
+- `fix moodle`: deja los GIFT importables en Moodle tal cual, con las reglas de `alucard lint-gift`: `[tag, a, b]` y `[category, C]` en un comentario, `{desarrollo:grande}` como `{}` con su etiqueta `desarrollo-grande` y los `:` sueltos como `\:`. Los diagramas y las fórmulas quedan como están, porque igual hay que preprocesarlos. `health` avisa qué archivos lo necesitan; `unify` a GIFT y `convert xml-to-gift` ya escriben así.
 - `fix slugify`, `fix name-from-title`, `fix title-from-name`: nombres de archivo y títulos.
 - `fix clean-html`: limpia el HTML obsoleto (`<font>`, `<center>`, `<marquee>`) y los estilos inline que informa `health`.
 - `fix clean-tags`: elimina las secciones `<tags>` de las preguntas Moodle XML.
@@ -471,6 +472,9 @@ imágenes incrustadas. Los archivos fuente no se modifican.
 - **Tablas**: un bloque ```` ```tabla ```` con sintaxis Markdown pasa a una tabla HTML con sus bordes
   en línea, y las fórmulas de sus celdas a imágenes. Las opciones `// […]` valen para el PDF de
   alucarD y acá no se aplican.
+- **Marcas de corte y de números de línea**: `unify` y `tree collect` sacan los `// [corte]`, `// [numerar]` y `// [sin-numerar]` de alucarD, y sus `<!--corte-->`, también
+  con `--no-incrustar`, porque un banco fusionado es para Moodle. Los archivos fuente las conservan. `convert` no
+  fusiona: pasa cada marca a su comentario de HTML y `convert xml-to-gift` la devuelve.
 - **Imágenes relativas**: `![alt](img/a.png)` y `<img src="img/a.png">` se resuelven
   contra el directorio del archivo de la pregunta. Las URL absolutas, `data:` y
   `@@PLUGINFILE@@` quedan como están.

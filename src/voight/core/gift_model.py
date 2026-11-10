@@ -70,6 +70,8 @@ class Question:
     metadata: dict = field(default_factory=dict)
     # Sólo desde Moodle XML: penalty, defaultgrade, shuffleanswers, answernumbering, single.
     moodle: dict = field(default_factory=dict)
+    # `// [category, ruta]`: la categoría de esta pregunta, en lugar de la del `$CATEGORY` vigente.
+    categoria: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary, excluding None values and empty lists."""

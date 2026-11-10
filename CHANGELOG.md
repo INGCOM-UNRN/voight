@@ -9,6 +9,11 @@ versiones según [SemVer](https://semver.org/lang/es/).
 ### Agregado
 
 - **unify**: al fusionar Moodle XML, los bloques ```` ```plantuml ```` (o `class="plantuml"`) pasan a imágenes con las opciones de alucarD: posición, medidas, escala, letra, color, tema y texto alternativo. `doctor` dice qué PlantUML encontró; `health`, `convert gift-to-xml` y `moodle subir` los advierten como a los demás diagramas.
+- **fix moodle**: comando nuevo con las reglas de `alucard lint-gift`. `health` avisa qué GIFT lo necesitan, y `unify` a GIFT y `convert xml-to-gift` escriben así.
+- **convert**: las etiquetas `desarrollo-cero`, `-chico` y `-pagina` de alucarD dan 5, 5 y 40 renglones en el XML.
+- **unify, tree collect**: la salida no lleva las marcas `// [corte]`, `// [numerar]` ni `// [sin-numerar]`, que `convert` conserva.
+- **convert**: `// [corte]` viaja como `<!--corte-->` y vuelve; `// [category, ruta]` es un cambio de categoría sólo para esa pregunta; `desarrollo-pequeno` y `-grande` dan 5 y 20 renglones en el XML.
+- **parser**: lee la sintaxis anterior de alucarD: `[tags: a]`, `[category: b]` y `{desarrollo:grande}`, que antes quedaban como texto o como respuesta corta.
 - **unify**: al fusionar Moodle XML, los bloques ```` ```tabla ```` de alucarD pasan a tablas HTML con sus bordes en línea, y las fórmulas de sus celdas a imágenes.
 - **fix format**: alinea los `|` de los bloques ```` ```tabla ````, en GIFT y en Moodle XML. `fix code-chars` y `--fullwidth` no los tocan: no son código.
 - **unify**: al fusionar Moodle XML, las fórmulas `$...$` y `$$...$$` (en HTML, también `\(...\)` y `\[...\]`) se dibujan como SVG con alucarD y se incrustan como imagen `@@PLUGINFILE@@` en el renglón, con el LaTeX como texto alternativo. Las respuestas que no son de opción múltiple quedan como texto, porque se comparan al calificar. `doctor` informa si está el renderizador.
@@ -27,6 +32,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 ### Corregido
 
 - **convert gift-to-xml**: se perdían las opciones `// […]` de los bloques ```` ```tabla ````.
+- **fix format**: `{}` quedaba en dos renglones.
 - **health**: los bloques ```` ```tabla ```` contaban como código sin proteger.
 - **fix grammar**: ya no acepta archivos `.txt`.
 - **convert gift-to-xml**: las etiquetas se perdían; ahora viajan como `<tags>`.

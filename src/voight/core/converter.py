@@ -1,8 +1,9 @@
 import re
 import xml.etree.ElementTree as ET
 
-from voight.core.parser import GiftParser, Question
 from voight.core.formulas import fuera_de_plantuml
+from voight.core.moodle_gift import corregir
+from voight.core.parser import MARCA_DEL_PDF, GiftParser, Question
 
 
 def convert_html_tags_to_markdown(text):
@@ -58,6 +59,11 @@ def html_a_markdown_xml(xml: str) -> tuple:
 
 _CD_OPEN = "\ue000"
 _CD_CLOSE = "\ue001"
+
+
+# Los renglones de un ensayo según su tamaño, que viaja como etiqueta (alucarD la lee también del XML).
+_RENGLONES_DESARROLLO = {"desarrollo-cero": "5", "desarrollo-chico": "5", "desarrollo-pequeno": "5",
+                         "desarrollo-mediano": "10", "desarrollo-grande": "20", "desarrollo-pagina": "40"}
 
 
 def _escape_gift(text: str, context: str = "stem") -> str:
@@ -220,7 +226,7 @@ def _pregunta_a_xml(q: Question, defaultgrade: float = 1.0) -> ET.Element:
 
     elif q.type == "Essay":
         _plain_sub(el, "responseformat", "editor")
-        _plain_sub(el, "responsefieldlines", "10")
+        _plain_sub(el, "responsefieldlines", next((v for k, v in _RENGLONES_DESARROLLO.items() if k in q.tags), "10"))
         _plain_sub(el, "defaultgrade", f"{defaultgrade:g}")
         _plain_sub(el, "penalty", "0")
 
@@ -319,10 +325,22 @@ def _etiquetas_a_xml(pregunta: ET.Element, tags) -> None:
 
 
 def gift_to_xml(gift_content: str) -> str:
-    """Convierte contenido GIFT a Moodle XML usando el modelo unificado de preguntas."""
+    """Convierte contenido GIFT a Moodle XML usando el modelo unificado de preguntas.
+
+    `// [category, ruta]` vale para una sola pregunta: en XML es un cambio de categoría que se deshace
+    después de ella.
+    """
     preguntas = GiftParser()._manual_parse(gift_content or "")
     quiz = ET.Element("quiz")
+    declarada, vigente = None, None
     for q in preguntas:
+        if q.type == "Category":
+            declarada = vigente = q.title
+        else:
+            destino = f"$course$/top/{q.categoria}" if q.categoria else declarada
+            if destino != vigente:
+                quiz.append(_pregunta_a_xml(Question(type="Category", title=destino or "$course$/top")))
+                vigente = destino
         pregunta = _pregunta_a_xml(q)
         _etiquetas_a_xml(pregunta, q.tags)
         quiz.append(pregunta)
@@ -392,6 +410,12 @@ def _seguro_para_gift(gift: str) -> str:
     return fuera_de_codigo(transformar_secciones(gift, proteger, "gift")[0], parrafos, "gift")
 
 
+def _con_cortes(gift: str) -> str:
+    """El GIFT protegido, con cada `<!--corte-->` como `// [corte]`, y lo mismo con `numerar`."""
+    gift = re.sub(rf"\s*{MARCA_DEL_PDF}\s*", r"\n<!--\1-->\n", gift)
+    return re.sub(MARCA_DEL_PDF, r"// [\1]", _seguro_para_gift(gift))
+
+
 def xml_to_gift(xml_content: str) -> str:
     """Convierte contenido Moodle XML a GIFT: XML → modelo unificado → GIFT.
 
@@ -411,8 +435,8 @@ def xml_to_gift(xml_content: str) -> str:
         elif q.type in _TIPOS_GIFT:
             # idnumber y tags viajan en el comentario que GIFT (y el parser) entienden.
             meta = ([f"[id:{q.id}]"] if q.id else []) + ([f"[tag, {', '.join(q.tags)}]"] if q.tags else [])
-            bloques.append((f"// {' '.join(meta)}\n" if meta else "") + _seguro_para_gift(question_to_gift(q)))
+            bloques.append((f"// {' '.join(meta)}\n" if meta else "") + _con_cortes(question_to_gift(q)))
         else:
             # Cloze y plugins: el enunciado también necesita las protecciones de GIFT.
-            bloques.append(_seguro_para_gift(_sin_equivalente_gift(nodo)))
-    return "\n\n".join(b for b in bloques if b.strip()) + ("\n" if bloques else "")
+            bloques.append(_con_cortes(_sin_equivalente_gift(nodo)))
+    return corregir("\n\n".join(b for b in bloques if b.strip()) + ("\n" if bloques else ""))

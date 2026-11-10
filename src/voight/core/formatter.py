@@ -185,9 +185,12 @@ def format_gift_content(content: str, correct_first: bool = False) -> str:
                     ordenadas = sorted(opciones, key=lambda u: _peso_opcion(u[0]), reverse=True)
                     ans_lines = [linea for u in ordenadas + otras for linea in u]
 
-            parts.append("{")
-            parts.extend("    " + a for a in ans_lines)
-            parts.append("}")
+            if ans_lines:
+                parts.append("{")
+                parts.extend("    " + a for a in ans_lines)
+                parts.append("}")
+            else:
+                parts.append("{}")  # el ensayo de Moodle
 
         formatted_questions.append("\n".join(parts))
 
