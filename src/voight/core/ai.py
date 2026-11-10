@@ -6,7 +6,7 @@ un servidor local con la API de OpenAI (Ollama, llama.cpp…), OpenCode o Claude
 El modelo siempre recibe GIFT compacto, el formato más corto para una pregunta y el
 que los LLM conocen mejor:
 
-- GIFT: el bloque de la pregunta sin comentarios (`// [tag:…]`, `[id:…]`) ni
+- GIFT: el bloque de la pregunta sin comentarios (`// [tag, …]`, `[id:…]`) ni
   `$CATEGORY`, que se conservan aparte y se vuelven a poner al escribir.
 - Moodle XML: la pregunta pasa por el modelo unificado y se serializa a GIFT; la
   respuesta se aplica sobre el `<question>` original, que conserva todo lo que GIFT no

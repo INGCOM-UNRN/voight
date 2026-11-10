@@ -226,5 +226,5 @@ def test_gift_conserva_el_resto_del_archivo_y_edita_los_tags(tmp_path):
     texto = (tmp_path / "p.gift").read_text(encoding="utf-8")
     assert texto.startswith("$CATEGORY: $course$/Animales\n")
     assert "// [bloom:B1-recordar]" in texto and "[id:p1]" in texto
-    assert "[tag:viejo]" not in texto and "[tag:nuevo]" in texto
+    assert "[tag:viejo]" not in texto and "[tag, nuevo]" in texto
     assert "¿Ladra el perro?" in texto and "::Segunda:: ¿Maúlla? {F}" in texto

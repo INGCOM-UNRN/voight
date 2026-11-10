@@ -22,8 +22,11 @@ versiones según [SemVer](https://semver.org/lang/es/).
 ### Corregido
 
 - **fix grammar**: ya no acepta archivos `.txt`.
+- **convert gift-to-xml**: las etiquetas se perdían; ahora viajan como `<tags>`.
 
 ### Cambiado
+
+- **etiquetas**: se escriben `// [tag, a, b]`, sin `:`. `[tag:x]`, el formato que exporta Moodle, se sigue leyendo. Moodle ignora la forma nueva: un GIFT importado directo llega sin etiquetas, y `convert gift-to-xml` las pasa al XML.
 
 - **config**: un solo juego de comandos sobre `~/.voight/.env`: `config set|get|unset CLAVE`, `config show` y `config models`, con las claves `gemini-key`, `anthropic-key`, `typesafe-key`, `moodle-token`, `moodle-url` (nueva), `proveedor` (acepta todos los de yutani.ia, no sólo gemini o claude) y `modelo` (`VOIGHT_MODELO`, para cualquier proveedor). `set` sin valor lo pide sin mostrarlo; `show` oculta los secretos, dice cuáles vienen del entorno y muestra la IA efectiva con su origen. Lo guardado llega al entorno de todos los comandos (antes `MOODLE_URL` no se leía del archivo). Los nueve comandos anteriores (`set-key`, `set-anthropic-key`, `set-typesafe-key`, `set-moodle-token`, `set-provider`, `set-model`, `show-key`, `unset-key`, `list-models`) avisan y siguen funcionando.
 - **interfaz**: una sola forma de hacer cada cosa. `voight health` es el diagnóstico (su ayuda muestra sus opciones, con `stats` y `similar` como subcomandos); `health check` y `health validate` (que daba el mismo informe que `health stats`) quedan como nombres anteriores, y `health` suma lo que sólo detectaba validate: respuesta corta o numérica sin respuestas y emparejamiento con menos de 2 pares (errores) y archivos sin preguntas (advertencia). `health` ya no escribe: `--clean-html` pasa a `fix clean-html`. `split -o DIR` reemplaza a `tree export` y `unify` (ahora con `--json`) a `tree collect`. `fix xml cdata` pasa a `fix format`, `fix xml rename` a `fix name-from-title` y `fix xml clean-tags` a `fix clean-tags`. Los nombres anteriores siguen funcionando, avisan por stderr y se van a retirar; el hook `voight-validate` queda igual a `voight-health`.

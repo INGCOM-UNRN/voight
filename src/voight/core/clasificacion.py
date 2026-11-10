@@ -241,7 +241,7 @@ class Clasificacion:
             confianzas.append(self.respuestas_confianza or 0.0)
         partes.append(f"{MARCA}{self.modelo} confianza={','.join(f'{c:g}' for c in confianzas)}]")
         if tags:
-            partes += [f"[tag:{t}]" for t in self.tags()]
+            partes.append(f"[tag, {', '.join(self.tags())}]")
         return " ".join(partes)
 
     def tags(self) -> List[str]:

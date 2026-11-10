@@ -482,12 +482,12 @@ class GiftQuestionAdapter:
         Path(filepath).write_text(nuevo, encoding='utf-8')
 
 
-_TAG = re.compile(r'\s*\[tag:[^\]]+\]')
+_TAG = re.compile(r'\s*\[tag[:,][^\]]+\]')
 
 
 def _reemplazar_primera_pregunta(contenido: str, gift: str, tags) -> str:
     """Reemplaza el bloque de la primera pregunta (separado como lo hace el parser) y,
-    si se pasan `tags`, los [tag:…] del comentario que la precede."""
+    si se pasan `tags`, los [tag, …] del comentario que la precede."""
     lineas = contenido.split('\n')
     inicio = next((i for i, linea in enumerate(lineas)
                    if linea.strip() and not linea.strip().startswith(('//', '$CATEGORY:'))), None)
@@ -515,7 +515,7 @@ def _reemplazar_primera_pregunta(contenido: str, gift: str, tags) -> str:
         previos = [_TAG.sub('', c).rstrip() for c in previos]
         previos = [c for c in previos if c.strip() not in ('//', '')]
         if tags:
-            previos.append('// ' + ' '.join(f'[tag:{t}]' for t in tags))
+            previos.append(f"// [tag, {', '.join(tags)}]")
 
     lineas[comentarios:fin] = previos + gift.split('\n')
     return '\n'.join(lineas).rstrip('\n') + '\n'

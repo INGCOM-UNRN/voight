@@ -64,7 +64,7 @@ def test_xml_a_gift_sobre_el_modelo_es_gift_valido_y_sin_perdidas():
     from voight.core.moodle_xml import parse_xml
 
     gift = xml_to_gift(XML_PARRAFOS)
-    assert gift.startswith("// [id:L-1] [tag:enlace]\n::Linkage::[markdown]")
+    assert gift.startswith("// [id:L-1] [tag, enlace]\n::Linkage::[markdown]")
     pregunta = parse_gift(gift)["questions"][0]
     original = parse_xml(XML_PARRAFOS)["questions"][0]
     assert pregunta["type"] == "MC" and pregunta["id"] == "L-1" and pregunta["tags"] == ["enlace"]

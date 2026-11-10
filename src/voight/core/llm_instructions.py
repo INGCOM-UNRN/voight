@@ -67,7 +67,7 @@ GENERAL_INSTRUCTIONS = r"""
 # Instrucciones Generales para LLM (Questions CLI)
 - Priorizá siempre el formato GIFT por su legibilidad sobre el XML.
 - Usá el CLI para validar cada cambio antes de dar por finalizada una tarea.
-- Mantené la consistencia en el etiquetado (`// [tag:nombre]`) e identificadores (`// [id:id]`).
+- Mantené la consistencia en el etiquetado (`// [tag, nombre]`) e identificadores (`// [id:id]`).
 - `-r` es el flag para procesamiento recursivo en directorios, asegurate de usarlo cuando trabajes con múltiples archivos.
 """
 

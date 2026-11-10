@@ -305,12 +305,22 @@ def question_to_gift(q: Question, escapar_codigo: bool = True) -> str:
     return f"{encabezado}{enunciado}\n{bloque}"
 
 
+def _etiquetas_a_xml(pregunta: ET.Element, tags) -> None:
+    """Moodle no lee `// [tag, x]` en un GIFT: en XML viajan como `<tags>`."""
+    if tags:
+        contenedor = _plain_sub(pregunta, "tags")
+        for tag in tags:
+            _cdata_sub(_plain_sub(contenedor, "tag"), "text", tag)
+
+
 def gift_to_xml(gift_content: str) -> str:
     """Convierte contenido GIFT a Moodle XML usando el modelo unificado de preguntas."""
     preguntas = GiftParser()._manual_parse(gift_content or "")
     quiz = ET.Element("quiz")
     for q in preguntas:
-        quiz.append(_pregunta_a_xml(q))
+        pregunta = _pregunta_a_xml(q)
+        _etiquetas_a_xml(pregunta, q.tags)
+        quiz.append(pregunta)
     return _serializar_quiz(quiz)
 
 
@@ -395,7 +405,7 @@ def xml_to_gift(xml_content: str) -> str:
             bloques.append(f"$CATEGORY: $course${'/' + ruta if ruta else ''}")
         elif q.type in _TIPOS_GIFT:
             # idnumber y tags viajan en el comentario que GIFT (y el parser) entienden.
-            meta = ([f"[id:{q.id}]"] if q.id else []) + [f"[tag:{t}]" for t in q.tags]
+            meta = ([f"[id:{q.id}]"] if q.id else []) + ([f"[tag, {', '.join(q.tags)}]"] if q.tags else [])
             bloques.append((f"// {' '.join(meta)}\n" if meta else "") + _seguro_para_gift(question_to_gift(q)))
         else:
             # Cloze y plugins: el enunciado también necesita las protecciones de GIFT.

@@ -125,8 +125,9 @@ class GiftSemantics:
             if id_match:
                 question_id = id_match.group(1).strip()
             # Extract tags
-            for tag_match in re.finditer(r'\[tag:([^\]]+)\]', comment_str):
-                tags.append(tag_match.group(1).strip())
+            # `[tag, a, b]` es el nuestro y `[tag:a]`, el que exporta Moodle.
+            for separador, valor in re.findall(r'\[tag([:,])([^\]]+)\]', comment_str):
+                tags += [t.strip() for t in (valor.split(',') if separador == ',' else [valor])]
         
         return tags, question_id
     

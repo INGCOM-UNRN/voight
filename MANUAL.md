@@ -168,7 +168,7 @@ Antes de llamar al modelo informa una estimación de tokens (y de costo, con `--
 
 El modelo siempre recibe **GIFT compacto**, el formato más corto y el que los LLM conocen mejor:
 
-- No se envían comentarios (`// [tag:…]`, `[id:…]`), `$CATEGORY` ni la estructura del XML; se conservan aparte.
+- No se envían comentarios (`// [tag, …]`, `[id:…]`), `$CATEGORY` ni la estructura del XML; se conservan aparte.
 - El código va en ASCII normal y sin las marcas `·`/`↵` (los símbolos fullwidth cuestan más tokens); la respuesta se vuelve a proteger y cada archivo recupera la convención de su original.
 - En XML la respuesta se aplica sobre el `<question>` original: se conservan penalización, puntaje, numeración, tags, `idnumber` y formatos. Las variaciones de `multiply` no repiten el `idnumber`.
 - Una respuesta que no es GIFT válido, que cambia el tipo o (en `improve`) la cantidad de opciones o de correctas deja la pregunta original.
