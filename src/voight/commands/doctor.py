@@ -63,8 +63,22 @@ def doctor_cmd(
         "detalle": mmdc_path or "No encontrado: `npm install -g @mermaid-js/mermaid-cli` (o VOIGHT_MMDC)",
     })
 
-    # Diagramas de estructuras (```estructura) incrustados al fusionar: el renderizador de alucarD.
-    from voight.core.incrustar import motor_estructuras
+    # Diagramas ```plantuml incrustados al fusionar: alucarD y el programa `plantuml`.
+    from voight.core.incrustar import motor_plantuml
+
+    motor = motor_plantuml()
+    plantuml = motor.comando() if motor else None
+    diagnostico.append({
+        "componente": "PlantUML (diagramas en unify)",
+        "estado": "OK" if plantuml else "ADVERTENCIA",
+        "requerido": False,
+        "detalle": (" ".join(plantuml) if plantuml else
+                    "No encontrado: instalá plantuml (o ALUCARD_PLANTUML / PLANTUML_JAR)" if motor else
+                    "No instalado: los bloques ```plantuml los arma alucarD"),
+    })
+
+    # Diagramas de estructuras (```estructura) y fórmulas incrustados al fusionar: alucarD.
+    from voight.core.incrustar import motor_estructuras, motor_formulas, motor_tablas
 
     estructuras_ok = motor_estructuras() is not None
     diagnostico.append({
@@ -73,6 +87,14 @@ def doctor_cmd(
         "requerido": False,
         "detalle": ("generador_examenes.diagramas disponible" if estructuras_ok
                     else "No instalado: los bloques ```estructura los dibuja alucarD"),
+    })
+    formulas_ok = motor_formulas() is not None and motor_tablas() is not None
+    diagnostico.append({
+        "componente": "Fórmulas y tablas (alucarD, en unify)",
+        "estado": "OK" if formulas_ok else "ADVERTENCIA",
+        "requerido": False,
+        "detalle": ("generador_examenes.matematica y tablas disponibles" if formulas_ok
+                    else "No instalado, o anterior a `a_svg`: las fórmulas y las tablas las arma alucarD"),
     })
 
     # Proveedor de IA de `voight ai` (opcional): el diagnóstico común de yutani.ia.

@@ -3,7 +3,7 @@ import typer
 from pathlib import Path
 from typing import List, Optional
 
-from voight.commands.common import LLM_OPTION, emitir_json, fail
+from voight.commands.common import LLM_OPTION, avisar_preprocesamiento, emitir_json, fail
 from voight.core.unifier import unificar
 
 
@@ -29,7 +29,7 @@ def unify(
     ),
     incrustar: bool = typer.Option(
         True, "--incrustar/--no-incrustar",
-        help="XML: cambia los diagramas mermaid y de estructuras y las imágenes relativas por imágenes incrustadas en la salida."),
+        help="XML: cambia los diagramas mermaid y de estructuras, las fórmulas y las imágenes relativas por imágenes incrustadas en la salida, y los ```tabla por tablas HTML."),
     formato_diagrama: str = typer.Option(
         "png", "--diagramas",
         click_type=click.Choice(["png", "svg"]),
@@ -43,11 +43,17 @@ def unify(
     y genera un único banco monolítico (.gift o .xml).
 
     En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`), los
-    ```estructura con alucarD, y esos diagramas y las imágenes con ruta relativa al
-    archivo de la pregunta quedan como imágenes incrustadas en la salida.
+    ```estructura y las fórmulas `$...$` con alucarD, y esos diagramas, las fórmulas y las
+    imágenes con ruta relativa al archivo de la pregunta quedan como imágenes incrustadas en
+    la salida, y los ```tabla, como tablas HTML. En GIFT no se pueden convertir: avisa qué
+    archivos los tienen.
     """
     if not paths:
         paths = [Path(".")]
+
+    # Antes de fusionar: con --remove, los archivos dejan de existir.
+    if (formato or output_file.suffix.lstrip(".") or "gift").lower() == "gift":
+        avisar_preprocesamiento(paths, recursive)
 
     try:
         total = unificar(

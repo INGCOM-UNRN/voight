@@ -2,16 +2,21 @@
 
 GIFT: comentarios, `::Título::`, enunciado, `{` y `}` en líneas propias y una opción
 por línea con 4 espacios de sangría. Moodle XML: sangría de 2 espacios y todo `<text>`
-con contenido en CDATA. En ambos, `correct_first` ordena las opciones de opción
+con contenido en CDATA. En ambos, los `|` de los bloques ```tabla quedan alineados. En ambos, `correct_first` ordena las opciones de opción
 múltiple por porcentaje (la correcta primero). La transformación del código
 (fullwidth y marcas `·`/`↵`) vive en `voight.core.codigo`.
 """
 
 import re
+import unicodedata
 import xml.etree.ElementTree as ET
 
 from voight.core.codigo import aislar_guardas, transformar_archivo, transformar_codigo
+from voight.core.formulas import proteger_bloques, restaurar
 from voight.core.gift_semantics import _extraer_ultimo_grupo_llaves, corta_en_blanco
+
+_BLOQUE_TABLA = re.compile(r"(?P<valla>`{3,}|~{3,})[ \t]*tabla[ \t]*\n(?P<cuerpo>.*?\n)(?P<cierre>[ \t]*(?P=valla))", re.S | re.I)
+_SEPARADOR = re.compile(r":?-+:?")
 
 
 # ---------------------------------------------------------------------------
@@ -21,7 +26,7 @@ from voight.core.gift_semantics import _extraer_ultimo_grupo_llaves, corta_en_bl
 def _bloques_gift(content: str) -> list[str]:
     """Separa las preguntas como el parser (ver `corta_en_blanco`): el código con líneas
     en blanco queda en su pregunta y una pregunta sin cerrar no se traga las siguientes."""
-    lineas = content.split("\n")
+    lineas = proteger_bloques(content).split("\n")
     bloques: list[str] = []
     actual: list[str] = []
     for i, linea in enumerate(lineas):
@@ -37,7 +42,7 @@ def _bloques_gift(content: str) -> list[str]:
         actual.append(linea)
     if actual:
         bloques.append("\n".join(actual))
-    return bloques
+    return [restaurar(b) for b in bloques]
 
 
 def _codigo_abierto(texto: str) -> bool:
@@ -243,11 +248,73 @@ def format_xml_content(content: str, correct_first: bool = False) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + xml + "\n"
 
 
+def _ancho(texto: str) -> int:
+    """Columnas que ocupa un texto en una fuente monoespaciada: fullwidth ocupa dos."""
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in texto
+               if not unicodedata.combining(c))
+
+
+def _celdas(fila: str) -> list[str]:
+    """Las celdas de una fila `| a | b |`: un `|` escapado o en código no separa."""
+    fila = fila.strip()
+    fila = fila[1:] if fila.startswith("|") else fila
+    celdas, actual, en_codigo, i = [], "", False, 0
+    while i < len(fila):
+        c = fila[i]
+        if c == "\\" and i + 1 < len(fila):
+            actual += fila[i:i + 2]
+            i += 2
+            continue
+        if c == "`":
+            en_codigo = not en_codigo
+        if c == "|" and not en_codigo:
+            celdas.append(actual.strip())
+            actual = ""
+        else:
+            actual += c
+        i += 1
+    if actual.strip():
+        celdas.append(actual.strip())
+    return celdas
+
+
+def _separador(celda: str, ancho: int) -> str:
+    """`---`, `:---`, `---:` o `:---:` del ancho de la columna."""
+    izquierda, derecha = ":" * celda.startswith(":"), ":" * celda.endswith(":")
+    return izquierda + "-" * (ancho - len(izquierda) - len(derecha)) + derecha
+
+
+def _alinear_filas(filas: list[str]) -> list[str]:
+    tabla = [_celdas(fila) for fila in filas]
+    columnas = max(len(fila) for fila in tabla)
+    tabla = [fila + [""] * (columnas - len(fila)) for fila in tabla]
+    separadores = [i for i, fila in enumerate(tabla) if all(_SEPARADOR.fullmatch(c) or not c for c in fila)]
+    anchos = [max(3, *(_ancho(fila[j]) for i, fila in enumerate(tabla) if i not in separadores))
+              for j in range(columnas)]
+    return ["| " + " | ".join(_separador(c or "-", a) if i in separadores else c + " " * (a - _ancho(c))
+                              for c, a in zip(fila, anchos)) + " |"
+            for i, fila in enumerate(tabla)]
+
+
+def alinear_tablas(contenido: str) -> str:
+    """Alinea los `|` de cada bloque ```tabla; sus comentarios de opciones quedan como están."""
+    def alinear(m: re.Match) -> str:
+        lineas = m.group("cuerpo").rstrip("\n").split("\n")
+        filas = [i for i, linea in enumerate(lineas) if "|" in linea and not linea.lstrip().startswith("//")]
+        if not filas:
+            return m.group(0)
+        for i, fila in zip(filas, _alinear_filas([lineas[i] for i in filas])):
+            lineas[i] = fila
+        return m.group(0)[:m.start("cuerpo") - m.start()] + "\n".join(lineas) + "\n" + m.group("cierre")
+
+    return _BLOQUE_TABLA.sub(alinear, contenido)
+
+
 def format_content(content: str, formato: str, correct_first: bool = False) -> str:
     """Formatea un archivo según su formato ('gift' o 'xml')."""
     if formato == "xml":
-        return format_xml_content(content, correct_first=correct_first)
-    return format_gift_content(content, correct_first=correct_first)
+        return alinear_tablas(format_xml_content(content, correct_first=correct_first))
+    return alinear_tablas(format_gift_content(content, correct_first=correct_first))
 
 
 # ---------------------------------------------------------------------------

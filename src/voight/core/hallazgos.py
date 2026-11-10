@@ -52,6 +52,7 @@ _LISTAS: Dict[str, Callable[[dict], List[dict]]] = {
     "codigo_sin_lenguaje": lambda r: _codigo(r, lambda a: a.get("sin_lenguaje")),
     "enlaces_sospechosos": lambda r: r["enlaces"]["urls_sospechosas"],
     "html_obsoleto": lambda r: r["html_obsoleto"],
+    "gift_a_preprocesar": lambda r: r.get("gift_a_preprocesar", []),
 }
 
 

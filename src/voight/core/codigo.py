@@ -68,6 +68,11 @@ _SECCIONES = {
 }
 
 
+def _no_es_codigo(m: re.Match) -> bool:
+    """Un ```tabla o un ```plantuml no son código: fullwidth y las marcas los romperían."""
+    return (m.groupdict().get("lang") or "").strip().lower() in ("tabla", "plantuml")
+
+
 def _sin_entidades(texto: str) -> str:
     for entidad, caracter in _ENTIDADES.items():
         if entidad != "&amp;":
@@ -218,6 +223,8 @@ def transformar_secciones(
     cambios = 0
 
     def reemplazar(m: re.Match) -> str:
+        if _no_es_codigo(m):
+            return m.group(0)
         nonlocal cambios
         if m.group("fence"):
             original = m.group("bloque")
@@ -351,6 +358,9 @@ def transformar_textos_xml(xml: str, funcion: Callable[[str], tuple[str, int]]) 
     total = 0
 
     def reemplazar(m: re.Match) -> str:
+        # Un bloque ```tabla no es código: fullwidth y las marcas romperían sus columnas.
+        if (m.groupdict().get("lang") or "").strip().lower() == "tabla":
+            return m.group(0)
         nonlocal total
         abre, contenido, cierra = m.groups()
         if not contenido.strip():
@@ -542,6 +552,8 @@ def diagnosticar_codigo(texto: str, contexto: str = "xml") -> dict:
     resultado = {"secciones": 0, "sin_proteger": 0, "variantes": 0, "lineas_vacias": 0,
                  "comentarios": 0, "sin_lenguaje": 0}
     for m in _SECCIONES[contexto].finditer(texto):
+        if _no_es_codigo(m):
+            continue
         if m.group("fence"):
             codigo, html, multilinea = m.group("bloque"), False, True
             if not m.group("lang").strip():

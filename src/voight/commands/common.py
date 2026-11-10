@@ -35,6 +35,15 @@ def fail(message: str) -> "typer.Exit":
 SCHEMA_VERSION = "1.0.0"
 
 
+def avisar_preprocesamiento(rutas, recursivo: bool = True) -> None:
+    """Por stderr, los GIFT con diagramas, tablas o fórmulas: Moodle no los dibuja."""
+    from voight.core.banco import expandir_rutas
+    from voight.core.formulas import avisos_gift
+
+    for aviso in avisos_gift(expandir_rutas(rutas, recursivo, (".gift",))):
+        click.echo(aviso, err=True)
+
+
 def emitir_json(comando: str, datos: dict) -> None:
     """Imprime `datos` como JSON con envoltorio versionado (`schema_version`, `comando`)."""
     payload = {"schema_version": SCHEMA_VERSION, "herramienta": "voight", "comando": comando}

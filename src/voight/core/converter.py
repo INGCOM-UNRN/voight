@@ -2,6 +2,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from voight.core.parser import GiftParser, Question
+from voight.core.formulas import fuera_de_plantuml
 
 
 def convert_html_tags_to_markdown(text):
@@ -60,9 +61,13 @@ _CD_CLOSE = "\ue001"
 
 
 def _escape_gift(text: str, context: str = "stem") -> str:
-    """Escapa caracteres especiales de GIFT según el contexto."""
+    """Escapa caracteres especiales de GIFT según el contexto; un ```plantuml va crudo."""
     if not text:
         return ""
+    return fuera_de_plantuml(text, lambda trozo: _escapar_marcas(trozo, context))
+
+
+def _escapar_marcas(text: str, context: str) -> str:
     out = text.replace('\\', '\\\\')
     specials = {
         "title": [':', '~', '=', '#', '{', '}'],

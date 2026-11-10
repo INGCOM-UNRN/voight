@@ -1,4 +1,4 @@
-"""Incrustación de diagramas e imágenes relativas al fusionar Moodle XML.
+"""Incrustación de diagramas, fórmulas e imágenes relativas al fusionar Moodle XML.
 
 Las preguntas se escriben como texto:
 
@@ -7,17 +7,21 @@ Las preguntas se escriben como texto:
 - un diagrama de estructura de datos es un bloque ```estructura (o ```statics) con
   el bloque de statics en YAML/JSON (o sus equivalentes HTML con la clase
   ``estructura``), el mismo formato que dibuja alucarD;
+- un diagrama PlantUML es un bloque ```plantuml (o sus equivalentes HTML con la clase ``plantuml``), con
+  sus opciones en comentarios ``// [centrado] [ancho, 60%] [alt, texto]``, el mismo formato de alucarD;
+- una fórmula se escribe ``$...$`` o ``$$...$$`` (en HTML, también ``\\(...\\)`` y ``\\[...\\]``);
+- una tabla va en un bloque ```tabla, con sintaxis Markdown, y pasa a una tabla HTML (no es una imagen);
 - una imagen se referencia con una ruta relativa al archivo de la pregunta
   (``![alt](img/a.png)`` o ``<img src="img/a.png">``).
 
 Los archivos fuente no se tocan: sólo al fusionarlos (`unify`) cada mermaid se
-renderiza con mermaid-cli (`mmdc`), cada estructura con el renderizador SVG de
-alucarD, y la imagen resultante (o la referenciada) se adjunta al campo que la usa
+renderiza con mermaid-cli (`mmdc`), cada PlantUML con el programa `plantuml` a través de alucarD, cada
+estructura y cada fórmula con los renderizadores SVG de alucarD, y la imagen resultante (o la referenciada) se adjunta al campo que la usa
 como ``<file encoding="base64">``, con el bloque o la referencia cambiados por una
 imagen ``@@PLUGINFILE@@/<nombre>``, que es como Moodle importa los archivos de un
 campo de texto.
 
-Los renders de mermaid se guardan en la caché de voight por contenido (ver `cache.py`).
+Los renders de mermaid y de fórmulas se guardan en la caché de voight por contenido (ver `cache.py`).
 """
 from __future__ import annotations
 
@@ -36,6 +40,7 @@ from urllib.parse import quote, unquote
 
 from voight.core.cache import Cache
 from voight.core.codigo import transformar_fragmento
+from voight.core.formulas import reemplazar
 
 FORMATOS_DIAGRAMA = ("png", "svg")
 
@@ -58,6 +63,10 @@ _FENCE_MERMAID = _fence("mermaid")
 _HTML_MERMAID = _html("mermaid")
 _FENCE_ESTRUCTURA = _fence("estructura|statics")
 _HTML_ESTRUCTURA = _html("estructura|statics")
+_FENCE_PLANTUML = _fence("plantuml")
+_HTML_PLANTUML = _html("plantuml")
+_FENCE_TABLA = _fence("tabla")
+_HTML_TABLA = _html("tabla")
 _IMG_MD = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<src><[^>]+>|[^)\s]+)(?P<titulo>\s+\"[^\"]*\")?\)")
 _IMG_HTML = re.compile(r"(?P<antes><img\b[^>]*?\bsrc\s*=\s*)(?P<q>[\"'])(?P<src>.*?)(?P=q)", re.S | re.I)
 # Absolutas, de Moodle o embebidas: quedan como están.
@@ -65,6 +74,11 @@ _NO_RELATIVA = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//|/|#|@@PLUGINFILE@@)", re.I
 
 # Campos cuyo <text> nunca lleva imágenes.
 _SIN_RECURSOS = {"name", "tag", "category", "info"}
+# Las respuestas de los demás tipos se comparan como texto: una imagen no se puede calificar.
+_RESPUESTA_CON_FORMULAS = "multichoice"
+
+_INSTALAR_ALUCARD = ("uv tool install --with \"generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD\" "
+                     "\"voight @ git+https://github.com/INGCOM-UNRN/voight\"")
 
 
 class ErrorIncrustacion(Exception):
@@ -102,9 +116,7 @@ def renderizar_estructura(codigo: str) -> bytes:
     if motor is None:
         raise ErrorIncrustacion(
             "los diagramas ```estructura los dibuja alucarD (generador-examenes), que no está "
-            "instalado. Sumalo al entorno de voight: uv tool install --with "
-            "\"generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD\" "
-            "\"voight @ git+https://github.com/INGCOM-UNRN/voight\"")
+            f"instalado. Sumalo al entorno de voight: {_INSTALAR_ALUCARD}")
     try:
         svgs = [motor.renderizar(b) for b in motor.leer_bloques(codigo)]
     except ValueError as e:  # ErrorDiagrama
@@ -112,6 +124,78 @@ def renderizar_estructura(codigo: str) -> bytes:
     if len(svgs) == 1:
         return svgs[0].encode("utf-8")
     return _apilar_svgs(svgs).encode("utf-8")
+
+
+def motor_formulas():
+    """El módulo de fórmulas de alucarD (`generador_examenes.matematica`), o None."""
+    try:
+        from generador_examenes import matematica
+    except ImportError:
+        return None
+    return matematica if hasattr(matematica, "a_svg") else None
+
+
+def motor_tablas():
+    """El armado de tablas para Moodle de alucarD, como una función del bloque, o None."""
+    try:
+        from generador_examenes.core.markdown_utils import markdown_to_html
+        from generador_examenes.tablas import tabla_a_moodle
+    except ImportError:
+        return None
+    return lambda cuerpo: tabla_a_moodle(cuerpo, markdown_to_html)
+
+
+def motor_plantuml():
+    """El módulo de PlantUML de alucarD (`generador_examenes.plantuml`), o None."""
+    try:
+        from generador_examenes import plantuml
+    except ImportError:
+        return None
+    return plantuml
+
+
+def renderizar_plantuml(cuerpo: str, formato: str = "png") -> tuple:
+    """(imagen, opciones) de un bloque ```plantuml; alucarD guarda los dibujos en su caché."""
+    motor = motor_plantuml()
+    if motor is None:
+        raise ErrorIncrustacion("los diagramas ```plantuml los arma alucarD (generador-examenes), que no está "
+                                f"instalado o es anterior a ellos. Sumalo al entorno de voight: {_INSTALAR_ALUCARD}")
+    try:
+        return motor.a_imagen(cuerpo, formato), motor.leer(cuerpo)[0]
+    except ValueError as e:  # ErrorPlantuml
+        raise ErrorIncrustacion(f"diagrama PlantUML inválido: {e}") from e
+
+
+def renderizar_tabla(cuerpo: str) -> str:
+    """Un bloque ```tabla como una tabla HTML."""
+    motor = motor_tablas()
+    if motor is None:
+        raise ErrorIncrustacion("las tablas las arma alucarD (generador-examenes), que no está instalado o es "
+                                f"anterior a los bloques ```tabla. Sumalo al entorno de voight: {_INSTALAR_ALUCARD}")
+    try:
+        return motor(cuerpo)
+    except ValueError as e:  # ErrorTabla
+        raise ErrorIncrustacion(f"tabla inválida: {e}") from e
+
+
+def renderizar_formula(fuente: str, bloque: bool, cache: Optional[Cache] = None) -> bytes:
+    """Dibuja una fórmula en LaTeX como SVG."""
+    cache = cache or Cache("formulas")
+    clave = Cache.clave("formula", bloque, fuente)
+    guardado = cache.obtener(clave)
+    if guardado:
+        return base64.b64decode(guardado)
+
+    motor = motor_formulas()
+    if motor is None:
+        raise ErrorIncrustacion("las fórmulas las dibuja alucarD (generador-examenes), que no está instalado "
+                                f"o es anterior a `a_svg`. Sumalo al entorno de voight: {_INSTALAR_ALUCARD}")
+    try:
+        datos = motor.a_svg(fuente, bloque).encode("utf-8")
+    except (ValueError, RuntimeError) as e:  # ErrorFormula, o Typst que no compila
+        raise ErrorIncrustacion(f"fórmula inválida «{fuente}»: {e}") from e
+    cache.guardar(clave, base64.b64encode(datos).decode("ascii"))
+    return datos
 
 
 def _apilar_svgs(svgs: list) -> str:
@@ -181,9 +265,24 @@ def _imagen(url: str, alt: str, markdown: bool) -> str:
     return f'<img src="{url}" alt="{html.escape(alt)}">'
 
 
+def _imagen_plantuml(url: str, opciones: dict) -> str:
+    """En HTML también en Markdown: hacen falta la posición y las medidas."""
+    margen = {"izquierda": "0.5em auto 0.5em 0", "derecha": "0.5em 0 0.5em auto"}.get(opciones.get("posicion", ""), "0.5em auto")
+    estilo = motor_plantuml().estilo(opciones)
+    alt = html.escape(opciones.get("alt", "diagrama"), quote=True)
+    return f'<img src="{url}" alt="{alt}" style="display:block;margin:{margen};{estilo}">'
+
+
+def _imagen_formula(url: str, fuente: str, bloque: bool) -> str:
+    """En HTML también en Markdown: hace falta el estilo para que quede en el renglón."""
+    estilo = "display:block;margin:0.5em auto" if bloque else "vertical-align:middle"
+    return f'<img src="{url}" alt="{html.escape(fuente, quote=True)}" style="{estilo}">'
+
+
 def incrustar_texto(texto: str, formato_texto: str, base: Path, adjuntos: _Adjuntos,
-                    formato_diagrama: str = "png", cache: Optional[Cache] = None) -> str:
-    """Reemplaza diagramas e imágenes relativas de un texto por referencias a `adjuntos`."""
+                    formato_diagrama: str = "png", cache: Optional[Cache] = None,
+                    con_formulas: bool = True) -> str:
+    """Reemplaza diagramas, fórmulas e imágenes relativas de un texto por referencias a `adjuntos`."""
     markdown = formato_texto == "markdown"
 
     def diagrama(codigo: str, es_html: bool) -> str:
@@ -198,10 +297,44 @@ def incrustar_texto(texto: str, formato_texto: str, base: Path, adjuntos: _Adjun
         nombre = f"estructura-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.svg"
         return _imagen(adjuntos.agregar(nombre, datos), "diagrama de estructura", markdown)
 
+    def plantuml(codigo: str, es_html: bool) -> str:
+        codigo = _limpiar_codigo(codigo, es_html)
+        datos, opciones = renderizar_plantuml(codigo, formato_diagrama)
+        nombre = f"plantuml-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.{formato_diagrama}"
+        return _imagen_plantuml(adjuntos.agregar(nombre, datos), opciones)
+
+    texto = _FENCE_PLANTUML.sub(lambda m: plantuml(m.group("codigo"), False), texto)
+    texto = _HTML_PLANTUML.sub(lambda m: plantuml(_codigo_html(m), True), texto)
     texto = _FENCE_MERMAID.sub(lambda m: diagrama(m.group("codigo"), False), texto)
     texto = _HTML_MERMAID.sub(lambda m: diagrama(_codigo_html(m), True), texto)
     texto = _FENCE_ESTRUCTURA.sub(lambda m: estructura(m.group("codigo"), False), texto)
     texto = _HTML_ESTRUCTURA.sub(lambda m: estructura(_codigo_html(m), True), texto)
+
+    def formula(fuente: str, bloque: bool) -> str:
+        fuente = _limpiar_codigo(fuente, False).strip()
+        datos = renderizar_formula(fuente, bloque, cache)
+        nombre = f"formula-{hashlib.sha1(f'{bloque}{fuente}'.encode()).hexdigest()[:12]}.svg"
+        return _imagen_formula(adjuntos.agregar(nombre, datos), fuente, bloque)
+
+    def tabla(cuerpo: str) -> str:
+        # Las fórmulas de las celdas pasan por marcadores: un `|` en su texto alternativo cortaría la celda.
+        imagenes: Dict[str, str] = {}
+
+        def apartar(fuente: str, bloque: bool) -> str:
+            marcador = f"VOIGHTFORMULA{len(imagenes)}X"
+            imagenes[marcador] = formula(fuente, bloque)
+            return marcador
+
+        resultado = renderizar_tabla(reemplazar(cuerpo, False, apartar))
+        for marcador, imagen in imagenes.items():
+            resultado = resultado.replace(marcador, imagen)
+        return f"\n\n{resultado}\n\n" if markdown else resultado
+
+    texto = _FENCE_TABLA.sub(lambda m: tabla(m.group("codigo")), texto)
+    texto = _HTML_TABLA.sub(lambda m: tabla(html.unescape(_codigo_html(m))), texto)
+
+    if con_formulas:
+        texto = reemplazar(texto, not markdown, formula)
 
     def leer(src: str) -> Optional[str]:
         """La URL @@PLUGINFILE@@ de una imagen relativa, o None si no es relativa."""
@@ -245,8 +378,9 @@ def incrustar_pregunta(pregunta: ET.Element, base: Path, formato_diagrama: str =
         existentes = {f.get("name", ""): base64.b64decode(f.text or "") for f in campo.findall("file")}
         adjuntos = _Adjuntos(existentes)
         try:
+            con_formulas = campo.tag != "answer" or pregunta.get("type") == _RESPUESTA_CON_FORMULAS
             texto.text = incrustar_texto(texto.text, campo.get("format", "html"), base,
-                                         adjuntos, formato_diagrama, cache)
+                                         adjuntos, formato_diagrama, cache, con_formulas)
         except ErrorIncrustacion as e:
             nombre = pregunta.findtext("name/text") or "(sin nombre)"
             raise ErrorIncrustacion(f"{nombre.strip()} <{campo.tag}>: {e}") from e

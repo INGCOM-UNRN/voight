@@ -6,7 +6,7 @@ from typing import List, Optional
 import click
 import typer
 
-from voight.commands.common import LLM_OPTION, emitir_json, fail
+from voight.commands.common import LLM_OPTION, avisar_preprocesamiento, emitir_json, fail
 
 moodle_app = typer.Typer(help="Operaciones sobre un sitio Moodle (servicio web).")
 
@@ -35,6 +35,7 @@ def subir(
     from voight.core.moodle_ws import importar, preparar_xml, resolver_token, subir_borrador
     from voight.core.moodle_xml import parse_xml
 
+    avisar_preprocesamiento(rutas, recursive)
     try:
         nombre, contenido, cantidad = preparar_xml(rutas, recursive)
     except ValueError as e:

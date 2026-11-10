@@ -288,6 +288,8 @@ voight dedup --restaurar ultimo
 
 ### `voight fix format`
 
+Alinea los `|` de los bloques ```` ```tabla ````, en GIFT y en Moodle XML: cada columna toma el ancho de su celda más larga y los comentarios de opciones quedan como están.
+
 Formatea archivos GIFT y Moodle XML y transforma el código. GIFT: `::Título::`, enunciado, `{` y `}` en líneas propias y una opción por línea con 4 espacios. XML: sangría de 2 espacios y cada `<text>` con contenido en CDATA (conserva los comentarios). El código de enunciados y opciones conserva sus saltos de línea y sangría.
 
 Las transformaciones de código son las mismas en ambos formatos (ver [caracteres especiales](docs/caracteres_especiales.md)): `--fullwidth` reemplaza los símbolos que chocan con GIFT (`{ } = ~ # : \ //`, y además `; < > [ ] ( ) * " &`) por sus formas fullwidth, marca la indentación con `·` (un punto por espacio) y cada fin de línea con `↵`; `--normal` lo deshace (en GIFT, escapando con `\` lo que GIFT interpretaría).
@@ -358,6 +360,14 @@ Sube un banco a un curso de Moodle por servicio web. Moodle estándar no tiene u
 voight moodle subir preguntas/ --url https://moodle.ejemplo.edu.ar --curso 1234 --dry-run
 ```
 
+**`moodle subir` no incrusta todo.** Lo que sale de archivos XML fusionados lleva sus imágenes, pero los GIFT se suben convertidos sin incrustar (el comando lo advierte) y un único `.xml` se sube tal cual, sin pasar por la fusión. Es una decisión: al convertir los GIFT se pierde la carpeta de cada archivo, que hace falta para resolver las imágenes relativas. Si el banco tiene diagramas o fórmulas, fusionalo antes y subí el resultado:
+
+```bash
+voight convert gift-to-xml bancos -o xml
+voight unify xml -o banco.xml
+voight moodle subir banco.xml --url https://moodle.ejemplo.edu.ar --curso 1234
+```
+
 ### `voight split`
 
 Divide archivos GIFT o Moodle XML con múltiples preguntas en archivos individuales. Sin `-o`, cada pregunta queda al lado del original con la categoría vigente. Con `-o DIR`, cada banco se exporta a un árbol `DIR/<categoría>/<pregunta>.<ext>` (antes `tree export`); `voight unify DIR -o banco.gift|xml` lo vuelve a juntar.
@@ -402,8 +412,9 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
     y genera un único banco monolítico (.gift o .xml).
 
     En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`), los
-    ```estructura con alucarD, y esos diagramas y las imágenes con ruta relativa al
-    archivo de la pregunta quedan como imágenes incrustadas en la salida.
+    ```estructura y las fórmulas `$...$` con alucarD, y esos diagramas, las fórmulas y las
+    imágenes con ruta relativa al archivo de la pregunta quedan como imágenes incrustadas en
+    la salida. En GIFT no se pueden incrustar: avisa qué archivos los tienen.
 
 #### Argumentos
 | Argumento | Tipo | Descripción |
@@ -418,7 +429,7 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 | `-f`, `--format` | `Optional[str]` | `None` | Formato de salida (por defecto se deduce de la extensión del archivo de salida). |
 | `-r`, `--recursive/--no-recursive` | `<class 'bool'>` | `True` | Procesar directorios recursivamente (por defecto True). |
 | `--remove` | `<class 'bool'>` | `False` | Borrar los archivos fuente después de unificarlos. |
-| `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: cambia los diagramas mermaid y de estructuras y las imágenes relativas por imágenes incrustadas en la salida. |
+| `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: cambia los diagramas mermaid y de estructuras, las fórmulas y las imágenes relativas por imágenes incrustadas en la salida. |
 | `--diagramas` | `<class 'str'>` | `png` | Formato de imagen de los diagramas mermaid incrustados (`png` o `svg`; las estructuras van siempre en SVG). |
 | `--json` | `<class 'bool'>` | `False` | Emite el resultado como JSON versionado. |
 
@@ -427,7 +438,7 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 voight unify <output_file>
 ```
 
-#### Diagramas mermaid, estructuras e imágenes relativas
+#### Diagramas mermaid, estructuras, fórmulas e imágenes relativas
 
 Las preguntas se escriben y versionan como texto; sólo el archivo fusionado
 (`voight unify … -o banco.xml`) lleva las
@@ -446,6 +457,20 @@ imágenes incrustadas. Los archivos fuente no se modifican.
   `language-estructura`, se dibuja como SVG con el renderizador de alucarD
   (`uv tool install --with "generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD" …`).
   Varios bloques en un mismo bloque de código quedan en una sola imagen.
+- **Diagramas PlantUML**: un bloque ```` ```plantuml ````, o su equivalente HTML con la clase
+  `plantuml` / `language-plantuml`, se dibuja con alucarD y el programa `plantuml`, en el formato de
+  `--diagramas`. Sus opciones son las de alucarD, en comentarios al principio del bloque:
+  `// [derecha] [ancho, 60%] [escala, 1.5] [letra, 12] [color] [tema, plain] [alt, texto]`. La posición
+  y los límites quedan en la imagen, y `[ancho]` y `[alto]` no agrandan un diagrama chico; sin `[alt]`, el texto alternativo es «diagrama». Adentro valen
+  `:`, llaves, `//` y renglones en blanco: `fix format`, `convert` y `unify` no tocan el bloque.
+- **Fórmulas**: `$...$` y `$$...$$` (en campos `html`, también `\(...\)` y `\[...\]`) se
+  dibujan como SVG con alucarD y quedan como imagen en el renglón, con el LaTeX como texto
+  alternativo; `$$...$$` va centrada aparte. Siguen las reglas de alucarD: lo que está en
+  código no se toca, `$100 y $200` es texto y `\$` es un signo pesos. Las respuestas que no
+  son de opción múltiple quedan como texto, porque Moodle las compara al calificar.
+- **Tablas**: un bloque ```` ```tabla ```` con sintaxis Markdown pasa a una tabla HTML con sus bordes
+  en línea, y las fórmulas de sus celdas a imágenes. Las opciones `// […]` valen para el PDF de
+  alucarD y acá no se aplican.
 - **Imágenes relativas**: `![alt](img/a.png)` y `<img src="img/a.png">` se resuelven
   contra el directorio del archivo de la pregunta. Las URL absolutas, `data:` y
   `@@PLUGINFILE@@` quedan como están.
@@ -453,10 +478,17 @@ imágenes incrustadas. Los archivos fuente no se modifican.
 Cada recurso se adjunta al campo que lo usa (enunciado, retroalimentación, opción…)
 como `<file name="…" path="/" encoding="base64">` y la referencia pasa a
 `@@PLUGINFILE@@/<nombre>`, que es como Moodle importa archivos en Moodle XML. Una
-imagen que no existe, un diagrama que no compila o una estructura inválida detienen
-la fusión con el error.
+imagen que no existe, un diagrama que no compila, una estructura o una fórmula inválidas
+detienen la fusión con el error.
 `--no-incrustar` deja el texto como está. En GIFT no aplica: el formato no lleva
-archivos.
+archivos, y Moodle no dibuja los diagramas, las tablas ni las fórmulas. Por eso `unify` a GIFT,
+`convert gift-to-xml`, `moodle subir` y `health` advierten qué archivos GIFT los tienen. Para
+importarlos, pasalos a XML y fusionalos:
+
+```bash
+voight convert gift-to-xml bancos -o xml
+voight unify xml -o banco.xml
+```
 
 ````markdown
 <!-- Tema/flujo.xml, campo questiontext format="markdown" -->

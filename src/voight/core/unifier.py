@@ -102,7 +102,7 @@ def unificar_xml(
     """Unifica múltiples archivos y/o directorios Moodle XML en un único archivo XML monolítico.
 
     Preserva las categorías de carpetas y las etiquetas de categoría internas. Con
-    `incrustar`, los diagramas mermaid y las imágenes relativas de cada pregunta se
+    `incrustar`, los diagramas, las fórmulas y las imágenes relativas de cada pregunta se
     adjuntan a la salida (ver `incrustar.py`); los archivos fuente no cambian.
     """
     archivos_xml: List[Tuple[str, Path]] = []

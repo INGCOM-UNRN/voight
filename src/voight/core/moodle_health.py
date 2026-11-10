@@ -30,6 +30,7 @@ from voight.core.banco import formato_de
 from voight.core.codigo import diagnosticar_codigo, transformar_textos_xml
 from voight.core.metadatos import NIVELES_BLOOM, codigo_bloom
 from voight.core.moodle_xml import parse_xml
+from voight.core.formulas import a_preprocesar
 from voight.core.parser import parse_gift
 
 # Fracciones que Moodle acepta al importar (question_bank::fraction_options_full);
@@ -598,6 +599,7 @@ def auditar_archivos(
               "comentarios": 0, "sin_lenguaje": 0}
     archivos_codigo: List[dict] = []
     html_obsoleto: List[dict] = []
+    a_preprocesar_gift: List[dict] = []
     sin_preguntas: List[str] = []
     archivos = list(archivos)
     # Cada carpeta se resuelve una sola vez (resolve es lo más caro de recorrer el banco).
@@ -639,6 +641,9 @@ def auditar_archivos(
             codigo[clave] += valor
         if any(texto["codigo"][k] for k in ("sin_proteger", "variantes", "lineas_vacias", "comentarios", "sin_lenguaje")):
             archivos_codigo.append({"archivo": str(ruta), **texto["codigo"]})
+        cuenta = a_preprocesar(contenido) if formato == "gift" else {}
+        if any(cuenta.values()):
+            a_preprocesar_gift.append({"archivo": str(ruta), **cuenta})
         if texto["html_obsoleto"]:
             html_obsoleto.append({"archivo": str(ruta), "ocurrencias": texto["html_obsoleto"]})
 
@@ -653,6 +658,7 @@ def auditar_archivos(
         "codigo": codigo,
         "enlaces": enlaces,
         "html_obsoleto": html_obsoleto,
+        "gift_a_preprocesar": a_preprocesar_gift,
     }
     resultado["resumen"] = resumir_hallazgos(resultado)
     if con_preguntas:
@@ -722,6 +728,8 @@ def resumir_hallazgos(resultado: Dict[str, Any]) -> Dict[str, Any]:
          sum(1 for a in cod["archivos"] if a.get("sin_lenguaje"))),
         ("enlaces_sospechosos", "enlaces http:// o locales", len(resultado["enlaces"]["urls_sospechosas"])),
         ("html_obsoleto", "archivos con HTML obsoleto", len(resultado["html_obsoleto"])),
+        ("gift_a_preprocesar", "archivos GIFT con diagramas, tablas o fórmulas, que Moodle no dibuja (pasalos a XML y "
+         "fusionalos con `voight unify`)", len(resultado.get("gift_a_preprocesar", []))),
         ("codigo_c_fragmento", "preguntas con un fragmento de C que no se puede compilar solo (identificadores sin declarar)",
          len(resultado.get("compilacion", {}).get("fragmentos", []))),
     )

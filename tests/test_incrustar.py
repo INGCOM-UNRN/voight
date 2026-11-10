@@ -276,3 +276,25 @@ def test_render_real_con_alucard(tmp_path, mmdc_falso):
     archivos = _archivos(_campo(salida, "questiontext"))
     (svg,) = archivos.values()
     assert ET.fromstring(svg).tag.endswith("svg")
+
+
+def test_plantuml_sin_alucard_avisa(tmp_path, monkeypatch):
+    from voight.core import incrustar
+
+    monkeypatch.setattr(incrustar, "motor_plantuml", lambda: None)
+    with pytest.raises(incrustar.ErrorIncrustacion, match="alucarD"):
+        incrustar.renderizar_plantuml("A -> B\n")
+
+
+def test_plantuml_se_adjunta_con_sus_opciones(tmp_path, monkeypatch):
+    plantuml = pytest.importorskip("generador_examenes.plantuml")
+    from voight.core import incrustar
+
+    monkeypatch.setattr(plantuml, "a_imagen", lambda cuerpo, formato: b"imagen")
+    adjuntos = incrustar._Adjuntos()
+    texto = incrustar.incrustar_texto("Antes\n```plantuml\n// [derecha] [ancho, 5cm] [alt, Un mensaje]\nA -> B : x\n```\n",
+                                      "markdown", tmp_path, adjuntos)
+    (nombre,) = adjuntos.archivos
+    assert nombre.startswith("plantuml-") and nombre.endswith(".png")
+    assert f'src="@@PLUGINFILE@@/{nombre}" alt="Un mensaje"' in texto
+    assert "margin:0.5em 0 0.5em auto;max-width:5cm" in texto and "```" not in texto

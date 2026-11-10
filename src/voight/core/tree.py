@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from voight.core.converter import _cdata_sub, _serializar_quiz
+from voight.core.formulas import fuera_de_plantuml
 from voight.core.incrustar import incrustar_pregunta
 from voight.core.xml_tools import sanitize_filename
 
@@ -45,9 +46,11 @@ def _protect_backslashes_in_code(text: str) -> str:
     def en_bloque(match):
         return re.sub(r'\\([\s\S]?)', barra, match.group(0))
 
-    text = re.sub(r'```[^`]*```', en_bloque, text, flags=re.DOTALL)
-    text = re.sub(r'(?<!`)(`[^`\n]+`)(?!`)', en_bloque, text)
-    return text
+    def en_codigo(trozo):
+        trozo = re.sub(r'```[^`]*```', en_bloque, trozo, flags=re.DOTALL)
+        return re.sub(r'(?<!`)(`[^`\n]+`)(?!`)', en_bloque, trozo)
+
+    return fuera_de_plantuml(text, en_codigo)
 
 
 def gift_export(input_file: Path, base_output_dir: Path) -> int:

@@ -2,6 +2,7 @@
 
 import re
 
+from voight.core.formulas import restaurar
 from voight.core.gift_model import FormattedText
 
 
@@ -135,7 +136,7 @@ class GiftSemantics:
         """Decode escaped characters in GIFT format."""
         if not text:
             return ""
-        return (text
+        return restaurar(text
             .replace('\\\\', '\x00')  # Temporary placeholder
             .replace('\\:', ':')
             .replace('\\#', '#')

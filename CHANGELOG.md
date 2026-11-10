@@ -8,6 +8,11 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Agregado
 
+- **unify**: al fusionar Moodle XML, los bloques ```` ```plantuml ```` (o `class="plantuml"`) pasan a imágenes con las opciones de alucarD: posición, medidas, escala, letra, color, tema y texto alternativo. `doctor` dice qué PlantUML encontró; `health`, `convert gift-to-xml` y `moodle subir` los advierten como a los demás diagramas.
+- **unify**: al fusionar Moodle XML, los bloques ```` ```tabla ```` de alucarD pasan a tablas HTML con sus bordes en línea, y las fórmulas de sus celdas a imágenes.
+- **fix format**: alinea los `|` de los bloques ```` ```tabla ````, en GIFT y en Moodle XML. `fix code-chars` y `--fullwidth` no los tocan: no son código.
+- **unify**: al fusionar Moodle XML, las fórmulas `$...$` y `$$...$$` (en HTML, también `\(...\)` y `\[...\]`) se dibujan como SVG con alucarD y se incrustan como imagen `@@PLUGINFILE@@` en el renglón, con el LaTeX como texto alternativo. Las respuestas que no son de opción múltiple quedan como texto, porque se comparan al calificar. `doctor` informa si está el renderizador.
+- **health, unify, convert gift-to-xml, moodle subir**: advierten qué archivos GIFT tienen diagramas, tablas o fórmulas, que Moodle no dibuja.
 - **unify / tree collect**: al fusionar Moodle XML, los diagramas de estructuras de datos (bloques ```` ```estructura ````/```` ```statics ```` con el formato de statics, o `<pre><code class="language-estructura">`) se dibujan como SVG con el renderizador de alucarD y se incrustan como imagen `@@PLUGINFILE@@`, igual que los mermaid. Los mermaid también se reconocen como `<pre><code class="language-mermaid">` y con vallas `~~~` o de más de tres comillas. Sin alucarD, la fusión avisa cómo instalarlo; `doctor` informa si está.
 - **ui**: botones «Agregar marcas ↵» y «Quitar marcas» en el editor: marcan la indentación del código con `·` y los saltos con `↵`, o los sacan sin tocar los símbolos (en GIFT una línea en blanco del código conserva su `↵`). `core.codigo.quitar_marcas`.
 - `moodle inspeccionar`: inventario de MBZ tar/ZIP sin extracción, con versiones de
@@ -21,8 +26,11 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **convert gift-to-xml**: se perdían las opciones `// […]` de los bloques ```` ```tabla ````.
+- **health**: los bloques ```` ```tabla ```` contaban como código sin proteger.
 - **fix grammar**: ya no acepta archivos `.txt`.
 - **convert gift-to-xml**: las etiquetas se perdían; ahora viajan como `<tags>`.
+- **GIFT**: las llaves y escapes de una fórmula rompían la pregunta: `$\sum_{i=1}^{4} i$` se leía como el comienzo de las respuestas y `\neq`, como un salto de línea. Ahora las fórmulas llegan intactas a `convert gift-to-xml`, `health` y el resto de los comandos.
 
 ### Cambiado
 

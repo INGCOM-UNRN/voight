@@ -11,6 +11,7 @@ from typing import Optional
 from voight.core.gift_model import (  # noqa: F401
     QuestionType, FormattedText, Choice, MatchPair, NumericalAnswer, Question,
 )
+from voight.core.formulas import proteger_gift
 from voight.core.metadatos import leer_clasificacion
 from voight.core.gift_semantics import (  # noqa: F401
     GiftSemantics, _llaves_balanceadas, _extraer_ultimo_grupo_llaves, _extraer_grupo_intermedio, corta_en_blanco,
@@ -57,8 +58,8 @@ class GiftParser:
     def _manual_parse(self, content: str) -> list:
         """Parsea contenido GIFT línea a línea y devuelve la lista de preguntas (único parser del paquete)."""
         questions = []
-        lines = content.split('\n')
         
+        lines = proteger_gift(content).split('\n')
         current_block: list = []
         current_comments: list = []
         

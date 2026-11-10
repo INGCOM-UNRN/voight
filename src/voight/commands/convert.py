@@ -10,7 +10,7 @@ from voight.core.converter import (
     gift_to_xml,
 )
 
-from voight.commands.common import LLM_OPTION, fail
+from voight.commands.common import LLM_OPTION, avisar_preprocesamiento, fail
 
 convert_app = typer.Typer(help="Comandos para convertir entre formatos.")
 
@@ -161,4 +161,5 @@ def gift_to_xml_cmd(
     dry_run: bool = SIMULAR,
 ):
     """Convierte GIFT a Moodle XML: un archivo, stdin ('-') o directorios (recursivamente)."""
+    avisar_preprocesamiento(paths or [], recursive)
     _convertir(paths, output, recursive, forzar, dry_run, ".gift", ".xml", gift_to_xml, "GIFT")
