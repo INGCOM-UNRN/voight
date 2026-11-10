@@ -38,7 +38,7 @@ def spellcheck(
     archivos_a_revisar = []
     for p in paths:
         path_obj = Path(p)
-        if path_obj.is_file() and path_obj.suffix.lower() in ('.gift', '.xml', '.txt'):
+        if path_obj.is_file() and path_obj.suffix.lower() in ('.gift', '.xml'):
             archivos_a_revisar.append(path_obj)
         elif path_obj.is_dir():
             archivos_a_revisar.extend(sorted(path_obj.glob('**/*.gift')))

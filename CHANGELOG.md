@@ -19,6 +19,10 @@ versiones según [SemVer](https://semver.org/lang/es/).
   claves y referencias de origen, muestreo uniforme reproducible y revisión del
   texto alternativo en imágenes HTML/Markdown. Salidas JSON versionadas y tests.
 
+### Corregido
+
+- **fix grammar**: ya no acepta archivos `.txt`.
+
 ### Cambiado
 
 - **config**: un solo juego de comandos sobre `~/.voight/.env`: `config set|get|unset CLAVE`, `config show` y `config models`, con las claves `gemini-key`, `anthropic-key`, `typesafe-key`, `moodle-token`, `moodle-url` (nueva), `proveedor` (acepta todos los de yutani.ia, no sólo gemini o claude) y `modelo` (`VOIGHT_MODELO`, para cualquier proveedor). `set` sin valor lo pide sin mostrarlo; `show` oculta los secretos, dice cuáles vienen del entorno y muestra la IA efectiva con su origen. Lo guardado llega al entorno de todos los comandos (antes `MOODLE_URL` no se leía del archivo). Los nueve comandos anteriores (`set-key`, `set-anthropic-key`, `set-typesafe-key`, `set-moodle-token`, `set-provider`, `set-model`, `show-key`, `unset-key`, `list-models`) avisan y siguen funcionando.
