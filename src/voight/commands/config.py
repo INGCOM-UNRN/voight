@@ -3,7 +3,7 @@
 `show` lista todo (valores secretos ocultos, con su origen) y la configuración de IA que
 resuelve yutani.ia; `get`, `set` y `unset` trabajan sobre una clave de `CLAVES`.
 """
-from typing import Optional
+from typing import Literal, Optional
 
 import click
 import typer
@@ -13,7 +13,9 @@ from voight.core.config import CLAVES, archivo_env, borrar, guardar, leer, ocult
 
 config_app = typer.Typer(help="Configuración global: claves de los servicios, proveedor y modelo de IA.")
 
-NOMBRES = click.Choice(list(CLAVES))
+ClaveNombre = Literal[
+    "gemini-key", "anthropic-key", "typesafe-key", "moodle-token", "moodle-url", "proveedor", "modelo"
+]
 
 
 @config_app.callback()
@@ -59,7 +61,7 @@ def show_cmd(
 
 @config_app.command(name="get")
 def get_cmd(
-    nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a mostrar."),
+    nombre: ClaveNombre = typer.Argument(..., help="Clave a mostrar."),
     mostrar: bool = typer.Option(False, "--mostrar", "--reveal", help="Mostrar el valor secreto completo."),
 ):
     """Muestra el valor de una clave (los secretos, ocultos salvo --mostrar)."""
@@ -75,7 +77,7 @@ def get_cmd(
 
 @config_app.command(name="set")
 def set_cmd(
-    nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a guardar."),
+    nombre: ClaveNombre = typer.Argument(..., help="Clave a guardar."),
     valor: Optional[str] = typer.Argument(
         None, help="Valor; si falta, se pide sin mostrarlo (así una clave no queda en el historial)."),
 ):
@@ -101,7 +103,7 @@ def set_cmd(
 
 
 @config_app.command(name="unset")
-def unset_cmd(nombre: str = typer.Argument(..., click_type=NOMBRES, help="Clave a quitar.")):
+def unset_cmd(nombre: ClaveNombre = typer.Argument(..., help="Clave a quitar.")):
     """Quita una clave de ~/.voight/.env (las demás quedan)."""
     c = CLAVES[nombre]
     if borrar(c.variable):

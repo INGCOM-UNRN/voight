@@ -1,7 +1,7 @@
 import click
 import typer
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from voight.commands.common import LLM_OPTION, avisar_preprocesamiento, emitir_json, fail
 from voight.core.unifier import unificar
@@ -14,9 +14,9 @@ def unify(
         ..., "-o", "--output",
         help="Archivo de salida unificado (.gift o .xml).",
     ),
-    formato: Optional[str] = typer.Option(
+    formato: Optional[Literal["gift", "xml"]] = typer.Option(
         None, "-f", "--format",
-        click_type=click.Choice(["gift", "xml"], case_sensitive=False),
+        case_sensitive=False,
         help="Formato de salida (por defecto se deduce de la extensión del archivo de salida).",
     ),
     recursive: bool = typer.Option(
@@ -30,9 +30,8 @@ def unify(
     incrustar: bool = typer.Option(
         True, "--incrustar/--no-incrustar",
         help="XML: cambia los diagramas mermaid y de estructuras, las fórmulas y las imágenes relativas por imágenes incrustadas en la salida, y los ```tabla por tablas HTML."),
-    formato_diagrama: str = typer.Option(
+    formato_diagrama: Literal["png", "svg"] = typer.Option(
         "png", "--diagramas",
-        click_type=click.Choice(["png", "svg"]),
         help="Formato de imagen de los diagramas mermaid incrustados (las estructuras van siempre en SVG)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):

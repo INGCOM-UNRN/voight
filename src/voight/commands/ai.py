@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import click
 import typer
@@ -13,9 +13,8 @@ def ai(
     ctx: typer.Context,
     inputs: Optional[List[Path]] = typer.Argument(None, exists=True, help="Archivos .gift/.xml o directorios."),
     llm: bool = LLM_OPTION,
-    mode: str = typer.Option(
+    mode: Literal["improve", "multiply", "transform", "feedback", "distractors", "classify"] = typer.Option(
         "improve", "--mode",
-        click_type=click.Choice(["improve", "multiply", "transform", "feedback", "distractors", "classify"]),
         help="Modo: improve (mejorar), multiply (variaciones), transform (usar prompt personalizado), "
              "feedback (completar sólo la retroalimentación que falta), distractors (agregar distractores donde "
              "faltan o la correcta delata por su largo) o classify (Bloom y dificultad con Jev).",
@@ -23,15 +22,15 @@ def ai(
     prompt: Optional[str] = typer.Option(None, "--prompt", help="Prompt personalizado o ruta a un archivo .txt con el prompt."),
     output: Optional[Path] = typer.Option(None, "--output", help="Directorio de salida (por defecto: output_<mode>)."),
     proveedor: Optional[str] = typer.Option(
-        None, "--proveedor", "--provider", click_type=click.Choice(PROVEEDORES),
+        None, "--proveedor", "--provider",
         help="Modelo de lenguaje para improve/multiply/transform/feedback/distractors: google (Gemini), "
              "local (Ollama, llama.cpp…), opencode o claude (por defecto: VOIGHT_PROVEEDOR, P1_IA_PROVEEDOR, "
              "~/.config/p1/ia.toml o google)."),
     model: Optional[str] = typer.Option(
         None, "--model", help="Modelo (por defecto, el configurado para el proveedor: gemini-2.0-flash, claude-opus-5, "
                               "opencode-go/qwen3.8-max o el primero del servidor local)."),
-    parte: str = typer.Option(
-        "todo", "--parte", "--part", click_type=click.Choice(["todo", "enunciado", "respuestas"]),
+    parte: Literal["todo", "enunciado", "respuestas"] = typer.Option(
+        "todo", "--parte", "--part",
         help="improve: qué mejorar. enunciado o respuestas envían y reciben sólo esa parte (menos tokens); "
              "todo, la pregunta entera."),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Procesar subdirectorios recursivamente."),

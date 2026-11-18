@@ -4,7 +4,7 @@ import io
 import click
 import typer
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from voight.core import tree as core_tree
 from voight.core.incrustar import ErrorIncrustacion
@@ -33,9 +33,8 @@ def export_cmd(
     dir_salida: Path = typer.Option(
         ..., "-o", "--output-dir",
         help="Directorio de destino del árbol de preguntas."),
-    formato: Optional[str] = typer.Option(
+    formato: Optional[Literal["gift", "xml"]] = typer.Option(
         None, "--formato", "--format",
-        click_type=click.Choice(["gift", "xml"]),
         help="Forzar el formato (por defecto se deduce de la extensión)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
@@ -57,16 +56,14 @@ def collect_cmd(
     archivo_salida: Path = typer.Option(
         ..., "-o", "--output",
         help="Archivo monolítico de destino (.gift o .xml; define el formato)."),
-    formato: Optional[str] = typer.Option(
+    formato: Optional[Literal["gift", "xml"]] = typer.Option(
         None, "--formato", "--format",
-        click_type=click.Choice(["gift", "xml"]),
         help="Forzar el formato (por defecto se deduce de la extensión de salida)."),
     incrustar: bool = typer.Option(
         True, "--incrustar/--no-incrustar",
         help="XML: cambia los diagramas mermaid y de estructuras y las imágenes relativas por imágenes incrustadas en la salida."),
-    formato_diagrama: str = typer.Option(
+    formato_diagrama: Literal["png", "svg"] = typer.Option(
         "png", "--diagramas",
-        click_type=click.Choice(["png", "svg"]),
         help="Formato de imagen de los diagramas mermaid incrustados (las estructuras van siempre en SVG)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):

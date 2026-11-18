@@ -3,7 +3,7 @@
 import contextlib
 import io
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import click
 import typer
@@ -23,8 +23,8 @@ def dedup(
         0.95, "-s", "--similarity", min=0.0, max=1.0,
         help="Similitud mínima (0–1) para considerar dos preguntas duplicadas.",
     ),
-    conservar: str = typer.Option(
-        "completa", "--conservar", "--keep", click_type=click.Choice(CRITERIOS),
+    conservar: Literal["completa", "primera"] = typer.Option(
+        "completa", "--conservar", "--keep",
         help="Cuál se conserva de cada grupo: la más completa (feedback, título, opciones) o la primera.",
     ),
     aplicar_cambios: bool = typer.Option(
