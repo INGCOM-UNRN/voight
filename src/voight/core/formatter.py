@@ -295,7 +295,7 @@ def _alinear_filas(filas: list[str]) -> list[str]:
     anchos = [max(3, *(_ancho(fila[j]) for i, fila in enumerate(tabla) if i not in separadores))
               for j in range(columnas)]
     return ["| " + " | ".join(_separador(c or "-", a) if i in separadores else c + " " * (a - _ancho(c))
-                              for c, a in zip(fila, anchos)) + " |"
+                              for c, a in zip(fila, anchos, strict=True)) + " |"
             for i, fila in enumerate(tabla)]
 
 
@@ -306,7 +306,7 @@ def alinear_tablas(contenido: str) -> str:
         filas = [i for i, linea in enumerate(lineas) if "|" in linea and not linea.lstrip().startswith("//")]
         if not filas:
             return m.group(0)
-        for i, fila in zip(filas, _alinear_filas([lineas[i] for i in filas])):
+        for i, fila in zip(filas, _alinear_filas([lineas[i] for i in filas]), strict=True):
             lineas[i] = fila
         return m.group(0)[:m.start("cuerpo") - m.start()] + "\n".join(lineas) + "\n" + m.group("cierre")
 

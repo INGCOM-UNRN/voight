@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 import click
 import typer
 
-from voight.core.ai import PROVEEDORES, cargar_cliente, configuracion_ia, run_global_ai_processing
+from voight.core.ai import cargar_cliente, configuracion_ia, run_global_ai_processing
 from voight.core.banco import expandir_rutas
 from voight.commands.common import LLM_OPTION, con_configuracion, fail
 

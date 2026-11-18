@@ -11,7 +11,7 @@ import typer
 from voight.commands.common import LLM_OPTION, con_configuracion, emitir_json, fail
 from voight.core.lector import leer_archivos, unidades_de
 from voight.core.banco import archivos_cambiados, expandir_rutas
-from voight.core.deduplicar import CRITERIOS, a_json, agrupar, aplicar, plan, registrar, respaldos, restaurar
+from voight.core.deduplicar import a_json, agrupar, aplicar, plan, registrar, respaldos, restaurar
 
 
 def dedup(
