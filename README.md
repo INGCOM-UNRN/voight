@@ -161,9 +161,9 @@ Para más información sobre funcionalidades específicas, consulta la carpeta [
 - **[Mantenimiento XML](./docs/README_xml_maintenance.md)**
 - **[Referencia de Caracteres Especiales](./docs/caracteres_especiales.md)**
 
-## ✍️ Autor
+## Contacto
 
-[Especificar autor]
+Martín René Vilugrón - mrvilugron@unrn.edu.ar - Ingeniería en Computación UNRN Andina
 
 ---
 
