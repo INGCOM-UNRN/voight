@@ -41,6 +41,9 @@ def split(
                 files.extend(list(path.glob(pattern)))
 
     if not files:
+        if output_json:
+            emitir_json("split", {"archivos": 0, "preguntas": 0, "simulacion": dry_run})
+            return
         click.echo("No se encontraron archivos GIFT ni XML.")
         return
 
@@ -51,7 +54,8 @@ def split(
         try:
             count = split_file(f, simular=dry_run)
             if count > 0:
-                click.echo(f"{'[SIMULACIÓN] ' if dry_run else '✓ '}{f}: dividido en {count} archivos")
+                if not output_json:
+                    click.echo(f"{'[SIMULACIÓN] ' if dry_run else '✓ '}{f}: dividido en {count} archivos")
                 total_new_files += count
                 total_split_files += 1
                 if remove and not dry_run:
@@ -74,6 +78,9 @@ def _exportar(paths, output_dir: Path, recursive: bool, remove: bool, dry_run: b
     if not bancos:
         fail("No se encontraron archivos GIFT ni XML.")
     if dry_run:
+        if output_json:
+            emitir_json("split", {"bancos": len(bancos), "directorio": str(output_dir), "simulacion": True})
+            return
         click.echo(f"[SIMULACIÓN] {len(bancos)} bancos se exportarían a {output_dir}")
         return
     total = 0
@@ -90,6 +97,6 @@ def _exportar(paths, output_dir: Path, recursive: bool, remove: bool, dry_run: b
         if remove:
             banco.unlink()
     if output_json:
-        emitir_json("split", {"preguntas": total, "directorio": str(output_dir)})
+        emitir_json("split", {"preguntas": total, "directorio": str(output_dir), "simulacion": False})
         return
     click.echo(f"\nÁrbol generado en: {output_dir}")

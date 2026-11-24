@@ -54,6 +54,9 @@ def verify(
         except ValueError as e:
             fail(str(e))
         if not archivos_rutas:
+            if output_json:
+                emitir_json("verify", {"verificadas": 0, "por_estado": {}, "resultados": []})
+                return
             click.echo(f"No hay archivos de preguntas cambiados desde {desde}.")
             return
     if not archivos_rutas:
