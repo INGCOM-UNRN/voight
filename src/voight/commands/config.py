@@ -121,7 +121,7 @@ def models_cmd():
 
     try:
         client = load_config()
-        models = list_available_models(client)
+        models = list_available_models(client, on_mensaje=lambda m: click.echo(m, err=True))
     except Exception as e:
         click.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(code=1) from None

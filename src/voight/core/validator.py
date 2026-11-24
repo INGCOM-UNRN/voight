@@ -4,14 +4,18 @@ Herramienta para verificar recursivamente un directorio de preguntas GIFT y Mood
 Genera un informe detallado con estadísticas, problemas detectados y recomendaciones.
 """
 
+import logging
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable, Optional
 
 
 from voight.core.banco import EXTENSIONES, buscar_archivos, parse_archivo
 from voight.core.validator_informe import InformeMixin
 from voight.core.validator_similitud import SimilitudMixin
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -39,11 +43,12 @@ class AnalizadorBanco(SimilitudMixin, InformeMixin):
     """Analizador de un banco de preguntas (GIFT y Moodle XML): validez, estadísticas y similitud."""
     
     def __init__(self, similarity_threshold: float = 0.85, recursive: bool = True, verbose: bool = False,
-                 extensions: tuple = EXTENSIONES):
+                 extensions: tuple = EXTENSIONES, on_progreso: Optional[Callable[[str], None]] = None):
         self.similarity_threshold = similarity_threshold
         self.recursive = recursive
         self.verbose = verbose
         self.extensions = extensions
+        self._on_progreso = on_progreso
         
         self.stats = GiftStats()
         self.categories: dict = defaultdict(list)
@@ -53,6 +58,12 @@ class AnalizadorBanco(SimilitudMixin, InformeMixin):
         self.descriptions: list = []  # Preguntas tipo Description (posibles problemas)
         self.base_path: Path = Path('.')
     
+    def _notificar(self, mensaje: str, nivel: int = logging.INFO) -> None:
+        if self._on_progreso is not None:
+            self._on_progreso(mensaje)
+        else:
+            logger.log(nivel, "%s", mensaje)
+
     def find_question_files(self, directory: Path) -> list:
         """Find all question files (.gift / .xml) in directory."""
         return buscar_archivos(directory, self.recursive, self.extensions)
@@ -219,14 +230,17 @@ class AnalizadorBanco(SimilitudMixin, InformeMixin):
         files = self.find_question_files(self.base_path)
         
         if not files:
-            print(f"⚠️  No se encontraron archivos de preguntas ({', '.join(self.extensions)}) en {directory}")
+            self._notificar(
+                f"⚠️  No se encontraron archivos de preguntas ({', '.join(self.extensions)}) en {directory}",
+                logging.WARNING,
+            )
             return
         
-        print(f"Escaneando {len(files)} archivos de preguntas...")
+        self._notificar(f"Escaneando {len(files)} archivos de preguntas...")
         
         for i, filepath in enumerate(files, 1):
             if self.verbose and i % 10 == 0:
-                print(f"  Procesados {i}/{len(files)} archivos...")
+                self._notificar(f"  Procesados {i}/{len(files)} archivos...")
             self.analyze_file(filepath)
         
         self.find_duplicates()

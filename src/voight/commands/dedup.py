@@ -1,7 +1,5 @@
 """Comando para eliminar preguntas duplicadas (GIFT y Moodle XML)."""
 
-import contextlib
-import io
 from pathlib import Path
 from typing import List, Literal, Optional
 
@@ -70,8 +68,7 @@ def dedup(
     if not archivos_rutas:
         fail("No se encontraron archivos de preguntas (.gift / .xml).")
 
-    with contextlib.redirect_stdout(io.StringIO()):
-        archivos = leer_archivos(archivos_rutas)
+    archivos = leer_archivos(archivos_rutas)
     unidades = [u for u in unidades_de(archivos) if u.pregunta is not None]
     grupos = agrupar(unidades, similarity, conservar)
     if desde:

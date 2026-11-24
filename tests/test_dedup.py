@@ -1,8 +1,6 @@
 """`voight dedup`: eliminar duplicados (GIFT y XML), log de eliminaciones y TUI de revisión."""
 
 import asyncio
-import contextlib
-import io
 import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -32,8 +30,7 @@ def _banco(tmp_path, archivos: dict) -> Path:
 
 
 def _leer(raiz):
-    with contextlib.redirect_stdout(io.StringIO()):
-        archivos = leer_archivos(sorted(raiz.rglob("*.gift")) + sorted(raiz.rglob("*.xml")))
+    archivos = leer_archivos(sorted(raiz.rglob("*.gift")) + sorted(raiz.rglob("*.xml")))
     return archivos, [u for u in unidades_de(archivos) if u.pregunta]
 
 

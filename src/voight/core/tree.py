@@ -7,17 +7,27 @@ preservando categorías ($CATEGORY / type="category"), escapes de GIFT y
 bloques CDATA del XML.
 """
 
+import logging
 import os
 import re
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Callable, Optional
 
 from voight.core.converter import _cdata_sub, _serializar_quiz
 from voight.core.formulas import fuera_de_plantuml
 from voight.core.incrustar import incrustar_pregunta
 from voight.core.moodle_gift import quitar_cortes, sin_cortes
 from voight.core.xml_tools import sanitize_filename
+
+logger = logging.getLogger(__name__)
+
+
+def _notificar(cb: Optional[Callable[[str], None]], mensaje: str, nivel: int = logging.INFO) -> None:
+    if cb is not None:
+        cb(mensaje)
+    else:
+        logger.log(nivel, "%s", mensaje)
 
 
 def sanitize_dirname(part: str) -> str:
@@ -54,9 +64,9 @@ def _protect_backslashes_in_code(text: str) -> str:
     return fuera_de_plantuml(text, en_codigo)
 
 
-def gift_export(input_file: Path, base_output_dir: Path) -> int:
+def gift_export(input_file: Path, base_output_dir: Path, on_progreso: Optional[Callable[[str], None]] = None) -> int:
     """Exporta un banco GIFT monolítico a un árbol de directorios."""
-    print(f"Exportando GIFT desde: {input_file}")
+    _notificar(on_progreso, f"Exportando GIFT desde: {input_file}")
     contenido = input_file.read_text(encoding='utf-8')
 
     # División por bloques como el parser: una línea en blanco sólo corta con las llaves
@@ -115,16 +125,16 @@ def gift_export(input_file: Path, base_output_dir: Path) -> int:
 
         destino = output_dir / filename
         destino.write_text(formatted, encoding='utf-8')
-        print(f"  Creado: {destino.relative_to(base_output_dir)}")
+        _notificar(on_progreso, f"  Creado: {destino.relative_to(base_output_dir)}")
         question_count += 1
 
-    print(f"\n✓ Exportación completada: {question_count} preguntas")
+    _notificar(on_progreso, f"\n✓ Exportación completada: {question_count} preguntas")
     return question_count
 
 
-def gift_collect(base_input_dir: Path, output_file: Path) -> int:
+def gift_collect(base_input_dir: Path, output_file: Path, on_progreso: Optional[Callable[[str], None]] = None) -> int:
     """Recolecta un árbol de preguntas GIFT en un archivo monolítico."""
-    print(f"Recolectando GIFT desde: {base_input_dir}")
+    _notificar(on_progreso, f"Recolectando GIFT desde: {base_input_dir}")
 
     gift_files = sorted(
         (str(p.relative_to(base_input_dir)), p)
@@ -132,7 +142,7 @@ def gift_collect(base_input_dir: Path, output_file: Path) -> int:
     )
 
     if not gift_files:
-        print("No se encontraron archivos .gift en el directorio indicado.")
+        _notificar(on_progreso, "No se encontraron archivos .gift en el directorio indicado.")
         return 0
 
     question_count = 0
@@ -156,10 +166,10 @@ def gift_collect(base_input_dir: Path, output_file: Path) -> int:
         lineas_salida.append(f"// {rel_path}")
         lineas_salida.append(content.strip() + '\n')
         question_count += 1
-        print(f"  Agregada: {rel_path}")
+        _notificar(on_progreso, f"  Agregada: {rel_path}")
 
     output_file.write_text(sin_cortes('\n'.join(lineas_salida)), encoding='utf-8')
-    print(f"\n✓ Colección completada: {question_count} preguntas en {output_file}")
+    _notificar(on_progreso, f"\n✓ Colección completada: {question_count} preguntas en {output_file}")
     return question_count
 
 
@@ -177,14 +187,15 @@ def _quiz_de_pregunta(question: ET.Element) -> ET.Element:
     return quiz
 
 
-def xml_export(input_file: Path, base_output_dir: Path) -> int:
+def xml_export(input_file: Path, base_output_dir: Path, on_progreso: Optional[Callable[[str], None]] = None,
+               on_error: Optional[Callable[[str], None]] = None) -> int:
     """Exporta un banco Moodle XML monolítico a un árbol de directorios."""
-    print(f"Exportando Moodle XML desde: {input_file}")
+    _notificar(on_progreso, f"Exportando Moodle XML desde: {input_file}")
 
     try:
         root = ET.fromstring(input_file.read_text(encoding='utf-8'))
     except (ET.ParseError, UnicodeDecodeError) as e:
-        print(f"Error: no se pudo interpretar el XML: {e}", file=sys.stderr)
+        _notificar(on_error, f"Error: no se pudo interpretar el XML: {e}", logging.ERROR)
         return -1
 
     current_category = ''
@@ -220,21 +231,22 @@ def xml_export(input_file: Path, base_output_dir: Path) -> int:
 
         destino = output_dir / filename
         destino.write_text(serializar_quiz(_quiz_de_pregunta(question)), encoding='utf-8')
-        print(f"  Creado: {destino.relative_to(base_output_dir)}")
+        _notificar(on_progreso, f"  Creado: {destino.relative_to(base_output_dir)}")
         question_count += 1
 
-    print(f"\n✓ Exportación completada: {question_count} preguntas")
+    _notificar(on_progreso, f"\n✓ Exportación completada: {question_count} preguntas")
     return question_count
 
 
 def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
-                formato_diagrama: str = 'png') -> int:
+                formato_diagrama: str = 'png', on_progreso: Optional[Callable[[str], None]] = None,
+                on_error: Optional[Callable[[str], None]] = None) -> int:
     """Recolecta un árbol de preguntas Moodle XML en un archivo monolítico.
 
     Con `incrustar`, los diagramas mermaid y las imágenes relativas se adjuntan a la
     salida (ver `incrustar.py`); los archivos del árbol no cambian.
     """
-    print(f"Recolectando Moodle XML desde: {base_input_dir}")
+    _notificar(on_progreso, f"Recolectando Moodle XML desde: {base_input_dir}")
 
     xml_files = sorted(
         (str(p.relative_to(base_input_dir)), p)
@@ -243,7 +255,7 @@ def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
     )
 
     if not xml_files:
-        print("No se encontraron archivos .xml en el directorio indicado.")
+        _notificar(on_progreso, "No se encontraron archivos .xml en el directorio indicado.")
         return 0
 
     quiz_root = ET.Element('quiz')
@@ -271,12 +283,12 @@ def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
                     incrustar_pregunta(question, filepath.parent, formato_diagrama)
                 quiz_root.append(question)
                 question_count += 1
-                print(f"  Agregada: {rel_path}")
+                _notificar(on_progreso, f"  Agregada: {rel_path}")
         except (ET.ParseError, UnicodeDecodeError) as e:
-            print(f"  Error interpretando {filepath}: {e}", file=sys.stderr)
+            _notificar(on_error, f"  Error interpretando {filepath}: {e}", logging.ERROR)
 
     output_file.write_text(serializar_quiz(quiz_root), encoding='utf-8')
-    print(f"\n✓ Colección completada: {question_count} preguntas en {output_file}")
+    _notificar(on_progreso, f"\n✓ Colección completada: {question_count} preguntas en {output_file}")
     return question_count
 
 
@@ -284,26 +296,31 @@ def xml_collect(base_input_dir: Path, output_file: Path, incrustar: bool = True,
 # Punto de entrada unificado por formato
 # ---------------------------------------------------------------------------
 
-def exportar(archivo: Path, dir_destino: Path, formato: str | None = None) -> int:
+def exportar(archivo: Path, dir_destino: Path, formato: str | None = None,
+             on_progreso: Optional[Callable[[str], None]] = None,
+             on_error: Optional[Callable[[str], None]] = None) -> int:
     """Exporta un banco a un árbol de directorios según su formato."""
     formato = (formato or ('gift' if archivo.suffix.lower() == '.gift' else 'xml')).lower()
     dir_destino.mkdir(parents=True, exist_ok=True)
     if formato == 'gift':
-        return gift_export(archivo, dir_destino)
+        return gift_export(archivo, dir_destino, on_progreso=on_progreso)
     if formato == 'xml':
-        return xml_export(archivo, dir_destino)
+        return xml_export(archivo, dir_destino, on_progreso=on_progreso, on_error=on_error)
     raise ValueError(f"Formato desconocido: {formato}")
 
 
 def recolectar(directorio: Path, archivo_destino: Path, formato: str | None = None,
-               incrustar: bool = True, formato_diagrama: str = 'png') -> int:
+               incrustar: bool = True, formato_diagrama: str = 'png',
+               on_progreso: Optional[Callable[[str], None]] = None,
+               on_error: Optional[Callable[[str], None]] = None) -> int:
     """Recolecta un árbol de directorios en un banco según el formato.
 
     `incrustar` y `formato_diagrama` sólo aplican a Moodle XML (GIFT no lleva archivos).
     """
     formato = (formato or ('gift' if archivo_destino.suffix.lower() == '.gift' else 'xml')).lower()
     if formato == 'gift':
-        return gift_collect(directorio, archivo_destino)
+        return gift_collect(directorio, archivo_destino, on_progreso=on_progreso)
     if formato == 'xml':
-        return xml_collect(directorio, archivo_destino, incrustar, formato_diagrama)
+        return xml_collect(directorio, archivo_destino, incrustar, formato_diagrama,
+                           on_progreso=on_progreso, on_error=on_error)
     raise ValueError(f"Formato desconocido: {formato}")

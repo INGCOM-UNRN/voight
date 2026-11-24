@@ -5,10 +5,6 @@ import click
 import typer
 
 from voight.core.validator import AnalizadorBanco
-
-import contextlib
-import io
-
 from voight.commands.common import LLM_OPTION, emitir_json
 
 analyze_app = typer.Typer(help="Análisis y estadísticas de preguntas.")
@@ -33,16 +29,15 @@ def stats(
     if not paths:
         paths = ['.']
         
-    analyzer = AnalizadorBanco(recursive=recursive)
-    with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-        for p in paths:
-            path_obj = Path(p)
-            if path_obj.is_dir():
-                analyzer.scan_directory(str(path_obj))
-            else:
-                analyzer.analyze_file(path_obj)
+    analyzer = AnalizadorBanco(recursive=recursive, on_progreso=None if output_json else click.echo)
+    for p in paths:
+        path_obj = Path(p)
+        if path_obj.is_dir():
+            analyzer.scan_directory(str(path_obj))
+        else:
+            analyzer.analyze_file(path_obj)
 
-        analyzer.find_duplicates()
+    analyzer.find_duplicates()
     if output_json:
         emitir_json("analyze stats", analyzer.to_json())
     else:
@@ -66,16 +61,19 @@ def similar(
     if not paths:
         paths = ['.']
         
-    analyzer = AnalizadorBanco(similarity_threshold=similarity, recursive=recursive)
-    with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-        for p in paths:
-            path_obj = Path(p)
-            if path_obj.is_dir():
-                analyzer.scan_directory(str(path_obj))
-            else:
-                analyzer.analyze_file(path_obj)
+    analyzer = AnalizadorBanco(
+        similarity_threshold=similarity,
+        recursive=recursive,
+        on_progreso=None if output_json else click.echo,
+    )
+    for p in paths:
+        path_obj = Path(p)
+        if path_obj.is_dir():
+            analyzer.scan_directory(str(path_obj))
+        else:
+            analyzer.analyze_file(path_obj)
 
-        analyzer.find_duplicates()
+    analyzer.find_duplicates()
 
     if output_json:
         emitir_json("analyze similar", {"umbral": similarity, "pares": analyzer.to_json()["duplicates"]})

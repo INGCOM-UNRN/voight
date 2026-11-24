@@ -23,11 +23,21 @@ cambia el tipo), se conserva el original.
 from __future__ import annotations
 
 import copy
+import logging
 import os
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+def _emitir(msg: str, on_mensaje: Optional[Callable[[str], None]] = None, nivel: int = logging.INFO) -> None:
+    if on_mensaje is not None:
+        on_mensaje(msg)
+    else:
+        logger.log(nivel, "%s", msg)
 
 from voight.core.cache import Cache
 from voight.core.codigo import transformar_codigo
@@ -100,12 +110,12 @@ def load_config():
     return ia.cliente(configuracion_ia())
 
 
-def list_available_models(client) -> List[str]:
+def list_available_models(client, on_mensaje: Optional[Callable[[str], None]] = None) -> List[str]:
     """Modelos que ofrece el proveedor del cliente."""
     try:
         return client.modelos()
     except ia.ErrorIA as e:
-        print(f"❌ Error al listar modelos: {e}")
+        _emitir(f"❌ Error al listar modelos: {e}", on_mensaje, logging.ERROR)
         return []
 
 
@@ -243,7 +253,8 @@ def _interpretar(gift: str) -> Optional[tuple]:
 
 
 def aplicar_respuesta(unidades: List[Unidad], respuesta: Dict[int, List[str]], mode: str,
-                      parte: str = "todo") -> int:
+                      parte: str = "todo",
+                      on_mensaje: Optional[Callable[[str], None]] = None) -> int:
     """Valida y asigna lo devuelto a cada unidad. Devuelve cuántas quedaron sin cambios."""
     sin_cambios = 0
     clase = vistas.clase_de(mode, parte)
@@ -255,22 +266,38 @@ def aplicar_respuesta(unidades: List[Unidad], respuesta: Dict[int, List[str]], m
                 # Vista parcial: lo devuelto se aplica sobre la pregunta y vuelve a ser GIFT completo.
                 completo = vistas.reconstruir(base, clase, bloque)
                 if completo is None:
-                    print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no tiene la forma pedida "
-                          f"({clase}); se conserva el original.")
+                    _emitir(
+                        f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no tiene la forma pedida "
+                        f"({clase}); se conserva el original.",
+                        on_mensaje,
+                        logging.WARNING,
+                    )
                     continue
                 bloque = completo
             interpretado = _interpretar(bloque)
             if interpretado is None:
-                print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no es una pregunta GIFT válida.")
+                _emitir(
+                    f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no es una pregunta GIFT válida.",
+                    on_mensaje,
+                    logging.WARNING,
+                )
                 continue
             if mode != "multiply" and interpretado[1].type != unidad.tipo:
-                print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): el modelo cambió el tipo "
-                      f"{unidad.tipo} → {interpretado[1].type}; se conserva el original.")
+                _emitir(
+                    f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): el modelo cambió el tipo "
+                    f"{unidad.tipo} → {interpretado[1].type}; se conserva el original.",
+                    on_mensaje,
+                    logging.WARNING,
+                )
                 continue
             if mode in ("improve", "feedback") and _forma(interpretado[1]) != unidad.forma:
                 # Típico de un = o ~ crudo fuera del código que parte una opción.
-                print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): cambió la cantidad de opciones o de "
-                      "correctas; se conserva el original.")
+                _emitir(
+                    f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): cambió la cantidad de opciones o de "
+                    "correctas; se conserva el original.",
+                    on_mensaje,
+                    logging.WARNING,
+                )
                 continue
             validas.append(interpretado)
         if mode != "multiply":
@@ -281,8 +308,12 @@ def aplicar_respuesta(unidades: List[Unidad], respuesta: Dict[int, List[str]], m
         if mode == "distractors":
             completa, agregados = agregar_distractores(unidad.pregunta, validas[0][1], OPCIONES_OBJETIVO[0])
             if not agregados:
-                print(f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no agrega distractores "
-                      "nuevos o cambia los existentes; se conserva el original.")
+                _emitir(
+                    f"  ⚠️ Pregunta {numero} ({unidad.archivo.name}): la respuesta no agrega distractores "
+                    "nuevos o cambia los existentes; se conserva el original.",
+                    on_mensaje,
+                    logging.WARNING,
+                )
                 sin_cambios += 1
                 continue
             unidad.parcial = "distractores"
@@ -393,7 +424,8 @@ def _clave_cache(model_id: str, mode: str, custom_prompt: Optional[str], unidad:
 
 
 def process_batch(client, model_id: str, unidades: List[Unidad], mode: str,
-                  custom_prompt: Optional[str] = None, cache: Optional[Cache] = None, parte: str = "todo") -> int:
+                  custom_prompt: Optional[str] = None, cache: Optional[Cache] = None, parte: str = "todo",
+                  on_mensaje: Optional[Callable[[str], None]] = None) -> int:
     """Envía un lote al modelo y aplica la respuesta. Devuelve cuántas quedaron sin cambios.
 
     Con `cache`, las respuestas por pregunta se guardan bajo el hash de lo enviado.
@@ -404,24 +436,25 @@ def process_batch(client, model_id: str, unidades: List[Unidad], mode: str,
     try:
         texto = client.generar(prompt, modelo=model_id)
     except Exception as e:  # noqa: BLE001
-        print(f"❌ Error procesando lote con el modelo: {e}")
+        _emitir(f"❌ Error procesando lote con el modelo: {e}", on_mensaje, logging.ERROR)
         return len(unidades)
     respuesta = separar_respuesta(texto or "", len(unidades))
     if cache is not None:
         for numero, unidad in enumerate(unidades, 1):
             if respuesta.get(numero):
                 cache.guardar(_clave_cache(model_id, mode, custom_prompt, unidad, parte), respuesta[numero])
-    return aplicar_respuesta(unidades, respuesta, mode, parte)
+    return aplicar_respuesta(unidades, respuesta, mode, parte, on_mensaje=on_mensaje)
 
 
 def desde_cache(unidades: List[Unidad], model_id: str, mode: str, custom_prompt: Optional[str],
-                cache: Cache, parte: str = "todo") -> List[Unidad]:
+                cache: Cache, parte: str = "todo",
+                on_mensaje: Optional[Callable[[str], None]] = None) -> List[Unidad]:
     """Aplica las respuestas en caché y devuelve las unidades que hay que enviar."""
     pendientes = []
     for unidad in unidades:
         guardada = cache.obtener(_clave_cache(model_id, mode, custom_prompt, unidad, parte))
         if guardada:
-            aplicar_respuesta([unidad], {1: guardada}, mode, parte)
+            aplicar_respuesta([unidad], {1: guardada}, mode, parte, on_mensaje=on_mensaje)
         else:
             pendientes.append(unidad)
     return pendientes
@@ -681,10 +714,10 @@ def run_global_ai_processing(client, model_id: str, file_paths: List[Path], outp
                              custom_prompt: Optional[str] = None, batch_size: int = 5, in_place: bool = False,
                              suffix: Optional[str] = None, dry_run: bool = False, usar_cache: bool = True,
                              precio_entrada: Optional[float] = None, precio_salida: Optional[float] = None,
-                             parte: str = "todo"):
+                             parte: str = "todo", on_mensaje: Optional[Callable[[str], None]] = None):
     """Procesa todas las preguntas de todos los archivos (GIFT y XML) en lotes globales."""
-    print(f"🔍 Escaneando {len(file_paths)} archivos...")
-    archivos = leer_archivos(file_paths)
+    _emitir(f"🔍 Escaneando {len(file_paths)} archivos...", on_mensaje)
+    archivos = leer_archivos(file_paths, on_error=lambda m: _emitir(m, on_mensaje, logging.WARNING))
     unidades = unidades_de(archivos)
     if mode == "feedback":
         unidades = [u for u in unidades if u.pregunta is not None and falta_feedback(u.pregunta)]
@@ -694,42 +727,48 @@ def run_global_ai_processing(client, model_id: str, file_paths: List[Path], outp
     if clase in ("enunciado", "respuestas"):
         aplicables = [u for u in unidades if (b := _base(u)) is not None and vistas.aplica(clase, b)]
         if len(aplicables) < len(unidades):
-            print(f"ℹ️ {len(unidades) - len(aplicables)} preguntas no tienen {clase} que mejorar: se dejan como están.")
+            _emitir(f"ℹ️ {len(unidades) - len(aplicables)} preguntas no tienen {clase} que mejorar: se dejan como están.", on_mensaje)
         unidades = aplicables
     if not unidades:
-        print("⚠️ No se encontraron preguntas para procesar.")
+        _emitir("⚠️ No se encontraron preguntas para procesar.", on_mensaje, logging.WARNING)
         return
 
     datos = estadisticas(unidades, mode, parte)
     ahorro = 100 - datos["caracteres_enviados"] * 100 // max(datos["caracteres_original"], 1)
-    print(f"📏 {datos['preguntas']} preguntas: se envían {datos['caracteres_enviados']} caracteres "
-          f"de {datos['caracteres_original']} en los archivos ({ahorro}% menos).")
+    _emitir(
+        f"📏 {datos['preguntas']} preguntas: se envían {datos['caracteres_enviados']} caracteres "
+        f"de {datos['caracteres_original']} en los archivos ({ahorro}% menos).",
+        on_mensaje,
+    )
 
     lotes = [unidades[i:i + batch_size] for i in range(0, len(unidades), batch_size)]
     if dry_run:
         pendientes_sim = [u for u in unidades
                           if Cache("ai", activa=usar_cache).obtener(_clave_cache(model_id, mode, custom_prompt, u, parte)) is None]
         en_cache = len(unidades) - len(pendientes_sim)
-        print(f"💰 {describir_costo(estimar_tokens(pendientes_sim, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}"
-              + (f" ({en_cache} preguntas ya están en la caché)" if en_cache else ""))
-        print(f"🧪 Simulación: {len(lotes)} lotes; no se llama al modelo. Primer lote:\n")
-        print(construir_prompt([texto_enviado(u, mode, parte) for u in lotes[0]], mode, custom_prompt, parte))
+        _emitir(
+            f"💰 {describir_costo(estimar_tokens(pendientes_sim, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}"
+            + (f" ({en_cache} preguntas ya están en la caché)" if en_cache else ""),
+            on_mensaje,
+        )
+        _emitir(f"🧪 Simulación: {len(lotes)} lotes; no se llama al modelo. Primer lote:\n", on_mensaje)
+        _emitir(construir_prompt([texto_enviado(u, mode, parte) for u in lotes[0]], mode, custom_prompt, parte), on_mensaje)
         return
 
     cache = Cache("ai", activa=usar_cache)
-    pendientes = desde_cache(unidades, model_id, mode, custom_prompt, cache, parte)
+    pendientes = desde_cache(unidades, model_id, mode, custom_prompt, cache, parte, on_mensaje=on_mensaje)
     if cache.aciertos:
-        print(f"♻️  {cache.aciertos} preguntas resueltas desde la caché (sin consultar al modelo).")
+        _emitir(f"♻️  {cache.aciertos} preguntas resueltas desde la caché (sin consultar al modelo).", on_mensaje)
     lotes = [pendientes[i:i + batch_size] for i in range(0, len(pendientes), batch_size)]
     if pendientes:
-        print(f"💰 {describir_costo(estimar_tokens(pendientes, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}")
-    print(f"🚀 Procesando en {len(lotes)} lotes de hasta {batch_size} preguntas...")
+        _emitir(f"💰 {describir_costo(estimar_tokens(pendientes, mode, custom_prompt, batch_size, parte), precio_entrada, precio_salida)}", on_mensaje)
+    _emitir(f"🚀 Procesando en {len(lotes)} lotes de hasta {batch_size} preguntas...", on_mensaje)
     sin_cambios = 0
     for n, lote in enumerate(lotes, 1):
-        print(f"  📦 Lote {n}/{len(lotes)} ({len(lote)} preguntas)...")
-        sin_cambios += process_batch(client, model_id, lote, mode, custom_prompt, cache, parte)
+        _emitir(f"  📦 Lote {n}/{len(lotes)} ({len(lote)} preguntas)...", on_mensaje)
+        sin_cambios += process_batch(client, model_id, lote, mode, custom_prompt, cache, parte, on_mensaje=on_mensaje)
 
-    print("💾 Guardando resultados...")
+    _emitir("💾 Guardando resultados...", on_mensaje)
     # En el directorio de salida se conserva la estructura relativa: en un banco hay
     # muchos q01.gift en carpetas distintas que, aplanados, se pisarían.
     base = Path(os.path.commonpath([str(a.ruta.parent.resolve()) for a in archivos]))
@@ -744,8 +783,8 @@ def run_global_ai_processing(client, model_id: str, file_paths: List[Path], outp
             destino = output_dir / ruta.parent.resolve().relative_to(base) / f"{ruta.stem}_{mode}{ruta.suffix}"
             destino.parent.mkdir(parents=True, exist_ok=True)
         destino.write_text(contenido, encoding="utf-8")
-        print(f"  ✓ {destino}")
+        _emitir(f"  ✓ {destino}", on_mensaje)
 
     if sin_cambios:
-        print(f"⚠️ {sin_cambios} preguntas quedaron como estaban (respuesta ausente o inválida).")
-    print(f"\n✅ Finalizado: {len(archivos)} archivos procesados.")
+        _emitir(f"⚠️ {sin_cambios} preguntas quedaron como estaban (respuesta ausente o inválida).", on_mensaje, logging.WARNING)
+    _emitir(f"\n✅ Finalizado: {len(archivos)} archivos procesados.", on_mensaje)

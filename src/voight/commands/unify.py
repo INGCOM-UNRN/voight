@@ -63,6 +63,7 @@ def unify(
             eliminar_origen=remove,
             incrustar=incrustar,
             formato_diagrama=formato_diagrama,
+            on_aviso=lambda m: click.echo(m, err=True),
         )
     except Exception as e:
         fail(f"Error durante la unificación: {e}")

@@ -79,3 +79,38 @@ def test_nombres_anteriores(monkeypatch):
     ayuda = runner.invoke(cli, ["config", "--help"], terminal_width=200).output
     for oculto in ("set-key", "show-key", "unset-key", "list-models", "set-provider"):
         assert f"│ {oculto} " not in ayuda
+
+
+def test_doctor_json_no_escala_dotenv_al_padre_ni_ensucia_stderr(tmp_path, monkeypatch):
+    import json
+    import subprocess
+    import sys
+
+    padre = tmp_path / "padre"
+    hijo = padre / "hijo"
+    hijo.mkdir(parents=True)
+    (padre / ".env").write_text("LINEA=1\nNO_ES_ENV_VALIDO\n", encoding="utf-8")
+
+    monkeypatch.chdir(hijo)
+    res = subprocess.run(
+        [sys.executable, "-c", "from voight.cli import cli; cli(['doctor', '--json'])"],
+        cwd=hijo,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0
+    assert res.stderr == ""
+    data = json.loads(res.stdout)
+    assert data["herramienta"] == "voight" and data["ok"] is True
+
+    # Incluso con un .env local malformado en cwd, doctor --json emite JSON puro sin warnings en stderr.
+    (hijo / ".env").write_text("OK=1\nMALFORMADO SIN IGUAL\n", encoding="utf-8")
+    res_local = subprocess.run(
+        [sys.executable, "-c", "from voight.cli import cli; cli(['doctor', '--json'])"],
+        cwd=hijo,
+        capture_output=True,
+        text=True,
+    )
+    assert res_local.returncode == 0
+    assert res_local.stderr == ""
+    assert json.loads(res_local.stdout)["herramienta"] == "voight"

@@ -4,9 +4,6 @@ from typing import List, Optional
 import click
 import typer
 
-import contextlib
-import io
-
 from voight.core.splitter import split_file
 from voight.commands.common import LLM_OPTION, emitir_json, fail
 
@@ -81,8 +78,12 @@ def _exportar(paths, output_dir: Path, recursive: bool, remove: bool, dry_run: b
         return
     total = 0
     for banco in bancos:
-        with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-            cantidad = exportar(banco, output_dir)
+        cantidad = exportar(
+            banco,
+            output_dir,
+            on_progreso=None if output_json else click.echo,
+            on_error=lambda m: click.echo(m, err=True),
+        )
         if cantidad < 0:
             fail(f"La exportación de {banco} falló.")
         total += cantidad

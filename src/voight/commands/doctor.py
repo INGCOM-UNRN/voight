@@ -98,14 +98,21 @@ def doctor_cmd(
     })
 
     # Proveedor de IA de `voight ai` (opcional): el diagnóstico común de yutani.ia.
+    import logging
     from yutani import ia
 
     from voight.core.ai import configuracion_ia
 
+    dotenv_logger = logging.getLogger("dotenv.main")
+    nivel_previo = dotenv_logger.level
+    if json_output:
+        dotenv_logger.setLevel(logging.ERROR)
     try:
         chequeos_ia = ia.diagnostico(configuracion_ia())
     except ia.ErrorIA as exc:
         chequeos_ia = [ia.Chequeo("ia", False, False, str(exc))]
+    finally:
+        dotenv_logger.setLevel(nivel_previo)
     for c in chequeos_ia:
         diagnostico.append({
             "componente": f"{c.nombre} (comando ai)",

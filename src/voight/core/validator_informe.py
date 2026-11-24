@@ -1,5 +1,6 @@
 """Generación del informe de texto y de la salida JSON del analizador de bancos (GIFT / XML)."""
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -15,6 +16,8 @@ class InformeMixin:
     duplicates: list
     descriptions: list
     similarity_threshold: float
+
+    def _notificar(self, mensaje: str, nivel: int = logging.INFO) -> None: ...
 
     def generate_report(self, output_file: Optional[str] = None) -> str:
         """Generate the analysis report."""
@@ -172,7 +175,7 @@ class InformeMixin:
         
         if output_file:
             Path(output_file).write_text(report, encoding='utf-8')
-            print(f"\n✅ Informe guardado en: {output_file}")
+            self._notificar(f"\n✅ Informe guardado en: {output_file}")
         
         return report
     

@@ -146,6 +146,7 @@ def ai(
         run_clasificacion(
             file_paths, output_dir, in_place=in_place, suffix=suffix, contexto=contexto or CONTEXTO,
             concurrencia=concurrencia, reclasificar=reclasificar, tags=tags, dry_run=dry_run, cliente=cliente,
+            on_mensaje=click.echo,
         )
         return
 
@@ -176,13 +177,11 @@ def ai(
         precio_entrada=precio_entrada,
         precio_salida=precio_salida,
         parte=parte,
+        on_mensaje=click.echo,
     )
 
 
 def _revisar_clasificacion(rutas: List[Path], umbral: float, tags: bool, referencias: Optional[Path]) -> None:
-    import contextlib
-    import io
-
     from voight.core.lector import leer_archivos, unidades_de
     from voight.core.clasificacion import para_revisar
 
@@ -191,8 +190,7 @@ def _revisar_clasificacion(rutas: List[Path], umbral: float, tags: bool, referen
     except ImportError:
         fail('La interfaz de terminal requiere el extra opcional \'tui\': '
              'uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"')
-    with contextlib.redirect_stdout(io.StringIO()):
-        archivos = leer_archivos(rutas)
+    archivos = leer_archivos(rutas)
     unidades = para_revisar(unidades_de(archivos), umbral, todas=umbral >= 1.0)
     if not unidades:
         click.echo(f"No hay preguntas clasificadas con confianza menor que {umbral:g} (sin contar las corregidas a mano).")

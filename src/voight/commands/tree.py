@@ -1,6 +1,3 @@
-import contextlib
-import io
-
 import click
 import typer
 from pathlib import Path
@@ -40,8 +37,13 @@ def export_cmd(
 ):
     """Exporta ARCHIVO (banco monolítico) a un árbol de directorios (ahora `voight split -o`)."""
     _aviso("tree export", "split -o DIR")
-    with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-        cantidad = core_tree.exportar(archivo, dir_salida, formato)
+    cantidad = core_tree.exportar(
+        archivo,
+        dir_salida,
+        formato,
+        on_progreso=None if output_json else click.echo,
+        on_error=lambda m: click.echo(m, err=True),
+    )
     if cantidad < 0:
         fail("La exportación falló.")
     if output_json:
@@ -75,9 +77,15 @@ def collect_cmd(
     """
     _aviso("tree collect", "unify")
     try:
-        with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-            cantidad = core_tree.recolectar(directorio, archivo_salida, formato,
-                                            incrustar=incrustar, formato_diagrama=formato_diagrama)
+        cantidad = core_tree.recolectar(
+            directorio,
+            archivo_salida,
+            formato,
+            incrustar=incrustar,
+            formato_diagrama=formato_diagrama,
+            on_progreso=None if output_json else click.echo,
+            on_error=lambda m: click.echo(m, err=True),
+        )
     except ErrorIncrustacion as e:
         fail(f"No se pudo incrustar: {e}")
     if cantidad == 0:

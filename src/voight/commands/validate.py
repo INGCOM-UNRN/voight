@@ -1,5 +1,3 @@
-import contextlib
-import io
 import json
 from pathlib import Path
 from typing import List, Optional
@@ -41,7 +39,8 @@ def validate(
     analyzer = AnalizadorBanco(
         similarity_threshold=similarity,
         recursive=recursive,
-        verbose=verbose
+        verbose=verbose,
+        on_progreso=None if output_json else click.echo,
     )
     
     files_to_validate = []
@@ -79,9 +78,8 @@ def validate(
                 click.echo(f"   Error: {result['error']['message']}")
                 
     # Procesar directorios (con --json, el progreso no ensucia la salida)
-    with contextlib.redirect_stdout(io.StringIO()) if output_json else contextlib.nullcontext():
-        for d in dirs_to_validate:
-            analyzer.scan_directory(str(d))
+    for d in dirs_to_validate:
+        analyzer.scan_directory(str(d))
         
     if not output_json:
         if dirs_to_validate or files_to_validate:

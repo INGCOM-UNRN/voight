@@ -1,5 +1,6 @@
 """Similitud textual (TF-IDF + Jaccard) y detección de duplicados del analizador de bancos."""
 
+import logging
 import math
 import re
 from collections import defaultdict
@@ -15,6 +16,9 @@ class SimilitudMixin:
     all_questions: list
     duplicates: list
     similarity_threshold: float
+    verbose: bool
+
+    def _notificar(self, mensaje: str, nivel: int = logging.INFO) -> None: ...
 
     def _clean_text(self, text: str) -> str:
         """Clean and normalize text for comparison."""
@@ -124,7 +128,7 @@ class SimilitudMixin:
             return
         
         if self.verbose:
-            print(f"Buscando duplicados con threshold {self.similarity_threshold}...")
+            self._notificar(f"Buscando duplicados con threshold {self.similarity_threshold}...")
         
         # Prepare texts
         for q in self.all_questions:

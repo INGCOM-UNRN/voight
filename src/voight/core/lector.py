@@ -9,10 +9,13 @@ texto original y lo necesario para volver a escribirla) y el resto queda tal cua
 from __future__ import annotations
 
 import copy
+import logging
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from voight.core.codigo import transformar_codigo, usa_convencion
 from voight.core.converter import question_to_gift
@@ -152,13 +155,17 @@ def _leer_xml(ruta: Path) -> Archivo:
     return Archivo(ruta, "xml", segmentos, raiz=raiz)
 
 
-def leer_archivos(rutas: List[Path]) -> List[Archivo]:
+def leer_archivos(rutas: List[Path], on_error: Optional[Callable[[str], None]] = None) -> List[Archivo]:
     archivos = []
     for ruta in rutas:
         try:
             archivos.append(_leer_xml(ruta) if ruta.suffix.lower() == ".xml" else _leer_gift(ruta))
         except Exception as e:  # noqa: BLE001 - se informa y se sigue con el resto
-            print(f"❌ Error leyendo {ruta}: {e}")
+            msg = f"❌ Error leyendo {ruta}: {e}"
+            if on_error is not None:
+                on_error(msg)
+            else:
+                logger.warning("%s", msg)
     return archivos
 
 

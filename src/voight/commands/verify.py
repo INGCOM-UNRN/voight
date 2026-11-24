@@ -1,7 +1,5 @@
 """Comando para compilar y ejecutar el código de las preguntas y verificar su clave."""
 
-import contextlib
-import io
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -60,8 +58,7 @@ def verify(
             return
     if not archivos_rutas:
         fail("No se encontraron archivos de preguntas (.gift / .xml).")
-    with contextlib.redirect_stdout(io.StringIO()):
-        unidades = [u for u in unidades_de(leer_archivos(archivos_rutas)) if u.pregunta is not None]
+    unidades = [u for u in unidades_de(leer_archivos(archivos_rutas)) if u.pregunta is not None]
 
     verificador = None
     if estilo:

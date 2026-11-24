@@ -30,7 +30,7 @@ dependencies = [
     "click>=8.0.0",
     "rich>=13.0,<14.0",
     # Núcleo común del ecosistema (N-ECO-14): contrato de línea de comandos y textos en español.
-    "yutani @ git+https://github.com/INGCOM-UNRN-P1/yutani@6f95ad93c661adb4493414c6cc57534a18e8f2e0",
+    "yutani @ git+https://github.com/INGCOM-UNRN/yutani@6e42d7ab8b89a1084381f8aea0999a498a844f6c",
 ]
 
 [project.scripts]
@@ -64,11 +64,15 @@ compilar = [
 
 # Revisión ortográfica con LanguageTool (delegada en myst-tools).
 languagetool = [
-    "myst-tools @ git+https://github.com/martinvilu/mystmd-tools@a55f7db83b03aa1da9485b3cf70c49b71ece2664",
+    "myst-tools @ git+https://github.com/INGCOM-UNRN/mystmd-tools@a55f7db83b03aa1da9485b3cf70c49b71ece2664",
 ]
 
 [tool.uv]
 package = true
+# Puente temporal mientras daedalus aún referencia INGCOM-UNRN-P1/yutani.
+override-dependencies = [
+    "yutani @ git+https://github.com/INGCOM-UNRN/yutani@6e42d7ab8b89a1084381f8aea0999a498a844f6c",
+]
 
 [build-system]
 requires = ["hatchling"]

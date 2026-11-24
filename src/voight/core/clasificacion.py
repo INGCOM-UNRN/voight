@@ -19,6 +19,7 @@ API: https://docs.typesafe.ai/api.md (la clave TYPESAFE_API_KEY se busca en el e
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -30,7 +31,16 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+def _emitir(msg: str, on_mensaje: Optional[Callable[[str], None]] = None, nivel: int = logging.INFO) -> None:
+    if on_mensaje is not None:
+        on_mensaje(msg)
+    else:
+        logger.log(nivel, "%s", msg)
 
 from voight.core.lector import Archivo, Unidad, _compactar, leer_archivos, unidades_de
 from voight.core.cache import Cache
@@ -405,21 +415,22 @@ def resumen(resultados: List[Clasificacion]) -> Dict:
 def run_clasificacion(file_paths: List[Path], output_dir: Optional[Path], in_place: bool = False,
                       suffix: Optional[str] = None, contexto: str = CONTEXTO, concurrencia: int = 4,
                       reclasificar: bool = False, tags: bool = False, dry_run: bool = False,
-                      cliente: Optional[ClienteJev] = None) -> Optional[Dict]:
-    print(f"🔍 Escaneando {len(file_paths)} archivos...")
-    archivos = leer_archivos(file_paths)
+                      cliente: Optional[ClienteJev] = None,
+                      on_mensaje: Optional[Callable[[str], None]] = None) -> Optional[Dict]:
+    _emitir(f"🔍 Escaneando {len(file_paths)} archivos...", on_mensaje)
+    archivos = leer_archivos(file_paths, on_error=lambda m: _emitir(m, on_mensaje, logging.WARNING))
     total = len(unidades_de(archivos))
     pendientes = _pendientes(archivos, reclasificar)
-    print(f"🏷️  {len(pendientes)} preguntas para clasificar ({total - len(pendientes)} ya clasificadas o sin tipo evaluable).")
+    _emitir(f"🏷️  {len(pendientes)} preguntas para clasificar ({total - len(pendientes)} ya clasificadas o sin tipo evaluable).", on_mensaje)
     if not pendientes:
         return None
     if dry_run:
         q = pendientes[0].pregunta
         entrada = sum(len(json.dumps({"state": estado(u.pregunta, contexto), "questions": preguntas_jev(u.pregunta)},
                                      ensure_ascii=False)) for u in pendientes) // 4
-        print(f"💰 ≈{entrada:,} tokens de entrada y ≈{25 * len(pendientes):,} de salida (aprox.)".replace(",", "."))
-        print(f"🧪 Simulación: {len(pendientes)} solicitudes a {MODELO}; no se llama a la API. Primera solicitud:\n")
-        print(json.dumps({"state": estado(q, contexto), "questions": preguntas_jev(q)}, ensure_ascii=False, indent=2))
+        _emitir(f"💰 ≈{entrada:,} tokens de entrada y ≈{25 * len(pendientes):,} de salida (aprox.)".replace(",", "."), on_mensaje)
+        _emitir(f"🧪 Simulación: {len(pendientes)} solicitudes a {MODELO}; no se llama a la API. Primera solicitud:\n", on_mensaje)
+        _emitir(json.dumps({"state": estado(q, contexto), "questions": preguntas_jev(q)}, ensure_ascii=False, indent=2), on_mensaje)
         return None
 
     cliente = cliente or ClienteJev()
@@ -431,7 +442,7 @@ def run_clasificacion(file_paths: List[Path], output_dir: Optional[Path], in_pla
         datos = cliente.consultar(estado(unidad.pregunta, contexto), preguntas_jev(unidad.pregunta))
         return unidad, datos
 
-    print(f"🚀 Clasificando con {MODELO} ({concurrencia} solicitudes en paralelo)...")
+    _emitir(f"🚀 Clasificando con {MODELO} ({concurrencia} solicitudes en paralelo)...", on_mensaje)
     from voight.core.progreso import barra
 
     with ThreadPoolExecutor(max_workers=max(1, concurrencia)) as ejecutor, \
@@ -446,11 +457,11 @@ def run_clasificacion(file_paths: List[Path], output_dir: Optional[Path], in_pla
                     uso[clave] += (datos.get("usage") or {}).get(clave, 0)
             except Exception as e:  # noqa: BLE001 - una falla no detiene el resto
                 errores += 1
-                print(f"  ⚠️ {pendientes[n - 1].archivo.name}: {e}")
+                _emitir(f"  ⚠️ {pendientes[n - 1].archivo.name}: {e}", on_mensaje, logging.WARNING)
             if not avance.activa and (n % 50 == 0 or n == len(futuros)):
-                print(f"  {n}/{len(futuros)}")
+                _emitir(f"  {n}/{len(futuros)}", on_mensaje)
 
-    print("💾 Guardando resultados...")
+    _emitir("💾 Guardando resultados...", on_mensaje)
     base = Path(os.path.commonpath([str(a.ruta.parent.resolve()) for a in archivos]))
     for archivo in archivos:
         if not any(id(s) in resultados for s in archivo.segmentos if isinstance(s, Unidad)):
@@ -467,11 +478,11 @@ def run_clasificacion(file_paths: List[Path], output_dir: Optional[Path], in_pla
 
     datos = resumen(list(resultados.values()))
     datos.update({"errores": errores, "uso": uso})
-    print("\n📊 Bloom: " + ", ".join(f"{CODIGO_BLOOM[k]} {k} {v}" for k, v in datos["bloom"].items()))
-    print(f"   Dificultad media (1–5): enunciado {datos['dificultad_enunciado_media']}, "
-          f"respuestas {datos['dificultad_respuestas_media']}; baja confianza: {datos['baja_confianza']}")
-    print(f"   Tokens: {uso['input_tokens']} de entrada, {uso['output_tokens']} de salida"
-          + (f"; {errores} preguntas con error" if errores else ""))
+    _emitir("\n📊 Bloom: " + ", ".join(f"{CODIGO_BLOOM[k]} {k} {v}" for k, v in datos["bloom"].items()), on_mensaje)
+    _emitir(f"   Dificultad media (1–5): enunciado {datos['dificultad_enunciado_media']}, "
+            f"respuestas {datos['dificultad_respuestas_media']}; baja confianza: {datos['baja_confianza']}", on_mensaje)
+    _emitir(f"   Tokens: {uso['input_tokens']} de entrada, {uso['output_tokens']} de salida"
+            + (f"; {errores} preguntas con error" if errores else ""), on_mensaje)
     return datos
 
 

@@ -4,6 +4,7 @@ El modelo siempre recibe GIFT compacto; la respuesta vuelve a cada archivo con s
 convención y, en XML, sobre el <question> original.
 """
 
+import logging
 import re
 import types
 
@@ -133,18 +134,19 @@ def test_multiply_en_xml_crea_variaciones_sin_repetir_idnumber(tmp_path):
     assert [q.findtext("idnumber") for q in preguntas] == ["C-7", "", ""]
 
 
-def test_respuestas_invalidas_o_que_cambian_la_forma_conservan_el_original(tmp_path, capsys):
+def test_respuestas_invalidas_o_que_cambian_la_forma_conservan_el_original(tmp_path, caplog):
     casos = {
         "sin GIFT": lambda n, t: ["Perdón, no puedo ayudar con eso."],
         "otro tipo": lambda n, t: ["::P:: ¿Sí? {T}"],
         "parte una opción": lambda n, t: [t.replace("~nada", "~int x = 5")],
     }
-    for nombre, transformar in casos.items():
-        salida = _procesar(tmp_path, "b.gift", GIFT, Modelo(transformar))
-        assert salida == GIFT.strip() + "\n", nombre
-    salida_xml = _procesar(tmp_path, "b.xml", XML, Modelo(lambda n, t: ["::X:: Q {T}"]))
+    with caplog.at_level(logging.WARNING):
+        for nombre, transformar in casos.items():
+            salida = _procesar(tmp_path, "b.gift", GIFT, Modelo(transformar))
+            assert salida == GIFT.strip() + "\n", nombre
+        salida_xml = _procesar(tmp_path, "b.xml", XML, Modelo(lambda n, t: ["::X:: Q {T}"]))
     assert parse_xml(salida_xml)["questions"] == parse_xml(XML)["questions"]
-    assert "se conserva el original" in capsys.readouterr().out
+    assert "se conserva el original" in caplog.text
 
 
 def test_separar_respuesta_con_cercos_y_sin_marcadores():
@@ -220,12 +222,13 @@ def test_feedback_en_xml_solo_toca_los_nodos_de_retroalimentacion(tmp_path):
     assert pregunta.findtext("penalty") == "0.5"
 
 
-def test_feedback_saltea_las_preguntas_completas(tmp_path, capsys):
+def test_feedback_saltea_las_preguntas_completas(tmp_path, caplog):
     archivo = tmp_path / "c.gift"
     archivo.write_text("::C:: ¿Sí? {=a #bien ~b #mal ####general}\n", encoding="utf-8")
     modelo = Modelo(_con_feedback)
-    ai.run_global_ai_processing(modelo, "simulado", [archivo], tmp_path / "salida", "feedback")
-    assert modelo.prompts == [] and "No se encontraron preguntas" in capsys.readouterr().out
+    with caplog.at_level(logging.WARNING):
+        ai.run_global_ai_processing(modelo, "simulado", [archivo], tmp_path / "salida", "feedback")
+    assert modelo.prompts == [] and "No se encontraron preguntas" in caplog.text
 
 
 def test_cache_evita_volver_a_consultar_al_modelo(tmp_path):
@@ -320,14 +323,15 @@ class _SDKFalso:
                                      stop_details=types.SimpleNamespace(category="cyber"))
 
 
-def test_cliente_claude_ante_una_negativa_conserva_las_preguntas(tmp_path, capsys):
+def test_cliente_claude_ante_una_negativa_conserva_las_preguntas(tmp_path, caplog):
     """El cliente de Claude es el de yutani.ia; una negativa deja el lote como estaba."""
     from yutani import ia as yia
 
     cliente = yia.ClienteClaude(yia.configuracion(proveedor="claude"), sdk=_SDKFalso(stop_reason="refusal", bloques=[]))
-    salida = _procesar(tmp_path, "b.gift", GIFT, cliente)
+    with caplog.at_level(logging.ERROR):
+        salida = _procesar(tmp_path, "b.gift", GIFT, cliente)
     assert salida == GIFT.strip() + "\n"
-    assert "declinó" in capsys.readouterr().out
+    assert "declinó" in caplog.text
 
 
 @pytest.fixture
@@ -433,10 +437,11 @@ def test_parte_respuestas_envia_opciones_sin_retroalimentacion(tmp_path):
     assert q["choices"][0]["feedback"]["text"] == "Bien" and q["choices"][0]["is_correct"]
 
 
-def test_parte_respuestas_rechaza_si_cambia_la_correcta(tmp_path, capsys):
+def test_parte_respuestas_rechaza_si_cambia_la_correcta(tmp_path, caplog):
     modelo = Modelo(lambda n, t: ["~`si`\n=nada\n~error"])
-    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "respuestas")
-    assert salida == GIFT.strip() + "\n" and "forma pedida" in capsys.readouterr().out
+    with caplog.at_level(logging.WARNING):
+        salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "respuestas")
+    assert salida == GIFT.strip() + "\n" and "forma pedida" in caplog.text
 
 
 def test_las_vistas_parciales_envian_menos(tmp_path):
@@ -464,8 +469,9 @@ def test_dry_run_con_parte_muestra_la_vista(tmp_path):
     assert "sólo el enunciado" in res.output and "~nada" not in res.output
 
 
-def test_parte_enunciado_rechaza_marcadores_deformados(tmp_path, capsys):
+def test_parte_enunciado_rechaza_marcadores_deformados(tmp_path, caplog):
     """Un modelo chico que devuelve varias «preguntas» con marcadores mal escritos no pisa el enunciado."""
     modelo = Modelo(lambda n, t: ["--- PREGUNQA 1 ---\nOtra cosa\n\n--- PREGUNTA 2 |\nY otra"])
-    salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "enunciado")
-    assert salida == GIFT.strip() + "\n" and "forma pedida" in capsys.readouterr().out
+    with caplog.at_level(logging.WARNING):
+        salida = _procesar_parte(tmp_path, "b.gift", GIFT, modelo, "enunciado")
+    assert salida == GIFT.strip() + "\n" and "forma pedida" in caplog.text

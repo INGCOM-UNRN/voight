@@ -237,14 +237,11 @@ def certificar(q: Question, ejecutar: bool = True, permitir: Sequence[str] = ())
 def certificar_banco(archivos: Sequence[Path], ejecutar: bool = True, permitir: Sequence[str] = (),
                      concurrencia: int = 4) -> dict:
     """La certificación de cada pregunta con código C de los archivos, agrupada por estado."""
-    import contextlib
-    import io
     from concurrent.futures import ThreadPoolExecutor
 
     from voight.core.lector import leer_archivos, unidades_de
 
-    with contextlib.redirect_stdout(io.StringIO()):
-        unidades = [u for u in unidades_de(leer_archivos(list(archivos))) if u.pregunta is not None]
+    unidades = [u for u in unidades_de(leer_archivos(list(archivos))) if u.pregunta is not None]
     try:
         import daedalus.core.compiler  # noqa: F401
     except ImportError as exc:

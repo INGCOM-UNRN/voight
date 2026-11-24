@@ -2,6 +2,7 @@
 
 import io
 import json
+import logging
 import urllib.error
 import xml.etree.ElementTree as ET
 
@@ -132,7 +133,7 @@ def test_xml_comentario_antes_de_la_pregunta_y_tags_reemplazados(tmp_path):
     assert ET.fromstring(texto).find("question/answer/feedback/text").text == "Porque p apunta a x"
 
 
-def test_salida_en_directorio_y_errores_no_detienen_el_resto(tmp_path, capsys):
+def test_salida_en_directorio_y_errores_no_detienen_el_resto(tmp_path, caplog):
     (tmp_path / "in").mkdir()
     (tmp_path / "in" / "b.gift").write_text(GIFT, encoding="utf-8")
 
@@ -142,12 +143,13 @@ def test_salida_en_directorio_y_errores_no_detienen_el_resto(tmp_path, capsys):
                 raise RuntimeError("TypeSafe respondió 422")
             return super().consultar(state, questions)
 
-    datos = cl.run_clasificacion([tmp_path / "in" / "b.gift"], tmp_path / "out", cliente=Falla())
+    with caplog.at_level(logging.WARNING):
+        datos = cl.run_clasificacion([tmp_path / "in" / "b.gift"], tmp_path / "out", cliente=Falla())
     assert datos["errores"] == 1 and datos["clasificadas"] == 1
     salida = (tmp_path / "out" / "b_classify.gift").read_text(encoding="utf-8")
     assert salida.count("[clasificacion:") == 1
     assert (tmp_path / "in" / "b.gift").read_text(encoding="utf-8") == GIFT
-    assert "422" in capsys.readouterr().out
+    assert "422" in caplog.text
 
 
 def test_cliente_reintenta_ante_429_y_no_ante_401(monkeypatch):
@@ -250,16 +252,12 @@ _REVISAR = (
 
 
 def _leer_revision(tmp_path):
-    import contextlib
-    import io
-
     from voight.core.lector import leer_archivos, unidades_de
 
     ruta = tmp_path / "banco.gift"
     if not ruta.exists():
         ruta.write_text(_REVISAR, encoding="utf-8")
-    with contextlib.redirect_stdout(io.StringIO()):
-        archivos = leer_archivos([ruta])
+    archivos = leer_archivos([ruta])
     return ruta, archivos, [u for u in unidades_de(archivos) if u.pregunta]
 
 

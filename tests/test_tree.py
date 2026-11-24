@@ -12,29 +12,23 @@ $CATEGORY: $course$/Tema2
 '''
 
 
-def _limpiar(capsys):
-    capsys.readouterr()
-
-
-def test_gift_export_crea_arbol_por_categorias(tmp_path, capsys):
+def test_gift_export_crea_arbol_por_categorias(tmp_path):
     banco = tmp_path / "full.gift"
     banco.write_text(GIFT_BANCO, encoding="utf-8")
 
     cantidad = tree.exportar(banco, tmp_path / "arbol")
-    _limpiar(capsys)
 
     assert cantidad == 2
     assert (tmp_path / "arbol" / "Tema1" / "Subtema" / "q1.gift").exists()
     assert (tmp_path / "arbol" / "Tema2" / "q2.gift").exists()
 
 
-def test_gift_round_trip_preserva_categorias_y_preguntas(tmp_path, capsys):
+def test_gift_round_trip_preserva_categorias_y_preguntas(tmp_path):
     banco = tmp_path / "full.gift"
     banco.write_text(GIFT_BANCO, encoding="utf-8")
 
     tree.exportar(banco, tmp_path / "arbol")
     tree.recolectar(tmp_path / "arbol", tmp_path / "reconstruido.gift")
-    _limpiar(capsys)
 
     salida = (tmp_path / "reconstruido.gift").read_text(encoding="utf-8")
     assert "$course$/Tema1/Subtema" in salida
@@ -43,12 +37,11 @@ def test_gift_round_trip_preserva_categorias_y_preguntas(tmp_path, capsys):
         assert fragmento in salida
 
 
-def test_gift_export_con_titulos_duplicados_no_sobrescribe(tmp_path, capsys):
+def test_gift_export_con_titulos_duplicados_no_sobrescribe(tmp_path):
     banco = tmp_path / "full.gift"
     banco.write_text("::Igual:: A {T}\n\n::Igual:: B {F}\n", encoding="utf-8")
 
     cantidad = tree.exportar(banco, tmp_path / "arbol")
-    _limpiar(capsys)
 
     assert cantidad == 2
     nombres = sorted(p.name for p in (tmp_path / "arbol").glob("*.gift"))
@@ -67,7 +60,7 @@ XML_BANCO = '''<?xml version="1.0" encoding="UTF-8"?>
 </quiz>'''
 
 
-def test_xml_export_collect_round_trip(tmp_path, capsys):
+def test_xml_export_collect_round_trip(tmp_path):
     banco = tmp_path / "full.xml"
     banco.write_text(XML_BANCO, encoding="utf-8")
 
@@ -76,7 +69,6 @@ def test_xml_export_collect_round_trip(tmp_path, capsys):
     assert (tmp_path / "arbol" / "Historia" / "tf1.xml").exists()
 
     cantidad2 = tree.recolectar(tmp_path / "arbol", tmp_path / "reconstruido.xml")
-    _limpiar(capsys)
     assert cantidad2 == 1
 
     salida = (tmp_path / "reconstruido.xml").read_text(encoding="utf-8")

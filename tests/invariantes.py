@@ -4,8 +4,6 @@ de problemas encontrados (vacía si se cumple)."""
 
 from __future__ import annotations
 
-import contextlib
-import io
 from collections import Counter
 from pathlib import Path
 from typing import List
@@ -109,9 +107,8 @@ def unificar_y_exportar_conserva_las_preguntas(raiz: Path, tmp: Path) -> List[st
         return Counter(_esencia(q) for r in rutas for q in _parsear(r.read_text(encoding="utf-8"), "gift")
                        if q["type"] != "Category")
 
-    with contextlib.redirect_stdout(io.StringIO()):
-        unificar([raiz], tmp / "todo.gift", formato="gift", recursivo=True)
-        gift_export(tmp / "todo.gift", tmp / "arbol")
+    unificar([raiz], tmp / "todo.gift", formato="gift", recursivo=True)
+    gift_export(tmp / "todo.gift", tmp / "arbol")
     originales, unificado = preguntas(gifts), preguntas([tmp / "todo.gift"])
     exportado = preguntas(sorted((tmp / "arbol").rglob("*.gift")))
     problemas = []

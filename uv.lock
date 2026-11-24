@@ -8,6 +8,9 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 
+[manifest]
+overrides = [{ name = "yutani", git = "https://github.com/INGCOM-UNRN/yutani?rev=6e42d7ab8b89a1084381f8aea0999a498a844f6c" }]
+
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -878,7 +881,7 @@ wheels = [
 [[package]]
 name = "myst-tools"
 version = "0.2.0"
-source = { git = "https://github.com/martinvilu/mystmd-tools?rev=a55f7db83b03aa1da9485b3cf70c49b71ece2664#a55f7db83b03aa1da9485b3cf70c49b71ece2664" }
+source = { git = "https://github.com/INGCOM-UNRN/mystmd-tools?rev=a55f7db83b03aa1da9485b3cf70c49b71ece2664#a55f7db83b03aa1da9485b3cf70c49b71ece2664" }
 dependencies = [
     { name = "rich" },
     { name = "typer" },
@@ -1325,12 +1328,12 @@ requires-dist = [
     { name = "flask", marker = "extra == 'ui'", specifier = ">=3.0" },
     { name = "google-genai", marker = "extra == 'ai'", specifier = ">=2.4.0" },
     { name = "markdown", marker = "extra == 'ui'" },
-    { name = "myst-tools", marker = "extra == 'languagetool'", git = "https://github.com/martinvilu/mystmd-tools?rev=a55f7db83b03aa1da9485b3cf70c49b71ece2664" },
+    { name = "myst-tools", marker = "extra == 'languagetool'", git = "https://github.com/INGCOM-UNRN/mystmd-tools?rev=a55f7db83b03aa1da9485b3cf70c49b71ece2664" },
     { name = "python-dotenv" },
     { name = "rich", specifier = ">=13.0,<14.0" },
     { name = "textual", marker = "extra == 'tui'", specifier = ">=6.0" },
     { name = "typer", specifier = ">=0.12.0" },
-    { name = "yutani", git = "https://github.com/INGCOM-UNRN-P1/yutani?rev=6f95ad93c661adb4493414c6cc57534a18e8f2e0" },
+    { name = "yutani", git = "https://github.com/INGCOM-UNRN/yutani?rev=6e42d7ab8b89a1084381f8aea0999a498a844f6c" },
 ]
 provides-extras = ["ai", "ui", "tui", "compilar", "languagetool"]
 
@@ -1414,7 +1417,7 @@ wheels = [
 [[package]]
 name = "yutani"
 version = "0.1.0"
-source = { git = "https://github.com/INGCOM-UNRN-P1/yutani?rev=6f95ad93c661adb4493414c6cc57534a18e8f2e0#6f95ad93c661adb4493414c6cc57534a18e8f2e0" }
+source = { git = "https://github.com/INGCOM-UNRN/yutani?rev=6e42d7ab8b89a1084381f8aea0999a498a844f6c#6e42d7ab8b89a1084381f8aea0999a498a844f6c" }
 dependencies = [
     { name = "rich" },
     { name = "typer" },

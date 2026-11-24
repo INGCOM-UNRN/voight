@@ -5,12 +5,14 @@ agrupa preguntas preservando sus jerarquías de categorías ($CATEGORY en GIFT,
 <question type="category"> en XML), y produce un único archivo monolítico unificado.
 """
 
+import logging
 import os
 import re
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 from voight.core.converter import _cdata_sub
 from voight.core.formatter import _bloques_gift
@@ -99,6 +101,7 @@ def unificar_xml(
     eliminar_origen: bool = False,
     incrustar: bool = True,
     formato_diagrama: str = "png",
+    on_aviso: Optional[Callable[[str], None]] = None,
 ) -> int:
     """Unifica múltiples archivos y/o directorios Moodle XML en un único archivo XML monolítico.
 
@@ -136,7 +139,11 @@ def unificar_xml(
         try:
             tree = ET.parse(filepath)
         except (ET.ParseError, UnicodeDecodeError) as e:
-            print(f"Error interpretando {filepath}: {e}", file=sys.stderr)
+            msg = f"Error interpretando {filepath}: {e}"
+            if on_aviso is not None:
+                on_aviso(msg)
+            else:
+                logger.warning("%s", msg)
             continue
 
         for question in tree.getroot().findall("question"):
@@ -183,6 +190,7 @@ def unificar(
     eliminar_origen: bool = False,
     incrustar: bool = True,
     formato_diagrama: str = "png",
+    on_aviso: Optional[Callable[[str], None]] = None,
 ) -> int:
     """Unifica árboles o colecciones de preguntas al formato especificado o deducido de la salida.
 
@@ -193,6 +201,6 @@ def unificar(
         return unificar_gift(rutas, archivo_salida, recursivo=recursivo, eliminar_origen=eliminar_origen)
     elif fmt == "xml":
         return unificar_xml(rutas, archivo_salida, recursivo=recursivo, eliminar_origen=eliminar_origen,
-                            incrustar=incrustar, formato_diagrama=formato_diagrama)
+                            incrustar=incrustar, formato_diagrama=formato_diagrama, on_aviso=on_aviso)
     else:
         raise ValueError(f"Formato no soportado: {fmt}. Debe ser 'gift' o 'xml'.")

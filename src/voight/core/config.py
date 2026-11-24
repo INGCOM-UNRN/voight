@@ -10,6 +10,7 @@ El proveedor y el modelo de IA comunes a todo el ecosistema viven en
 `~/.config/p1/ia.toml` (yutani.ia); `proveedor` y `modelo` de acá son sólo de voight.
 `VOIGHT_CONFIG_DIR` cambia el directorio (los tests lo usan para no tocar el del usuario).
 """
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,9 +57,27 @@ def clave(nombre: str) -> Clave:
     raise KeyError(nombre)
 
 
+def _cargar_dotenv_silencioso(ruta: Path) -> None:
+    dotenv_logger = logging.getLogger("dotenv.main")
+    nivel_previo = dotenv_logger.level
+    dotenv_logger.setLevel(logging.ERROR)
+    try:
+        load_dotenv(dotenv_path=ruta)
+    finally:
+        dotenv_logger.setLevel(nivel_previo)
+
+
 def _guardadas() -> Dict[str, Optional[str]]:
     archivo = archivo_env()
-    return dotenv_values(archivo) if archivo.exists() else {}
+    if not archivo.exists():
+        return {}
+    dotenv_logger = logging.getLogger("dotenv.main")
+    nivel_previo = dotenv_logger.level
+    dotenv_logger.setLevel(logging.ERROR)
+    try:
+        return dotenv_values(archivo)
+    finally:
+        dotenv_logger.setLevel(nivel_previo)
 
 
 # Lo que `cargar_entorno` puso en el entorno desde el archivo (no cuenta como "entorno").
@@ -122,7 +141,9 @@ def cargar_entorno(local: bool = False) -> None:
     """Pone en el entorno lo guardado con `voight config` sin pisar lo que ya esté; con
     `local`, también el `.env` del directorio de trabajo (como hizo siempre `voight ai`)."""
     if local:
-        load_dotenv()
+        env_local = Path.cwd() / ".env"
+        if env_local.is_file():
+            _cargar_dotenv_silencioso(env_local)
     for variable, valor in _guardadas().items():
         if valor is not None and variable not in os.environ:
             os.environ[variable] = valor
