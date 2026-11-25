@@ -31,6 +31,7 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Corregido
 
+- **fix code-indent, fix code-chars, fix format --fullwidth**: ya no tocan los bloques de diagramas de dibu (```` ```estructura ````, ```` ```statics ````, ```` ```dibu ````) ni ```` ```puml ````, como ya pasaba con ```` ```plantuml ````. La sangría con `·` dejaba inválido el YAML de los diagramas de dibu y alucarD no los dibujaba. Al parsear y convertir, esos bloques van crudos, y `health` no los cuenta como código.
 - **convert gift-to-xml**: se perdían las opciones `// […]` de los bloques ```` ```tabla ````.
 - **fix format**: `{}` quedaba en dos renglones.
 - **health**: los bloques ```` ```tabla ```` contaban como código sin proteger.

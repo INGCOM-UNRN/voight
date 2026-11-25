@@ -1,7 +1,9 @@
 """Lo que Moodle no importa de un GIFT: diagramas, tablas y fórmulas `$...$`.
 
-Un bloque ```plantuml va crudo: lleva `{ } : = #`, renglones en blanco y `//`. `proteger_bloques` lo
-esconde mientras se parte y se parsea el GIFT, y también las opciones `// [...]` de un ```tabla.
+Un bloque de diagrama (```plantuml, ```puml, y los de dibu: ```estructura, ```statics, ```dibu) va
+crudo: lleva `{ } : = #`, renglones en blanco y `//`, y ni el ancho completo ni las marcas · y ↵ del
+código se le aplican. `proteger_bloques` lo esconde mientras se parte y se parsea el GIFT, y también
+las opciones `// [...]` de un ```tabla.
 
 Reconoce las fórmulas con las reglas de alucarD (`generador_examenes.matematica`), sin depender de
 él: los espacios de adentro son parejos, el `$` que cierra no va seguido de un dígito y lo que está en
@@ -31,7 +33,12 @@ _GIFT = re.compile("|".join((_NO_ES_TEXTO, _CODIGO, _DOLAR, _BLOQUE, _LINEA, _ES
 _MARKDOWN = re.compile("|".join((_CODIGO, _DOLAR, _BLOQUE, _LINEA, _ESPACIADA)), re.S)
 _HTML = re.compile("|".join((_CODIGO, _ETIQUETA, _DOLAR, _BLOQUE, _LINEA, _ESPACIADA, _LATEX)), re.S)
 
-_DIAGRAMA = re.compile(r"^[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*(?:estructura|statics|mermaid|plantuml)[ \t]*\n.*?"
+# Los bloques de diagramas: los dibujan dibu (estructura, statics, dibu) y PlantUML (plantuml, puml).
+# No son código: van crudos, sin escapes de GIFT, ancho completo ni marcas.
+LENGUAJES_DIAGRAMA = ("estructura", "statics", "dibu", "plantuml", "puml")
+_DIAGRAMAS = "|".join(LENGUAJES_DIAGRAMA)
+
+_DIAGRAMA = re.compile(r"^[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*(?:" + _DIAGRAMAS + r"|mermaid)[ \t]*\n.*?"
                        r"^[ \t]*(?P=valla)[ \t]*$", re.S | re.M | re.I)
 
 _TABLA = re.compile(r"^[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*tabla[ \t]*\n.*?^[ \t]*(?P=valla)[ \t]*$", re.S | re.M | re.I)
@@ -42,7 +49,7 @@ _RENGLON_EN_BLANCO = chr(0xF0100)
 _ESCONDER = str.maketrans(_ESCONDIDOS)
 _REPONER = str.maketrans({**{v: k for k, v in _ESCONDIDOS.items()}, _RENGLON_EN_BLANCO: None})
 
-_CRUDO = re.compile(r"^(?P<abre>[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*(?P<lenguaje>tabla|plantuml)[ \t]*\n)(?P<cuerpo>.*?)"
+_CRUDO = re.compile(r"^(?P<abre>[ \t]*(?P<valla>`{3,}|~{3,})[ \t]*(?P<lenguaje>tabla|" + _DIAGRAMAS + r")[ \t]*\n)(?P<cuerpo>.*?)"
                     r"(?P<cierra>^[ \t]*(?P=valla)[ \t]*$)", re.S | re.M | re.I)
 
 
@@ -75,7 +82,7 @@ def _formulas_gift(contenido: str) -> Iterator[re.Match]:
 
 
 def proteger_bloques(contenido: str) -> str:
-    """Esconde lo que un ```plantuml o un ```tabla tienen que conservar; `restaurar` lo repone."""
+    """Esconde lo que un diagrama o un ```tabla tienen que conservar; `restaurar` lo repone."""
     def esconder(m: re.Match) -> str:
         cuerpo = m.group("cuerpo")
         if m.group("lenguaje").lower() == "tabla":
@@ -89,10 +96,11 @@ def proteger_bloques(contenido: str) -> str:
 
 
 def fuera_de_plantuml(texto: str, funcion) -> str:
-    """Aplica `funcion` a lo que no está en un bloque ```plantuml, que no lleva escapes de GIFT."""
+    """Aplica `funcion` a lo que no está en un bloque de diagrama (PlantUML o dibu), que no lleva
+    escapes de GIFT."""
     salida, inicio = [], 0
     for m in _CRUDO.finditer(texto):
-        if m.group("lenguaje").lower() == "plantuml":
+        if m.group("lenguaje").lower() != "tabla":
             salida += [funcion(texto[inicio:m.start()]), m.group(0)]
             inicio = m.end()
     return "".join(salida) + funcion(texto[inicio:])

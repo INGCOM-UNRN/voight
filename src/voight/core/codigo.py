@@ -21,6 +21,8 @@ from __future__ import annotations
 import re
 from typing import Callable, Optional
 
+from voight.core.formulas import LENGUAJES_DIAGRAMA
+
 MARCA_ESPACIO = "·"
 MARCA_SALTO = "↵"
 
@@ -69,8 +71,8 @@ _SECCIONES = {
 
 
 def _no_es_codigo(m: re.Match) -> bool:
-    """Un ```tabla o un ```plantuml no son código: fullwidth y las marcas los romperían."""
-    return (m.groupdict().get("lang") or "").strip().lower() in ("tabla", "plantuml")
+    """Un ```tabla o un diagrama (PlantUML o dibu) no son código: fullwidth y las marcas los romperían."""
+    return (m.groupdict().get("lang") or "").strip().lower() in ("tabla", *LENGUAJES_DIAGRAMA)
 
 
 def _sin_entidades(texto: str) -> str:

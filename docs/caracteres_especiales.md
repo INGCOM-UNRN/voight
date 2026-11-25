@@ -23,6 +23,13 @@ formato al otro sin romperse. La implementa `voight.core.codigo` y la usan
 En GIFT se procesa el texto del archivo; en XML, el contenido de cada `<text>` (en
 CDATA o escapado; si cambia, se escribe en CDATA).
 
+**No son código**, y quedan como están: los bloques ```` ```tabla ```` y los de
+diagramas, ```` ```plantuml ````, ```` ```puml ```` y los de dibu (```` ```estructura ````,
+```` ```statics ````, ```` ```dibu ````). Su contenido lo leen PlantUML o dibu, que no
+entienden el ancho completo ni las marcas: una sangría con `·` deja inválido el YAML de
+un diagrama de dibu. Al parsear y convertir el banco van crudos, con sus `{ } : = #` y
+sus renglones en blanco.
+
 ## Símbolos
 
 | Normal | Fullwidth | Por qué |
