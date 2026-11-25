@@ -275,11 +275,17 @@ def test_health_desde_sin_cambios_json(tmp_path, monkeypatch):
         assert datos["resumen"]["total_errores"] == 0
 
     md_path = tmp_path / "salud.md"
-    res_md = runner.invoke(cli, ["health", ".", "--desde", "HEAD", "--md", str(md_path), "--json"])
+    csv_path = tmp_path / "salud.csv"
+    res_md = runner.invoke(
+        cli, ["health", "--desde", "HEAD", "--md", str(md_path), "--csv", str(csv_path), "--json"]
+    )
     assert res_md.exit_code == 0, res_md.output
     assert res_md.stderr == ""
     assert json.loads(res_md.stdout)["ok"] is True
     assert md_path.is_file()
+    assert "`repo`" in md_path.read_text(encoding="utf-8")
+    assert csv_path.is_file()
+    assert len(csv_path.read_text(encoding="utf-8").splitlines()) == 1
 
     res_txt = runner.invoke(cli, ["health", "--desde", "HEAD"])
     assert res_txt.exit_code == 0, res_txt.output
@@ -320,9 +326,11 @@ def test_moodle_subir_dry_run_json(tmp_path):
 def test_spellcheck_vacio_y_md_json(tmp_path, monkeypatch):
     vacio = tmp_path / "vacio"
     vacio.mkdir()
-    res_vacio = runner.invoke(cli, ["fix", "grammar", str(vacio), "--json"])
+    md_vacio = tmp_path / "grammar_vacio.md"
+    res_vacio = runner.invoke(cli, ["fix", "grammar", str(vacio), "--md", str(md_vacio), "--json"])
     assert res_vacio.exit_code == 0, res_vacio.output
     assert res_vacio.stderr == ""
+    assert md_vacio.is_file()
     datos_vacio = json.loads(res_vacio.stdout)
     assert datos_vacio["schema_version"] == "1.0.0"
     assert datos_vacio["comando"] == "fix grammar"
@@ -382,5 +390,101 @@ printf("%d\\n", x);
     assert "files" in datos and "compilacion" in datos
     assert datos["compilacion"]["con_codigo_c"] == 1
     assert datos["compilacion"]["certificadas"] == 1
+
+
+def test_archivos_cambiados_rutas_no_ascii_y_validacion_desde(tmp_path):
+    from voight.core.banco import archivos_cambiados
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "evaluación.gift").write_text("::E1:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
+    _init_git_repo(repo)
+
+    # Tracked modificado + untracked con tildes, ñ y espacios.
+    (repo / "evaluación.gift").write_text("::E1:: ¿2+3? {=5 ~3 ~4}\n", encoding="utf-8")
+    sub = repo / "sub"
+    sub.mkdir()
+    (sub / "pregunta ñandú.gift").write_text("::N1:: ¿3+3? {=6 ~5 ~7}\n", encoding="utf-8")
+
+    cambiados = archivos_cambiados("HEAD", [repo])
+    assert cambiados == {
+        (repo / "evaluación.gift").resolve(),
+        (sub / "pregunta ñandú.gift").resolve(),
+    }
+
+    # Multi-repo: también detecta cambios en un segundo repositorio pasado en `rutas`.
+    repo2 = tmp_path / "repo2"
+    repo2.mkdir()
+    (repo2 / "base.gift").write_text("::B:: ¿1+1? {=2 ~3}\n", encoding="utf-8")
+    _init_git_repo(repo2)
+    (repo2 / "extraño.gift").write_text("::X:: ¿4+4? {=8 ~7}\n", encoding="utf-8")
+
+    cambiados_multi = archivos_cambiados("HEAD", [repo, repo2])
+    assert (repo2 / "extraño.gift").resolve() in cambiados_multi
+    assert (repo / "evaluación.gift").resolve() in cambiados_multi
+
+    # Flags e inválidos en `desde` deben fallar explícitamente con ValueError.
+    for mala_ref in ("-p", "--help", "", "   ", "REF_INEXISTENTE_XYZ"):
+        with pytest.raises(ValueError):
+            archivos_cambiados(mala_ref, [repo])
+
+
+def test_comandos_desde_rutas_no_ascii_y_flag_injection(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    pregunta_dup = "::Punteros:: ¿Qué guarda un puntero en lenguaje C cuando se declara?\n{=Una dirección ~Un entero ~Nada}\n"
+    (repo / "base.gift").write_text(pregunta_dup, encoding="utf-8")
+    (repo / "evaluación.gift").write_text("::Base:: ¿1+1? {=2 ~3 ~4}\n", encoding="utf-8")
+    _init_git_repo(repo)
+    monkeypatch.chdir(repo)
+
+    # 1) Tracked modificado con nombre no-ASCII + formato no estándar (sin espacio antes de `{`)
+    # y código C para verify.
+    (repo / "evaluación.gift").write_text(
+        r"""::EV:: ¿Qué imprime este código?
+```c
+printf("%d\\n", 9);
+```
+{=9 ~8 ~7}
+""",
+        encoding="utf-8",
+    )
+    # 2) Untracked con ñ y espacios duplicado de base.gift y formato no estándar (`{=`).
+    sub = repo / "sub"
+    sub.mkdir()
+    (sub / "pregunta ñandú.gift").write_text(pregunta_dup.replace("\n{=", "{="), encoding="utf-8")
+
+    res_health = runner.invoke(cli, ["health", "-r", "--desde", "HEAD", "--json"])
+    assert res_health.exit_code in (0, 1), res_health.output
+    assert res_health.stderr == ""
+    datos_health = json.loads(res_health.stdout)
+    assert datos_health["archivos"]["total"] == 2
+
+    res_fmt = runner.invoke(cli, ["fix", "format", "-r", "--desde", "HEAD", "--check", "--json"])
+    assert res_fmt.exit_code == 1, res_fmt.output
+    assert res_fmt.stderr == ""
+    datos_fmt = json.loads(res_fmt.stdout)
+    assert datos_fmt["archivos"] == 2
+    assert any("evaluación.gift" in c for c in datos_fmt["cambian"])
+
+    res_dedup = runner.invoke(cli, ["dedup", "-r", "--desde", "HEAD", "--json"])
+    assert res_dedup.exit_code == 0, res_dedup.output
+    assert res_dedup.stderr == ""
+    datos_dedup = json.loads(res_dedup.stdout)
+    assert len(datos_dedup["grupos"]) == 1
+
+    res_verify = runner.invoke(cli, ["verify", "-r", "--desde", "HEAD", "--json"])
+    assert res_verify.exit_code == 0, res_verify.output
+    assert res_verify.stderr == ""
+    datos_verify = json.loads(res_verify.stdout)
+    assert datos_verify["verificadas"] == 1
+    assert datos_verify["resultados"][0]["titulo"] == "EV"
+
+    # Flag injection en CLI: `verify --desde -p --json` debe salir con rc=1 y error por stderr.
+    res_flag = runner.invoke(cli, ["verify", "--desde", "-p", "--json"])
+    assert res_flag.exit_code == 1
+    assert res_flag.stdout == ""
+    assert res_flag.stderr.strip() != ""
+
 
 

@@ -81,26 +81,51 @@ def parse_archivo(ruta: str | Path) -> dict:
     return resultado
 
 
+def _git(cwd: Path, *args: str) -> str:
+    import subprocess
+
+    r = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "-C", str(cwd), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if r.returncode != 0:
+        raise ValueError(f"git {' '.join(args)}: {r.stderr.strip() or 'falló'}")
+    return r.stdout
+
+
 def archivos_cambiados(desde: str, rutas: Optional[Iterable[str | Path]] = ()) -> set:
     """Archivos de preguntas cambiados desde la revisión git `desde` (incluye los nuevos
     sin seguimiento), como rutas absolutas. Error si las rutas no están en un repo git."""
-    import subprocess
+    if not desde or not desde.strip():
+        raise ValueError("La revisión git `desde` no puede estar vacía.")
 
     carpetas = [Path(r) for r in (rutas or ())] or [Path.cwd()]
-    base = carpetas[0].resolve()
-    base = base if base.is_dir() else base.parent
+    cambiados: set[Path] = set()
+    raices_vistas: set[Path] = set()
 
-    def git(*args) -> str:
-        r = subprocess.run(["git", "-C", str(base), *args], capture_output=True, text=True)
-        if r.returncode != 0:
-            raise ValueError(f"git {' '.join(args)}: {r.stderr.strip() or 'falló'}")
-        return r.stdout
+    for carpeta in carpetas:
+        base = carpeta.resolve()
+        base = base if base.is_dir() else base.parent
+        raiz = Path(_git(base, "rev-parse", "--show-toplevel").strip()).resolve()
+        if raiz in raices_vistas:
+            continue
+        raices_vistas.add(raiz)
 
-    raiz = Path(git("rev-parse", "--show-toplevel").strip())
-    # diff --name-only da rutas relativas a la raíz; ls-files --full-name también.
-    nombres = git("diff", "--name-only", "--diff-filter=d", desde, "--").splitlines()
-    nombres += git("ls-files", "--others", "--exclude-standard", "--full-name", str(raiz)).splitlines()
-    return {(raiz / n).resolve() for n in nombres if Path(n).suffix.lower() in EXTENSIONES}
+        # Validar revisión antes de invocar diff (evita inyección de flags como `-p`).
+        _git(raiz, "rev-parse", "--verify", "--end-of-options", f"{desde}^{{commit}}")
+        # -z y core.quotePath=false devuelven rutas UTF-8 sin comillas ni escapes octales.
+        salida_diff = _git(
+            raiz, "diff", "--name-only", "-z", "--diff-filter=d", "--end-of-options", desde, "--"
+        )
+        salida_otros = _git(
+            raiz, "ls-files", "--others", "--exclude-standard", "--full-name", "-z", "--", "."
+        )
+        nombres = [n for n in (*salida_diff.split("\x00"), *salida_otros.split("\x00")) if n]
+        cambiados.update((raiz / n).resolve() for n in nombres if Path(n).suffix.lower() in EXTENSIONES)
+
+    return cambiados
 
 
 def filtrar_desde(archivos: Iterable[Path], desde: Optional[str], rutas: Optional[Iterable[str | Path]] = ()) -> list:

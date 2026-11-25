@@ -72,10 +72,14 @@ def health_cmd(
         except ValueError as e:
             fail(str(e))
         if not archivos:
+            if output_csv is not None:
+                filas = escribir_csv([], output_csv)
+                if not output_json:
+                    click.echo(f"✓ {filas} preguntas exportadas a {output_csv}")
             if output_json:
                 resultado = auditar_archivos([], min_opciones=min_opciones, umbral_longitud=umbral_longitud)
                 if output_md:
-                    nombre_md = rutas_norm[0].name if len(rutas_norm) == 1 else "0 archivos"
+                    nombre_md = rutas_norm[0].resolve().name if len(rutas_norm) == 1 else "0 archivos"
                     output_md.parent.mkdir(parents=True, exist_ok=True)
                     output_md.write_text(
                         generar_reporte_markdown(resultado, nombre_md, max_items=max_items),
@@ -83,6 +87,14 @@ def health_cmd(
                     )
                 emitir_json("health", {**resultado, "ok": resultado["resumen"]["ok"]})
                 return
+            if output_md:
+                resultado = auditar_archivos([], min_opciones=min_opciones, umbral_longitud=umbral_longitud)
+                nombre_md = rutas_norm[0].resolve().name if len(rutas_norm) == 1 else "0 archivos"
+                output_md.parent.mkdir(parents=True, exist_ok=True)
+                output_md.write_text(
+                    generar_reporte_markdown(resultado, nombre_md, max_items=max_items),
+                    encoding="utf-8",
+                )
             click.echo(f"No hay archivos de preguntas cambiados desde {desde}.")
             return
     if not archivos:
@@ -144,7 +156,7 @@ def health_cmd(
     if output_json:
         if output_md:
             # Con --json y --md juntos se escriben ambos (p. ej. la acción de GitHub).
-            nombre_md = rutas_norm[0].name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
+            nombre_md = rutas_norm[0].resolve().name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
             output_md.parent.mkdir(parents=True, exist_ok=True)
             output_md.write_text(generar_reporte_markdown(resultado, nombre_md, max_items=max_items), encoding="utf-8")
         datos = {}
@@ -156,7 +168,7 @@ def health_cmd(
         _salir(resultado, estricto)
         return
 
-    nombre = rutas_norm[0].name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
+    nombre = rutas_norm[0].resolve().name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
     reporte = generar_reporte_markdown(resultado, nombre, max_items=max_items)
 
     if output_md:

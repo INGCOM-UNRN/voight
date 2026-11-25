@@ -44,6 +44,13 @@ def spellcheck(
             archivos_a_revisar.extend(sorted(path_obj.glob('**/*.xml')))
 
     if not archivos_a_revisar:
+        if output_md:
+            md_text = generar_reporte_markdown_languagetool([])
+            out_p = Path(output_md)
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            out_p.write_text(md_text, encoding='utf-8')
+            if not output_json:
+                click.echo(f"✓ Reporte Markdown generado en: {out_p}")
         if output_json:
             emitir_json("fix grammar", {
                 "total_archivos": 0,
