@@ -152,3 +152,235 @@ def test_synth_generar_json(tmp_path):
     datos = _json(runner.invoke(cli, ["synth", "precedencia", "-n", "1", "-o", str(salida), "--json"]))
     assert datos["cantidad"] == 1 and salida.exists()
 
+
+def _init_git_repo(repo_dir):
+    import os
+    import subprocess
+
+    if not shutil.which("git"):
+        pytest.skip("requiere git")
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@t",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@t",
+        "PATH": os.environ["PATH"],
+        "HOME": str(repo_dir),
+    }
+    subprocess.run(["git", "-C", str(repo_dir), "init", "-q"], check=True, capture_output=True, env=env)
+    subprocess.run(["git", "-C", str(repo_dir), "add", "."], check=True, capture_output=True, env=env)
+    subprocess.run(["git", "-C", str(repo_dir), "commit", "-qm", "init"], check=True, capture_output=True, env=env)
+
+
+def test_verify_desde_sin_ruta_posicional(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "q.gift").write_text("::Q1:: ¿2+2? {=4 ~3}\n", encoding="utf-8")
+    _init_git_repo(repo)
+    monkeypatch.chdir(repo)
+
+    res_json = runner.invoke(cli, ["verify", "--desde", "HEAD", "--json"])
+    assert res_json.exit_code == 0, res_json.output
+    assert res_json.stderr == ""
+    datos = json.loads(res_json.stdout)
+    assert datos["schema_version"] == "1.0.0"
+    assert datos["herramienta"] == "voight"
+    assert datos["comando"] == "verify"
+    assert datos["verificadas"] == 0
+    assert datos["resultados"] == []
+
+    res_txt = runner.invoke(cli, ["verify", "--desde", "HEAD"])
+    assert res_txt.exit_code == 0, res_txt.output
+    assert res_txt.stderr == ""
+    assert "No hay archivos de preguntas cambiados desde HEAD." in res_txt.stdout
+
+    # Con un archivo nuevo sin seguimiento, --desde HEAD sin ruta posicional debe procesarlo.
+    (repo / "nuevo.gift").write_text(
+        r"""::Q2:: ¿Qué imprime este código?
+```c
+printf("%d\\n", 6);
+```
+{=6 ~5}
+""",
+        encoding="utf-8",
+    )
+    res_nuevo = runner.invoke(cli, ["verify", "--desde", "HEAD", "--json"])
+    assert res_nuevo.exit_code == 0, res_nuevo.output
+    assert res_nuevo.stderr == ""
+    datos_nuevo = json.loads(res_nuevo.stdout)
+    assert datos_nuevo["comando"] == "verify"
+    assert datos_nuevo["verificadas"] == 1
+    assert datos_nuevo["resultados"][0]["titulo"] == "Q2"
+    if shutil.which("gcc"):
+        assert datos_nuevo["resultados"][0]["estado"] == "coincide"
+
+
+def test_dedup_desde_sin_ruta_posicional(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    pregunta = "::Punteros:: ¿Qué guarda un puntero en lenguaje C cuando se declara?\n{=Una dirección ~Un entero ~Nada}\n"
+    (repo / "a.gift").write_text(pregunta, encoding="utf-8")
+    (repo / "b.gift").write_text(pregunta, encoding="utf-8")
+    _init_git_repo(repo)
+    monkeypatch.chdir(repo)
+
+    # 0 archivos cambiados respecto de HEAD: no debe crashear ni reportar grupos.
+    res_json = runner.invoke(cli, ["dedup", "--desde", "HEAD", "--json"])
+    assert res_json.exit_code == 0, res_json.output
+    assert res_json.stderr == ""
+    datos = json.loads(res_json.stdout)
+    assert datos["schema_version"] == "1.0.0"
+    assert datos["comando"] == "dedup"
+    assert datos["grupos"] == []
+    assert datos["eliminadas"] == 0
+
+    res_txt = runner.invoke(cli, ["dedup", "--desde", "HEAD"])
+    assert res_txt.exit_code == 0, res_txt.output
+    assert res_txt.stderr == ""
+    assert "No hay duplicados" in res_txt.stdout
+
+    # Un archivo nuevo duplicado dispara el grupo al usar dedup --desde HEAD sin ruta posicional.
+    (repo / "c.gift").write_text(pregunta, encoding="utf-8")
+    res_dup = runner.invoke(cli, ["dedup", "--desde", "HEAD", "--json"])
+    assert res_dup.exit_code == 0, res_dup.output
+    assert res_dup.stderr == ""
+    datos_dup = json.loads(res_dup.stdout)
+    assert len(datos_dup["grupos"]) == 1
+    assert datos_dup["eliminadas"] >= 1
+
+    res_tui_json = runner.invoke(cli, ["dedup", "--tui", "--json"])
+    assert res_tui_json.exit_code == 1
+    assert res_tui_json.stdout == ""
+    assert "--tui y --json son excluyentes" in res_tui_json.stderr
+
+
+def test_health_desde_sin_cambios_json(tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "q.gift").write_text("::Q1:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
+    _init_git_repo(repo)
+    monkeypatch.chdir(repo)
+
+    for args in (["health", ".", "--desde", "HEAD", "--json"], ["health", "--desde", "HEAD", "--json"]):
+        res = runner.invoke(cli, args)
+        assert res.exit_code == 0, (args, res.output)
+        assert res.stderr == ""
+        datos = json.loads(res.stdout)
+        assert datos["schema_version"] == "1.0.0"
+        assert datos["herramienta"] == "voight"
+        assert datos["comando"] == "health"
+        assert datos["ok"] is True
+        assert datos["archivos"]["total"] == 0
+        assert datos["resumen"]["ok"] is True
+        assert datos["resumen"]["total_errores"] == 0
+
+    md_path = tmp_path / "salud.md"
+    res_md = runner.invoke(cli, ["health", ".", "--desde", "HEAD", "--md", str(md_path), "--json"])
+    assert res_md.exit_code == 0, res_md.output
+    assert res_md.stderr == ""
+    assert json.loads(res_md.stdout)["ok"] is True
+    assert md_path.is_file()
+
+    res_txt = runner.invoke(cli, ["health", "--desde", "HEAD"])
+    assert res_txt.exit_code == 0, res_txt.output
+    assert res_txt.stderr == ""
+    assert "No hay archivos de preguntas cambiados desde HEAD." in res_txt.stdout
+
+    res_tui_json = runner.invoke(cli, ["health", ".", "--tui", "--json"])
+    assert res_tui_json.exit_code == 1
+    assert res_tui_json.stdout == ""
+    assert "--tui y --json son excluyentes" in res_tui_json.stderr
+
+
+def test_moodle_subir_dry_run_json(tmp_path):
+    f = tmp_path / "q.gift"
+    f.write_text(GIFT, encoding="utf-8")
+    res = runner.invoke(
+        cli,
+        ["moodle", "subir", str(f), "--url", "https://moodle.ejemplo.edu", "--curso", "42", "--dry-run", "--json"],
+    )
+    assert res.exit_code == 0, res.output
+    assert res.stderr == ""
+    datos = json.loads(res.stdout)
+    assert datos["schema_version"] == "1.0.0"
+    assert datos["herramienta"] == "voight"
+    assert datos["comando"] == "moodle subir"
+    assert datos["curso"] == 42
+    assert datos["url"] == "https://moodle.ejemplo.edu"
+    assert datos["preguntas"] == 1
+    assert datos["archivos"] == 1
+    assert datos["bytes"] > 0
+    assert datos["simulacion"] is True
+
+
+@pytest.mark.skipif(
+    importlib.util.find_spec("myst_tools") is None,
+    reason="Requiere extra languagetool (myst-tools)",
+)
+def test_spellcheck_vacio_y_md_json(tmp_path, monkeypatch):
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    res_vacio = runner.invoke(cli, ["fix", "grammar", str(vacio), "--json"])
+    assert res_vacio.exit_code == 0, res_vacio.output
+    assert res_vacio.stderr == ""
+    datos_vacio = json.loads(res_vacio.stdout)
+    assert datos_vacio["schema_version"] == "1.0.0"
+    assert datos_vacio["comando"] == "fix grammar"
+    assert datos_vacio["total_archivos"] == 0
+    assert datos_vacio["total_issues"] == 0
+    assert datos_vacio["issues"] == []
+
+    # Con archivo real y --md + --json, escribe el Markdown y emite JSON válido en stdout.
+    import urllib.request
+
+    class _Resp:
+        status = 200
+
+        def read(self):
+            return b'{"matches": []}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=10.0: _Resp())
+    banco = tmp_path / "ok.gift"
+    banco.write_text("::P1:: Texto correcto. {=A ~B}\n", encoding="utf-8")
+    md_out = tmp_path / "grammar.md"
+    res_md = runner.invoke(cli, ["fix", "grammar", str(banco), "--md", str(md_out), "--json"])
+    assert res_md.exit_code == 0, res_md.output
+    assert res_md.stderr == ""
+    assert md_out.is_file()
+    datos_md = json.loads(res_md.stdout)
+    assert datos_md["comando"] == "fix grammar"
+    assert datos_md["total_archivos"] == 1
+    assert datos_md["total_issues"] == 0
+
+
+@pytest.mark.skipif(
+    shutil.which("gcc") is None or importlib.util.find_spec("daedalus.core.compiler") is None,
+    reason="Requiere gcc y daedalus",
+)
+def test_validate_compilar_json_unico_objeto(tmp_path):
+    banco = tmp_path / "c.gift"
+    banco.write_text(
+        r"""::bien:: ¿Qué imprime?
+```c
+int x = 3;
+printf("%d\\n", x);
+```
+{=3 ~0}
+""",
+        encoding="utf-8",
+    )
+    res = runner.invoke(cli, ["health", "validate", str(banco), "--compilar", "--json"])
+    assert res.exit_code == 0, res.output
+    assert "ahora es `voight health`" in res.stderr
+    datos = json.loads(res.stdout)
+    assert "files" in datos and "compilacion" in datos
+    assert datos["compilacion"]["con_codigo_c"] == 1
+    assert datos["compilacion"]["certificadas"] == 1
+
+

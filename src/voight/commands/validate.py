@@ -81,6 +81,21 @@ def validate(
     for d in dirs_to_validate:
         analyzer.scan_directory(str(d))
         
+    rechazadas = 0
+    compilacion_datos = None
+    if compilar:
+        from voight.core.banco import expandir_rutas
+        from voight.core.certificar import SinDaedalus, certificar_banco, seccion_markdown
+
+        try:
+            compilacion_datos = certificar_banco(
+                files_to_validate + expandir_rutas(dirs_to_validate, recursive),
+                permitir=permitir,
+            )
+        except SinDaedalus as e:
+            fail(str(e))
+        rechazadas = len(compilacion_datos["rechazadas"])
+
     if not output_json:
         if dirs_to_validate or files_to_validate:
             # find_duplicates is called by scan_directory, but if we only have files, 
@@ -90,27 +105,16 @@ def validate(
             report = analyzer.generate_report(output)
             if not output:
                 click.echo(report)
+        if compilar and compilacion_datos is not None:
+            click.echo(seccion_markdown(compilacion_datos))
     else:
         output_data = {
             "files": all_results,
-            "directories": analyzer.to_json() if dirs_to_validate else None
+            "directories": analyzer.to_json() if dirs_to_validate else None,
         }
+        if compilar and compilacion_datos is not None:
+            output_data["compilacion"] = compilacion_datos
         click.echo(json.dumps(output_data, indent=2, ensure_ascii=False))
-
-    rechazadas = 0
-    if compilar:
-        from voight.core.banco import expandir_rutas
-        from voight.core.certificar import SinDaedalus, certificar_banco, seccion_markdown
-
-        try:
-            datos = certificar_banco(files_to_validate + expandir_rutas(dirs_to_validate, recursive), permitir=permitir)
-        except SinDaedalus as e:
-            fail(str(e))
-        rechazadas = len(datos["rechazadas"])
-        if output_json:
-            click.echo(json.dumps({"compilacion": datos}, indent=2, ensure_ascii=False))
-        else:
-            click.echo(seccion_markdown(datos))
 
     if analyzer.stats.invalid_files or analyzer.issues or rechazadas:
         raise typer.Exit(code=1)

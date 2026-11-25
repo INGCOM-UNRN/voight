@@ -44,6 +44,16 @@ def subir(
     if guardar:
         guardar.write_bytes(contenido)
     if dry_run:
+        if output_json:
+            emitir_json("moodle subir", {
+                "curso": curso,
+                "url": url,
+                "preguntas": len(preguntas),
+                "archivos": cantidad,
+                "bytes": len(contenido),
+                "simulacion": True,
+            })
+            return
         click.echo(f"🧪 Se subirían {len(preguntas)} preguntas de {cantidad} archivos ({len(contenido)} bytes) "
                    f"al curso {curso} de {url}.")
         return

@@ -1,11 +1,10 @@
-import json
 from pathlib import Path
 from typing import List, Optional
 
 import click
 import typer
 
-from voight.commands.common import LLM_OPTION, fail
+from voight.commands.common import LLM_OPTION, emitir_json, fail
 
 
 def spellcheck(
@@ -45,6 +44,14 @@ def spellcheck(
             archivos_a_revisar.extend(sorted(path_obj.glob('**/*.xml')))
 
     if not archivos_a_revisar:
+        if output_json:
+            emitir_json("fix grammar", {
+                "total_archivos": 0,
+                "total_issues": 0,
+                "total_arreglos": 0,
+                "issues": [],
+            })
+            return
         click.echo("No se encontraron archivos de preguntas (.gift / .xml) para analizar.")
         return
 
@@ -74,19 +81,19 @@ def spellcheck(
         out_p = Path(output_md)
         out_p.parent.mkdir(parents=True, exist_ok=True)
         out_p.write_text(md_text, encoding='utf-8')
-        click.echo(f"✓ Reporte Markdown generado en: {out_p}")
-        if todos_los_issues:
-            raise typer.Exit(1)
-        return
+        if not output_json:
+            click.echo(f"✓ Reporte Markdown generado en: {out_p}")
+            if todos_los_issues:
+                raise typer.Exit(1)
+            return
 
     if output_json:
-        res = {
+        emitir_json("fix grammar", {
             "total_archivos": len(archivos_a_revisar),
             "total_issues": len(todos_los_issues),
             "total_arreglos": total_arreglos,
             "issues": [i.to_dict() for i in todos_los_issues],
-        }
-        click.echo(json.dumps(res, indent=2, ensure_ascii=False))
+        })
         if todos_los_issues:
             raise typer.Exit(1)
         return

@@ -47,10 +47,11 @@ def verify(
     equivocada), o si no compila, falla o no termina sin que la clave lo diga. Las que no
     aparecen literalmente en las opciones se listan para revisar, sin fallar.
     """
-    archivos_rutas = expandir_rutas(paths or [Path(".")], recursive)
+    rutas = paths or [Path(".")]
+    archivos_rutas = expandir_rutas(rutas, recursive)
     if desde:
         try:
-            archivos_rutas = filtrar_desde(archivos_rutas, desde, paths)
+            archivos_rutas = filtrar_desde(archivos_rutas, desde, rutas)
         except ValueError as e:
             fail(str(e))
         if not archivos_rutas:

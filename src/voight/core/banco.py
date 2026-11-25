@@ -81,12 +81,12 @@ def parse_archivo(ruta: str | Path) -> dict:
     return resultado
 
 
-def archivos_cambiados(desde: str, rutas: Iterable[str | Path] = ()) -> set:
+def archivos_cambiados(desde: str, rutas: Optional[Iterable[str | Path]] = ()) -> set:
     """Archivos de preguntas cambiados desde la revisión git `desde` (incluye los nuevos
     sin seguimiento), como rutas absolutas. Error si las rutas no están en un repo git."""
     import subprocess
 
-    carpetas = [Path(r) for r in rutas] or [Path.cwd()]
+    carpetas = [Path(r) for r in (rutas or ())] or [Path.cwd()]
     base = carpetas[0].resolve()
     base = base if base.is_dir() else base.parent
 
@@ -103,7 +103,7 @@ def archivos_cambiados(desde: str, rutas: Iterable[str | Path] = ()) -> set:
     return {(raiz / n).resolve() for n in nombres if Path(n).suffix.lower() in EXTENSIONES}
 
 
-def filtrar_desde(archivos: Iterable[Path], desde: Optional[str], rutas: Iterable = ()) -> list:
+def filtrar_desde(archivos: Iterable[Path], desde: Optional[str], rutas: Optional[Iterable[str | Path]] = ()) -> list:
     """Los archivos que cambiaron desde `desde` (todos si `desde` es None)."""
     archivos = list(archivos)
     if not desde:

@@ -62,9 +62,12 @@ def dedup(
     if restaurar_id:
         _restaurar(respaldo, restaurar_id, forzar, output_json)
         return
-    opciones = con_configuracion(ctx, paths, "dedup", {"similarity": (similarity, "umbral"), "conservar": conservar})
+    if tui and output_json:
+        fail("--tui y --json son excluyentes.")
+    rutas = paths or [Path(".")]
+    opciones = con_configuracion(ctx, rutas, "dedup", {"similarity": (similarity, "umbral"), "conservar": conservar})
     similarity, conservar = float(opciones["similarity"]), opciones["conservar"]
-    archivos_rutas = expandir_rutas(paths or [Path(".")], recursive)
+    archivos_rutas = expandir_rutas(rutas, recursive)
     if not archivos_rutas:
         fail("No se encontraron archivos de preguntas (.gift / .xml).")
 
@@ -74,7 +77,7 @@ def dedup(
     if desde:
         # Se compara contra todo el banco, pero sólo interesan los grupos con algo nuevo.
         try:
-            cambiados = archivos_cambiados(desde, paths)
+            cambiados = archivos_cambiados(desde, rutas)
         except ValueError as e:
             fail(str(e))
         grupos = [g for g in grupos

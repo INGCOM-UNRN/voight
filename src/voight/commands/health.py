@@ -21,7 +21,7 @@ from voight.core.moodle_health import (
 
 def health_cmd(
     ctx: typer.Context,
-    rutas: List[Path] = typer.Argument(..., exists=True, help="Archivos .gift/.xml o directorios."),
+    rutas: Optional[List[Path]] = typer.Argument(None, exists=True, help="Archivos .gift/.xml o directorios."),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Buscar recursivamente en los directorios."),
     output_md: Optional[Path] = typer.Option(
         None, "--md", help="Exportar reporte en Markdown."
@@ -57,23 +57,37 @@ def health_cmd(
     Sale con código 1 si hay errores (lo que Moodle no importaría o importaría mal);
     con --estricto, también si hay advertencias.
     """
-    opciones = con_configuracion(ctx, rutas, "health", {
+    if tui and output_json:
+        fail("--tui y --json son excluyentes.")
+    rutas_norm = rutas or [Path(".")]
+    opciones = con_configuracion(ctx, rutas_norm, "health", {
         "min_opciones": min_opciones, "umbral_longitud": umbral_longitud, "max_items": max_items})
     min_opciones, umbral_longitud, max_items = (
         opciones["min_opciones"], opciones["umbral_longitud"], opciones["max_items"])
-    archivos = expandir_rutas(rutas, recursive)
+    archivos = expandir_rutas(rutas_norm, recursive)
     archivos = [a for a in archivos if formato_de(a)]
     if desde:
         try:
-            archivos = filtrar_desde(archivos, desde, rutas)
+            archivos = filtrar_desde(archivos, desde, rutas_norm)
         except ValueError as e:
             fail(str(e))
         if not archivos:
+            if output_json:
+                resultado = auditar_archivos([], min_opciones=min_opciones, umbral_longitud=umbral_longitud)
+                if output_md:
+                    nombre_md = rutas_norm[0].name if len(rutas_norm) == 1 else "0 archivos"
+                    output_md.parent.mkdir(parents=True, exist_ok=True)
+                    output_md.write_text(
+                        generar_reporte_markdown(resultado, nombre_md, max_items=max_items),
+                        encoding="utf-8",
+                    )
+                emitir_json("health", {**resultado, "ok": resultado["resumen"]["ok"]})
+                return
             click.echo(f"No hay archivos de preguntas cambiados desde {desde}.")
             return
     if not archivos:
         sugerencia = ""
-        if not recursive and any(r.is_dir() and expandir_rutas([r], True) for r in rutas):
+        if not recursive and any(r.is_dir() and expandir_rutas([r], True) for r in rutas_norm):
             sugerencia = " Hay preguntas en subdirectorios: usá -r para recorrerlos."
         fail(f"No se encontraron archivos de preguntas (.gift / .xml).{sugerencia}")
 
@@ -130,19 +144,19 @@ def health_cmd(
     if output_json:
         if output_md:
             # Con --json y --md juntos se escriben ambos (p. ej. la acción de GitHub).
-            nombre_md = rutas[0].name if len(rutas) == 1 else f"{len(archivos)} archivos"
+            nombre_md = rutas_norm[0].name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
             output_md.parent.mkdir(parents=True, exist_ok=True)
             output_md.write_text(generar_reporte_markdown(resultado, nombre_md, max_items=max_items), encoding="utf-8")
         datos = {}
-        if len(rutas) == 1 and rutas[0].is_file():
-            datos["archivo"] = str(rutas[0])
+        if len(rutas_norm) == 1 and rutas_norm[0].is_file():
+            datos["archivo"] = str(rutas_norm[0])
         datos.update(resultado)
         datos["ok"] = resultado["resumen"]["ok"]
         emitir_json("health", datos)
         _salir(resultado, estricto)
         return
 
-    nombre = rutas[0].name if len(rutas) == 1 else f"{len(archivos)} archivos"
+    nombre = rutas_norm[0].name if len(rutas_norm) == 1 else f"{len(archivos)} archivos"
     reporte = generar_reporte_markdown(resultado, nombre, max_items=max_items)
 
     if output_md:
