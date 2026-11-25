@@ -49,7 +49,7 @@ def verify(
     """
     rutas = paths or [Path(".")]
     archivos_rutas = expandir_rutas(rutas, recursive)
-    if desde:
+    if desde is not None:
         try:
             archivos_rutas = filtrar_desde(archivos_rutas, desde, rutas)
         except ValueError as e:
@@ -62,7 +62,12 @@ def verify(
             return
     if not archivos_rutas:
         fail("No se encontraron archivos de preguntas (.gift / .xml).")
-    unidades = [u for u in unidades_de(leer_archivos(archivos_rutas)) if u.pregunta is not None]
+    errores_lectura: list[str] = []
+    archivos = leer_archivos(
+        archivos_rutas,
+        on_error=errores_lectura.append if output_json else lambda msg: click.echo(msg, err=True),
+    )
+    unidades = [u for u in unidades_de(archivos) if u.pregunta is not None]
 
     verificador = None
     if estilo:
@@ -106,6 +111,7 @@ def verify(
             ],
             **({"estilo": [{"archivo": str(u.archivo), "titulo": u.pregunta.title, "observaciones": obs}
                            for u, obs in estilos]} if verificador is not None else {}),
+            **({"errores": errores_lectura} if errores_lectura else {}),
         })
     else:
         for u, r in resultados:

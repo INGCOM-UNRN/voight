@@ -82,7 +82,7 @@ def format_cmd(
     transforma_codigo = code or fullwidth or normal
     extensiones = (".gift", ".xml", ".md") if transforma_codigo else (".gift", ".xml")
     files = expandir_rutas(paths, recursive, extensiones)
-    if desde:
+    if desde is not None:
         try:
             files = filtrar_desde(files, desde, paths)
         except ValueError as e:

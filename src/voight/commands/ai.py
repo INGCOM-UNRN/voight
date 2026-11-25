@@ -190,7 +190,7 @@ def _revisar_clasificacion(rutas: List[Path], umbral: float, tags: bool, referen
     except ImportError:
         fail('La interfaz de terminal requiere el extra opcional \'tui\': '
              'uv tool install "voight[tui] @ git+https://github.com/INGCOM-UNRN/voight"')
-    archivos = leer_archivos(rutas)
+    archivos = leer_archivos(rutas, on_error=lambda msg: click.echo(msg, err=True))
     unidades = para_revisar(unidades_de(archivos), umbral, todas=umbral >= 1.0)
     if not unidades:
         click.echo(f"No hay preguntas clasificadas con confianza menor que {umbral:g} (sin contar las corregidas a mano).")

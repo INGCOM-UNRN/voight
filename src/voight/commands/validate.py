@@ -52,7 +52,7 @@ def validate(
             files_to_validate.append(path_obj)
         else:
             dirs_to_validate.append(path_obj)
-    if desde:
+    if desde is not None:
         # Los directorios se expanden y quedan sólo los archivos cambiados.
         from voight.core.banco import expandir_rutas, filtrar_desde
 

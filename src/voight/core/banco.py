@@ -107,6 +107,8 @@ def archivos_cambiados(desde: str, rutas: Optional[Iterable[str | Path]] = ()) -
 
     for carpeta in carpetas:
         base = carpeta.resolve()
+        if not base.exists():
+            raise ValueError(f"La ruta no existe: {carpeta}")
         base = base if base.is_dir() else base.parent
         raiz = Path(_git(base, "rev-parse", "--show-toplevel").strip()).resolve()
         if raiz in raices_vistas:
@@ -131,7 +133,7 @@ def archivos_cambiados(desde: str, rutas: Optional[Iterable[str | Path]] = ()) -
 def filtrar_desde(archivos: Iterable[Path], desde: Optional[str], rutas: Optional[Iterable[str | Path]] = ()) -> list:
     """Los archivos que cambiaron desde `desde` (todos si `desde` es None)."""
     archivos = list(archivos)
-    if not desde:
+    if desde is None:
         return archivos
     cambiados = archivos_cambiados(desde, rutas)
     return [a for a in archivos if Path(a).resolve() in cambiados]

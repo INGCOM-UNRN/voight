@@ -428,6 +428,91 @@ def test_archivos_cambiados_rutas_no_ascii_y_validacion_desde(tmp_path):
         with pytest.raises(ValueError):
             archivos_cambiados(mala_ref, [repo])
 
+    # Ruta inexistente dentro de un repo git existente también debe fallar (no caer a repo).
+    with pytest.raises(ValueError):
+        archivos_cambiados("HEAD", [repo / "inexistente.gift"])
+
+
+def test_desde_vacio_falla_en_los_cinco_comandos_y_filtrar_desde(tmp_path, monkeypatch):
+    from voight.core.banco import filtrar_desde
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    archivo = repo / "q.gift"
+    archivo.write_text("::Q1:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
+    _init_git_repo(repo)
+    monkeypatch.chdir(repo)
+
+    for mala_ref in ("", "   "):
+        with pytest.raises(ValueError, match="no puede estar vacía"):
+            filtrar_desde([archivo], mala_ref, [repo])
+
+    comandos = (
+        ["health"],
+        ["fix", "format", "--check"],
+        ["verify"],
+        ["dedup"],
+        ["health", "validate"],
+    )
+    for base in comandos:
+        for extra in (["--desde", "", "--json"], ["--desde="], ["--desde=   ", "--json"]):
+            res = runner.invoke(cli, [*base, *extra])
+            assert res.exit_code == 1, (base, extra, res.output)
+            assert res.stdout == "", (base, extra, res.stdout)
+            assert "La revisión git `desde` no puede estar vacía." in res.stderr, (base, extra, res.stderr)
+
+
+def test_core_sin_callbacks_es_silencioso_en_subproceso_limpio(tmp_path):
+    import subprocess
+    import sys
+
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    roto = tmp_path / "roto.xml"
+    roto.write_text("<quiz><question>", encoding="utf-8")
+    out_xml = tmp_path / "out.xml"
+    out_dir = tmp_path / "out_dir"
+    missing = tmp_path / "missing.gift"
+
+    script = f"""
+import logging
+from pathlib import Path
+from voight.core.lector import leer_archivos
+from voight.core.tree import xml_export
+from voight.core.unifier import unificar_xml
+from voight.core.validator import AnalizadorBanco
+
+assert any(isinstance(h, logging.NullHandler) for h in logging.getLogger("voight").handlers)
+AnalizadorBanco().scan_directory({str(vacio)!r})
+leer_archivos([Path({str(missing)!r})])
+unificar_xml([Path({str(roto)!r})], Path({str(out_xml)!r}))
+xml_export(Path({str(roto)!r}), Path({str(out_dir)!r}))
+"""
+    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout == ""
+    assert proc.stderr == ""
+
+
+def test_dedup_json_y_humano_con_xml_roto(tmp_path):
+    (tmp_path / "ok.gift").write_text("::P1:: ¿2+2? {=4 ~3 ~5}\n", encoding="utf-8")
+    roto = tmp_path / "roto.xml"
+    roto.write_text("<quiz><question>", encoding="utf-8")
+
+    res_json = runner.invoke(cli, ["dedup", str(tmp_path), "--json"])
+    assert res_json.exit_code == 0, res_json.output
+    assert res_json.stderr == ""
+    datos = json.loads(res_json.stdout)
+    assert datos["comando"] == "dedup"
+    assert datos["preguntas"] == 1
+    assert len(datos["errores"]) == 1
+    assert "roto.xml" in datos["errores"][0]
+
+    res_txt = runner.invoke(cli, ["dedup", str(tmp_path)])
+    assert res_txt.exit_code == 0, res_txt.output
+    assert "roto.xml" in res_txt.stderr
+    assert "No hay duplicados" in res_txt.stdout
+
 
 def test_comandos_desde_rutas_no_ascii_y_flag_injection(tmp_path, monkeypatch):
     repo = tmp_path / "repo"

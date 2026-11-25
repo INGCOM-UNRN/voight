@@ -66,7 +66,7 @@ def health_cmd(
         opciones["min_opciones"], opciones["umbral_longitud"], opciones["max_items"])
     archivos = expandir_rutas(rutas_norm, recursive)
     archivos = [a for a in archivos if formato_de(a)]
-    if desde:
+    if desde is not None:
         try:
             archivos = filtrar_desde(archivos, desde, rutas_norm)
         except ValueError as e:

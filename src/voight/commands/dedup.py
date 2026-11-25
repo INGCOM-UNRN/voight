@@ -71,10 +71,14 @@ def dedup(
     if not archivos_rutas:
         fail("No se encontraron archivos de preguntas (.gift / .xml).")
 
-    archivos = leer_archivos(archivos_rutas)
+    errores_lectura: list[str] = []
+    archivos = leer_archivos(
+        archivos_rutas,
+        on_error=errores_lectura.append if output_json else lambda msg: click.echo(msg, err=True),
+    )
     unidades = [u for u in unidades_de(archivos) if u.pregunta is not None]
     grupos = agrupar(unidades, similarity, conservar)
-    if desde:
+    if desde is not None:
         # Se compara contra todo el banco, pero sólo interesan los grupos con algo nuevo.
         try:
             cambiados = archivos_cambiados(desde, rutas)
@@ -136,6 +140,7 @@ def dedup(
             **({"log": str(log.resolve())} if registradas else {}),
             **({"respaldo": str(cambios["respaldo"])} if cambios.get("respaldo") else {}),
             **({"descartados_jev": descartados} if confirmar_jev else {}),
+            **({"errores": errores_lectura} if errores_lectura else {}),
         })
         return
 
