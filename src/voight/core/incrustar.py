@@ -4,24 +4,25 @@ Las preguntas se escriben como texto:
 
 - un diagrama mermaid es un bloque ```mermaid (o ``<pre class="mermaid">``,
   ``<div class="mermaid">`` o ``<pre><code class="language-mermaid">``);
-- un diagrama de estructura de datos es un bloque ```estructura (o ```statics) con
-  el bloque de statics en YAML/JSON (o sus equivalentes HTML con la clase
-  ``estructura``), el mismo formato que dibuja alucarD;
-- un diagrama PlantUML es un bloque ```plantuml (o sus equivalentes HTML con la clase ``plantuml``), con
-  sus opciones en comentarios ``// [centrado] [ancho, 60%] [alt, texto]``, el mismo formato de alucarD;
+- un diagrama de dibu (estructuras de datos, sistemas de computación, control, química,
+  señales…) es un bloque ```dibu (o ```estructura, ```statics) con uno o varios bloques en
+  YAML/JSON (o sus equivalentes HTML con la clase ``dibu``, ``estructura`` o ``statics``);
+- un diagrama PlantUML es un bloque ```plantuml o ```puml (o sus equivalentes HTML con la clase
+  ``plantuml``/``puml``), con sus opciones en comentarios ``// [centrado] [ancho, 60%] [alt, texto]``,
+  el mismo formato de alucarD;
 - una fórmula se escribe ``$...$`` o ``$$...$$`` (en HTML, también ``\\(...\\)`` y ``\\[...\\]``);
 - una tabla va en un bloque ```tabla, con sintaxis Markdown, y pasa a una tabla HTML (no es una imagen);
 - una imagen se referencia con una ruta relativa al archivo de la pregunta
   (``![alt](img/a.png)`` o ``<img src="img/a.png">``).
 
 Los archivos fuente no se tocan: sólo al fusionarlos (`unify`) cada mermaid se
-renderiza con mermaid-cli (`mmdc`), cada PlantUML con el programa `plantuml` a través de alucarD, cada
-estructura y cada fórmula con los renderizadores SVG de alucarD, y la imagen resultante (o la referenciada) se adjunta al campo que la usa
+renderiza con mermaid-cli (`mmdc`), cada diagrama de dibu con el binario `dibu`, cada PlantUML con el
+programa `plantuml` a través de alucarD y cada fórmula con el renderizador SVG de alucarD, y la imagen resultante (o la referenciada) se adjunta al campo que la usa
 como ``<file encoding="base64">``, con el bloque o la referencia cambiados por una
 imagen ``@@PLUGINFILE@@/<nombre>``, que es como Moodle importa los archivos de un
-campo de texto.
+campo de texto. `moodle backup-quiz` usa lo mismo para guardar las imágenes en el MBZ.
 
-Los renders de mermaid y de fórmulas se guardan en la caché de voight por contenido (ver `cache.py`).
+Los renders de mermaid, dibu y fórmulas se guardan en la caché de voight por contenido (ver `cache.py`).
 """
 from __future__ import annotations
 
@@ -32,6 +33,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -61,10 +63,11 @@ def _html(clases: str) -> re.Pattern:
 
 _FENCE_MERMAID = _fence("mermaid")
 _HTML_MERMAID = _html("mermaid")
-_FENCE_ESTRUCTURA = _fence("estructura|statics")
-_HTML_ESTRUCTURA = _html("estructura|statics")
-_FENCE_PLANTUML = _fence("plantuml")
-_HTML_PLANTUML = _html("plantuml")
+# Los bloques que dibuja dibu: ```dibu y los nombres heredados de statics y alucarD.
+_FENCE_DIBU = _fence("dibu|estructura|statics")
+_HTML_DIBU = _html("dibu|estructura|statics")
+_FENCE_PLANTUML = _fence("plantuml|puml")
+_HTML_PLANTUML = _html("plantuml|puml")
 _FENCE_TABLA = _fence("tabla")
 _HTML_TABLA = _html("tabla")
 _IMG_MD = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<src><[^>]+>|[^)\s]+)(?P<titulo>\s+\"[^\"]*\")?\)")
@@ -90,8 +93,28 @@ def comando_mermaid() -> Optional[str]:
     return os.environ.get("VOIGHT_MMDC") or shutil.which("mmdc")
 
 
+def comando_dibu() -> Optional[str]:
+    """El binario `dibu`: `VOIGHT_DIBU`, `DIBU_BIN`, el del entorno de voight o `dibu` en el PATH."""
+    for variable in ("VOIGHT_DIBU", "DIBU_BIN"):
+        if os.environ.get(variable):
+            return os.environ[variable]
+    junto_python = Path(sys.executable).parent / ("dibu.exe" if os.name == "nt" else "dibu")
+    if junto_python.is_file() and os.access(junto_python, os.X_OK):
+        return str(junto_python)
+    return shutil.which("dibu")
+
+
+def _huella(ruta: str) -> str:
+    """Identifica un ejecutable (ruta, tamaño y fecha): si se actualiza, la caché no lo confunde."""
+    try:
+        st = Path(ruta).stat()
+    except OSError:
+        return ruta
+    return f"{ruta}|{st.st_size}|{st.st_mtime_ns}"
+
+
 def _limpiar_codigo(codigo: str, es_html: bool) -> str:
-    """Código de un diagrama (mermaid o estructura) en ASCII: sin entidades, símbolos fullwidth ni marcas `·`/`↵`."""
+    """Código de un diagrama (mermaid, dibu o PlantUML) en ASCII: sin entidades, símbolos fullwidth ni marcas `·`/`↵`."""
     if es_html:
         codigo = html.unescape(re.sub(r"<br\s*/?>", "\n", codigo, flags=re.I))
     return transformar_fragmento(codigo, contexto="xml", fullwidth=False).strip() + "\n"
@@ -101,29 +124,45 @@ def _codigo_html(m: re.Match) -> str:
     return m.group("codigo") if m.group("codigo") is not None else m.group("codigo2")
 
 
-def motor_estructuras():
-    """El módulo de diagramas de alucarD (`generador_examenes.diagramas`), o None."""
-    try:
-        from generador_examenes import diagramas
-    except ImportError:
-        return None
-    return diagramas
+_INSTALAR_DIBU = ("instalá dibu (la rueda de sus releases con `uv tool install --with ./dibu-*.whl "
+                  "\"voight @ git+https://github.com/INGCOM-UNRN/voight\"`, o `cargo install --path crates/dibu-cli` "
+                  "desde https://github.com/INGCOM-UNRN/dibu) o indicá su ruta en VOIGHT_DIBU")
 
 
-def renderizar_estructura(codigo: str) -> bytes:
-    """Dibuja los bloques de statics de `codigo` (YAML/JSON) como un único SVG."""
-    motor = motor_estructuras()
-    if motor is None:
-        raise ErrorIncrustacion(
-            "los diagramas ```estructura los dibuja alucarD (generador-examenes), que no está "
-            f"instalado. Sumalo al entorno de voight: {_INSTALAR_ALUCARD}")
-    try:
-        svgs = [motor.renderizar(b) for b in motor.leer_bloques(codigo)]
-    except ValueError as e:  # ErrorDiagrama
-        raise ErrorIncrustacion(f"diagrama de estructura inválido: {e}") from e
-    if len(svgs) == 1:
-        return svgs[0].encode("utf-8")
-    return _apilar_svgs(svgs).encode("utf-8")
+def renderizar_dibu(codigo: str, cache: Optional[Cache] = None) -> bytes:
+    """Dibuja los bloques de dibu de `codigo` (YAML/JSON: un bloque, una lista o `blocks:`) como un SVG.
+
+    Usa `dibu render`; varios bloques quedan apilados en una sola imagen. El theme sale de
+    `DIBU_THEME` o del `theme:` de cada bloque, como en el resto del ecosistema.
+    """
+    dibu = comando_dibu()
+    if not dibu:
+        raise ErrorIncrustacion(f"los diagramas de dibu los dibuja el binario `dibu`, que no se encontró: {_INSTALAR_DIBU}")
+    cache = cache or Cache("dibu")
+    clave = Cache.clave("dibu", _huella(dibu), os.environ.get("DIBU_THEME", ""), codigo)
+    guardado = cache.obtener(clave)
+    if guardado:
+        return base64.b64decode(guardado)
+
+    with tempfile.TemporaryDirectory(prefix="voight-dibu-") as tmp:
+        entrada, salida = Path(tmp) / "diagrama.yaml", Path(tmp) / "svg"
+        entrada.write_text(codigo, encoding="utf-8")
+        try:
+            r = subprocess.run([dibu, "render", str(entrada), "-o", str(salida)],
+                               capture_output=True, text=True, encoding="utf-8", timeout=120)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            raise ErrorIncrustacion(f"dibu no pudo ejecutarse: {e}") from e
+        # dibu nombra cada bloque diagrama_<n>.svg, desde 1.
+        svgs = sorted(salida.glob("diagrama_*.svg"), key=lambda p: int(p.stem.rsplit("_", 1)[1]))
+        if r.returncode != 0 or not svgs:
+            detalle = [linea.strip().replace(f"{entrada}: ", "")
+                       for linea in (r.stderr or r.stdout).splitlines() if linea.strip()]
+            raise ErrorIncrustacion("diagrama de dibu inválido: "
+                                    + (" ".join(detalle[:3]) if detalle else f"dibu terminó con código {r.returncode}"))
+        textos = [p.read_text(encoding="utf-8") for p in svgs]
+    datos = (textos[0] if len(textos) == 1 else _apilar_svgs(textos)).encode("utf-8")
+    cache.guardar(clave, base64.b64encode(datos).decode("ascii"))
+    return datos
 
 
 def motor_formulas():
@@ -291,11 +330,11 @@ def incrustar_texto(texto: str, formato_texto: str, base: Path, adjuntos: _Adjun
         nombre = f"mermaid-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.{formato_diagrama}"
         return _imagen(adjuntos.agregar(nombre, datos), "diagrama", markdown)
 
-    def estructura(codigo: str, es_html: bool) -> str:
+    def dibu(codigo: str, es_html: bool) -> str:
         codigo = _limpiar_codigo(codigo, es_html)
-        datos = renderizar_estructura(codigo)
-        nombre = f"estructura-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.svg"
-        return _imagen(adjuntos.agregar(nombre, datos), "diagrama de estructura", markdown)
+        datos = renderizar_dibu(codigo, cache)
+        nombre = f"dibu-{hashlib.sha1(codigo.encode()).hexdigest()[:12]}.svg"
+        return _imagen(adjuntos.agregar(nombre, datos), "diagrama", markdown)
 
     def plantuml(codigo: str, es_html: bool) -> str:
         codigo = _limpiar_codigo(codigo, es_html)
@@ -307,8 +346,8 @@ def incrustar_texto(texto: str, formato_texto: str, base: Path, adjuntos: _Adjun
     texto = _HTML_PLANTUML.sub(lambda m: plantuml(_codigo_html(m), True), texto)
     texto = _FENCE_MERMAID.sub(lambda m: diagrama(m.group("codigo"), False), texto)
     texto = _HTML_MERMAID.sub(lambda m: diagrama(_codigo_html(m), True), texto)
-    texto = _FENCE_ESTRUCTURA.sub(lambda m: estructura(m.group("codigo"), False), texto)
-    texto = _HTML_ESTRUCTURA.sub(lambda m: estructura(_codigo_html(m), True), texto)
+    texto = _FENCE_DIBU.sub(lambda m: dibu(m.group("codigo"), False), texto)
+    texto = _HTML_DIBU.sub(lambda m: dibu(_codigo_html(m), True), texto)
 
     def formula(fuente: str, bloque: bool) -> str:
         fuente = _limpiar_codigo(fuente, False).strip()

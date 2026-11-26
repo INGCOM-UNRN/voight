@@ -1,4 +1,4 @@
-"""Diagramas mermaid e imágenes relativas incrustados al fusionar Moodle XML."""
+"""Diagramas (mermaid, dibu, PlantUML) e imágenes relativas incrustados al fusionar Moodle XML."""
 
 import base64
 import shutil
@@ -178,7 +178,7 @@ def test_render_real_con_mmdc(tmp_path, monkeypatch):
     assert archivos[diagrama].startswith(b"\x89PNG")
 
 
-# ── Diagramas de estructuras de datos (bloques de statics, dibujados por alucarD) ──
+# ── Diagramas de dibu (```dibu, ```estructura, ```statics), dibujados por el binario dibu ──
 
 ESTRUCTURAS = """<quiz><question type="essay"><name><text>Lista</text></name>
 <questiontext format="markdown"><text><![CDATA[¿Qué vale `cabeza->sig->dato`?
@@ -187,6 +187,10 @@ ESTRUCTURAS = """<quiz><question type="essay"><name><text>Lista</text></name>
 type: linked_list
 values: [10, 20, 30]
 ```
+
+```dibu
+type: block_diagram
+```
 ]]></text></questiontext>
 <generalfeedback format="html"><text><![CDATA[<pre><code class="language-estructura">type: array
 values: [1, 2]</code></pre><pre><code class="language-mermaid">graph LR
@@ -194,27 +198,26 @@ A --&gt; B</code></pre>]]></text></generalfeedback>
 </question></quiz>"""
 
 
-class _MotorFalso:
-    """Imita `generador_examenes.diagramas`: un <svg> con el YAML que recibió."""
-
-    class ErrorDiagrama(ValueError):
-        pass
-
-    @staticmethod
-    def leer_bloques(texto):
-        if "ROTO" in texto:
-            raise _MotorFalso.ErrorDiagrama("tipo de bloque no soportado: 'ROTO'")
-        return [texto]
-
-    @staticmethod
-    def renderizar(bloque):
-        return f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5"><!--{bloque}--></svg>'
-
-
 @pytest.fixture
-def motor_falso(monkeypatch):
-    from voight.core import incrustar
-    monkeypatch.setattr(incrustar, "motor_estructuras", lambda: _MotorFalso)
+def dibu_falso(tmp_path, monkeypatch):
+    """Un `dibu render` que escribe un <svg> por bloque `type:` con el YAML que recibió."""
+    script = tmp_path / "dibu"
+    script.write_text(
+        f"#!{sys.executable}\n"
+        "import os, sys\n"
+        "_, cmd, entrada, _o, salida = sys.argv\n"
+        "codigo = open(entrada, encoding='utf-8').read()\n"
+        "if 'ROTO' in codigo:\n"
+        "    sys.exit('Aviso: bloque 1 (\"ROTO\") no soportado; se saltea.')\n"
+        "os.makedirs(salida)\n"
+        "for i in range(1, codigo.count('type:') + 1):\n"
+        "    open(os.path.join(salida, f'diagrama_{i}.svg'), 'w', encoding='utf-8').write(\n"
+        "        f'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"5\"><!--{codigo}--></svg>')\n",
+        encoding="utf-8",
+    )
+    script.chmod(script.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("VOIGHT_DIBU", str(script))
+    return script
 
 
 def _arbol_estructuras(tmp_path: Path, contenido: str = ESTRUCTURAS) -> Path:
@@ -224,41 +227,64 @@ def _arbol_estructuras(tmp_path: Path, contenido: str = ESTRUCTURAS) -> Path:
     return arbol
 
 
-def test_unify_incrusta_las_estructuras_como_svg(tmp_path, mmdc_falso, motor_falso):
+def test_unify_incrusta_los_diagramas_de_dibu_como_svg(tmp_path, mmdc_falso, dibu_falso):
     salida = tmp_path / "banco.xml"
     unificar([_arbol_estructuras(tmp_path)], salida)
 
     enunciado = _campo(salida, "questiontext")
     texto = enunciado.findtext("text")
-    assert "```estructura" not in texto
-    (nombre,) = _archivos(enunciado)
-    assert nombre.startswith("estructura-") and nombre.endswith(".svg")
-    assert f"![diagrama de estructura](@@PLUGINFILE@@/{nombre})" in texto
-    assert b"values: [10, 20, 30]" in _archivos(enunciado)[nombre]
+    assert "```estructura" not in texto and "```dibu" not in texto
+    archivos = _archivos(enunciado)
+    assert len(archivos) == 2
+    assert all(n.startswith("dibu-") and n.endswith(".svg") for n in archivos)
+    for nombre in archivos:
+        assert f"![diagrama](@@PLUGINFILE@@/{nombre})" in texto
+    assert any(b"values: [10, 20, 30]" in d for d in archivos.values())
+    assert any(b"type: block_diagram" in d for d in archivos.values())
 
-    # En HTML, también los <pre><code class="language-…"> (estructura y mermaid).
+    # En HTML, también los <pre><code class="language-…"> (dibu y mermaid).
     retro = _campo(salida, "generalfeedback")
     texto = retro.findtext("text")
     assert "<pre>" not in texto
     archivos = _archivos(retro)
-    (estructura,) = [n for n in archivos if n.startswith("estructura-")]
+    (dibu,) = [n for n in archivos if n.startswith("dibu-")]
     (diagrama,) = [n for n in archivos if n.startswith("mermaid-")]
-    assert f'<img src="@@PLUGINFILE@@/{estructura}"' in texto
+    assert f'<img src="@@PLUGINFILE@@/{dibu}"' in texto
     assert f'<img src="@@PLUGINFILE@@/{diagrama}"' in texto
     assert archivos[diagrama].decode() == "graph LR\nA --> B\n"
 
 
-def test_estructura_invalida_es_error(tmp_path, mmdc_falso, motor_falso):
+def test_diagrama_de_dibu_invalido_es_error(tmp_path, mmdc_falso, dibu_falso):
     arbol = _arbol_estructuras(tmp_path, ESTRUCTURAS.replace("linked_list", "ROTO"))
-    with pytest.raises(ErrorIncrustacion, match="Lista <questiontext>: diagrama de estructura inválido"):
+    with pytest.raises(ErrorIncrustacion, match="Lista <questiontext>: diagrama de dibu inválido: .*ROTO"):
         unificar([arbol], tmp_path / "banco.xml")
 
 
-def test_sin_alucard_avisa_como_instalarlo(tmp_path, mmdc_falso, monkeypatch):
-    from voight.core import incrustar
-    monkeypatch.setattr(incrustar, "motor_estructuras", lambda: None)
-    with pytest.raises(ErrorIncrustacion, match="alucarD"):
+def test_sin_dibu_avisa_como_instalarlo(tmp_path, mmdc_falso, monkeypatch):
+    monkeypatch.delenv("VOIGHT_DIBU", raising=False)
+    monkeypatch.delenv("DIBU_BIN", raising=False)
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "sin-python"))
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    with pytest.raises(ErrorIncrustacion, match="VOIGHT_DIBU"):
         unificar([_arbol_estructuras(tmp_path)], tmp_path / "banco.xml")
+
+
+def test_varios_bloques_de_dibu_quedan_en_una_sola_imagen(dibu_falso):
+    from voight.core.incrustar import renderizar_dibu
+    svg = renderizar_dibu("- type: array\n  values: [1]\n- type: stack\n  values: [2]\n")
+    assert svg.count(b"<svg") == 3  # el contenedor y los dos bloques
+    ET.fromstring(svg)
+
+
+def test_el_render_de_dibu_se_guarda_en_cache(tmp_path, dibu_falso):
+    from voight.core.incrustar import renderizar_dibu
+    primero = renderizar_dibu("type: array\nvalues: [1]\n")
+    dibu_falso.write_text("#!/bin/sh\nexit 3\n", encoding="utf-8")  # misma ruta, otro binario
+    import os
+    os.utime(dibu_falso, ns=(0, 0))
+    with pytest.raises(ErrorIncrustacion):
+        renderizar_dibu("type: array\nvalues: [1]\n")  # la huella cambió: no usa la caché
+    assert primero.startswith(b"<svg")
 
 
 def test_varios_bloques_quedan_en_una_sola_imagen():
@@ -269,13 +295,15 @@ def test_varios_bloques_quedan_en_una_sola_imagen():
     ET.fromstring(svg)
 
 
-def test_render_real_con_alucard(tmp_path, mmdc_falso):
-    pytest.importorskip("generador_examenes.diagramas")
+@pytest.mark.skipif(not shutil.which("dibu"), reason="requiere el binario dibu")
+def test_render_real_con_dibu(tmp_path, mmdc_falso, monkeypatch):
+    monkeypatch.delenv("VOIGHT_DIBU", raising=False)
     salida = tmp_path / "banco.xml"
-    unificar([_arbol_estructuras(tmp_path)], salida)
+    unificar([_arbol_estructuras(tmp_path, ESTRUCTURAS.replace("block_diagram", "array\nvalues: [1]"))], salida)
     archivos = _archivos(_campo(salida, "questiontext"))
-    (svg,) = archivos.values()
-    assert ET.fromstring(svg).tag.endswith("svg")
+    assert len(archivos) == 2
+    for svg in archivos.values():
+        assert ET.fromstring(svg).tag.endswith("svg")
 
 
 def test_plantuml_sin_alucard_avisa(tmp_path, monkeypatch):
@@ -298,3 +326,14 @@ def test_plantuml_se_adjunta_con_sus_opciones(tmp_path, monkeypatch):
     assert nombre.startswith("plantuml-") and nombre.endswith(".png")
     assert f'src="@@PLUGINFILE@@/{nombre}" alt="Un mensaje"' in texto
     assert "margin:0.5em 0 0.5em auto;max-width:5cm" in texto and "```" not in texto
+
+
+def test_puml_es_plantuml(tmp_path, monkeypatch):
+    plantuml = pytest.importorskip("generador_examenes.plantuml")
+    from voight.core import incrustar
+
+    monkeypatch.setattr(plantuml, "a_imagen", lambda cuerpo, formato: b"imagen")
+    adjuntos = incrustar._Adjuntos()
+    texto = incrustar.incrustar_texto("```puml\nA -> B\n```\n", "markdown", tmp_path, adjuntos)
+    (nombre,) = adjuntos.archivos
+    assert nombre.startswith("plantuml-") and "```" not in texto

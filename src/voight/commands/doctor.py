@@ -57,7 +57,7 @@ def doctor_cmd(
 
     mmdc_path = comando_mermaid()
     diagnostico.append({
-        "componente": "mermaid-cli (diagramas en unify)",
+        "componente": "mermaid-cli (diagramas en unify y backup-quiz)",
         "estado": "OK" if mmdc_path else "ADVERTENCIA",
         "requerido": False,
         "detalle": mmdc_path or "No encontrado: `npm install -g @mermaid-js/mermaid-cli` (o VOIGHT_MMDC)",
@@ -69,24 +69,23 @@ def doctor_cmd(
     motor = motor_plantuml()
     plantuml = motor.comando() if motor else None
     diagnostico.append({
-        "componente": "PlantUML (diagramas en unify)",
+        "componente": "PlantUML (diagramas en unify y backup-quiz)",
         "estado": "OK" if plantuml else "ADVERTENCIA",
         "requerido": False,
         "detalle": (" ".join(plantuml) if plantuml else
                     "No encontrado: instalá plantuml (o ALUCARD_PLANTUML / PLANTUML_JAR)" if motor else
-                    "No instalado: los bloques ```plantuml los arma alucarD"),
+                    "No instalado: los bloques ```plantuml/```puml los arma alucarD"),
     })
 
-    # Diagramas de estructuras (```estructura) y fórmulas incrustados al fusionar: alucarD.
-    from voight.core.incrustar import motor_estructuras, motor_formulas, motor_tablas
+    # Diagramas de dibu (```dibu, ```estructura, ```statics) incrustados al fusionar: el binario `dibu`.
+    from voight.core.incrustar import comando_dibu, motor_formulas, motor_tablas
 
-    estructuras_ok = motor_estructuras() is not None
+    dibu_path = comando_dibu()
     diagnostico.append({
-        "componente": "Diagramas de estructuras (alucarD, en unify)",
-        "estado": "OK" if estructuras_ok else "ADVERTENCIA",
+        "componente": "dibu (diagramas en unify y backup-quiz)",
+        "estado": "OK" if dibu_path else "ADVERTENCIA",
         "requerido": False,
-        "detalle": ("generador_examenes.diagramas disponible" if estructuras_ok
-                    else "No instalado: los bloques ```estructura los dibuja alucarD"),
+        "detalle": dibu_path or "No encontrado: los bloques ```dibu/```estructura los dibuja dibu (o VOIGHT_DIBU)",
     })
     formulas_ok = motor_formulas() is not None and motor_tablas() is not None
     diagnostico.append({
