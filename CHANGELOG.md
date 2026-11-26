@@ -8,6 +8,8 @@ versiones según [SemVer](https://semver.org/lang/es/).
 
 ### Agregado
 
+- **moodle backup-quiz**: las preguntas Moodle XML llevan sus diagramas (```` ```dibu ````/```` ```estructura ````, ```` ```mermaid ````, ```` ```plantuml ````/```` ```puml ````), fórmulas, tablas e imágenes relativas como imágenes incrustadas en el MBZ (`files/` y `files.xml`), como `unify`. `--no-incrustar` y `--diagramas png|svg`. GIFT no lleva archivos: el comando advierte qué archivos GIFT tienen diagramas y que hay que convertirlos a XML para que el backup los contenga. Los textos de retroalimentación conservan su formato (markdown o HTML).
+- **unify, backup-quiz**: los diagramas de dibu se dibujan con el binario `dibu` (`dibu render`), sin pasar por alucarD; se reconoce también ```` ```dibu ```` (y `class="dibu"`). El binario se busca en `VOIGHT_DIBU`/`DIBU_BIN`, junto al Python de voight y en el `PATH`, y los renders van a la caché. `doctor` informa dónde está. ```` ```puml ```` se dibuja como ```` ```plantuml ````.
 - **unify**: al fusionar Moodle XML, los bloques ```` ```plantuml ```` (o `class="plantuml"`) pasan a imágenes con las opciones de alucarD: posición, medidas, escala, letra, color, tema y texto alternativo. `doctor` dice qué PlantUML encontró; `health`, `convert gift-to-xml` y `moodle subir` los advierten como a los demás diagramas.
 - **fix moodle**: comando nuevo con las reglas de `alucard lint-gift`. `health` avisa qué GIFT lo necesitan, y `unify` a GIFT y `convert xml-to-gift` escriben así.
 - **convert**: las etiquetas `desarrollo-cero`, `-chico` y `-pagina` de alucarD dan 5, 5 y 40 renglones en el XML.

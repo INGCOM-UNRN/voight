@@ -88,6 +88,12 @@ def backup_quiz(
     calificacion_maxima: float = typer.Option(10.0, "--calificacion-maxima", help="Calificación máxima del cuestionario."),
     intentos: int = typer.Option(1, "--intentos", help="Número de intentos permitidos (1 por defecto)."),
     shuffle_respuestas: bool = typer.Option(True, "--shuffle/--no-shuffle", help="Barajar respuestas."),
+    incrustar: bool = typer.Option(
+        True, "--incrustar/--no-incrustar",
+        help="XML: guarda los diagramas (dibu, mermaid, PlantUML), las fórmulas y las imágenes relativas como archivos del backup."),
+    diagramas: str = typer.Option(
+        "png", "--diagramas",
+        help="Formato de imagen de los diagramas mermaid y PlantUML (`png` o `svg`; los de dibu van siempre en SVG)."),
     output_json: bool = typer.Option(False, "--json", help="Emite el resultado como JSON versionado."),
 ):
     """Crea un backup de cuestionario (.mbz) con preguntas aleatorias por categoría.
@@ -95,12 +101,19 @@ def backup_quiz(
     Unifica las preguntas de la estructura de directorios y genera un paquete MBZ
     (Moodle 2 backup de actividad) listo para restaurar directamente en cualquier
     curso de Moodle sin requerir plugins externos ni web services.
+
+    Las preguntas de Moodle XML llevan sus diagramas (```dibu, ```mermaid, ```plantuml),
+    fórmulas e imágenes relativas como imágenes incrustadas en el backup. GIFT no lleva
+    archivos: hay que convertir esos bancos a XML (`voight convert gift-to-xml`) para que
+    el backup contenga los diagramas; avisa qué archivos GIFT los tienen.
     """
+    from voight.core.formulas import SUGERENCIA_BACKUP
     from voight.core.moodle_backup import generar_quiz_mbz
     from voight.core.quiz_plan import planificar_quiz
 
     if not rutas:
         rutas = [Path(".")]
+    avisar_preprocesamiento(rutas, recursivo, SUGERENCIA_BACKUP)
 
     if plan:
         try:
@@ -136,6 +149,8 @@ def backup_quiz(
             calificacion_maxima=calificacion_maxima,
             intentos=intentos,
             shuffle_respuestas=shuffle_respuestas,
+            incrustar=incrustar,
+            formato_diagrama=diagramas,
         )
     except Exception as e:
         fail(f"Error generando backup del cuestionario: {e}")
@@ -148,7 +163,8 @@ def backup_quiz(
         f"✓ Backup de cuestionario generado exitosamente en {output_file}:\n"
         f"  - {res['categorias']} categorías encontradas\n"
         f"  - {res['preguntas']} preguntas totales en el banco\n"
-        f"  - {res['slots']} slots de preguntas aleatorias configurados en el cuestionario"
+        f"  - {res['slots']} slots de preguntas aleatorias configurados en el cuestionario\n"
+        f"  - {res['archivos']} imágenes incrustadas (diagramas, fórmulas e imágenes de las preguntas XML)"
     )
 
 

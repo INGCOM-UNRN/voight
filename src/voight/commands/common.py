@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 import click
 import typer
@@ -35,12 +36,12 @@ def fail(message: str) -> "typer.Exit":
 SCHEMA_VERSION = "1.0.0"
 
 
-def avisar_preprocesamiento(rutas, recursivo: bool = True) -> None:
+def avisar_preprocesamiento(rutas, recursivo: bool = True, sugerencia: Optional[str] = None) -> None:
     """Por stderr, los GIFT con diagramas, tablas o fórmulas: Moodle no los dibuja."""
     from voight.core.banco import expandir_rutas
-    from voight.core.formulas import avisos_gift
+    from voight.core.formulas import SUGERENCIA_UNIFY, avisos_gift
 
-    for aviso in avisos_gift(expandir_rutas(rutas, recursivo, (".gift",))):
+    for aviso in avisos_gift(expandir_rutas(rutas, recursivo, (".gift",)), sugerencia or SUGERENCIA_UNIFY):
         click.echo(aviso, err=True)
 
 

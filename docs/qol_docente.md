@@ -57,6 +57,25 @@ voight moodle backup-quiz banco/ -k 2 --titulo "Parcial 1" -o parcial.mbz
 voight moodle inspeccionar parcial.mbz
 ```
 
+### Diagramas en el backup
+
+Las preguntas **Moodle XML** llevan sus diagramas como imágenes incrustadas en el MBZ:
+los bloques ```` ```dibu ```` (o ```` ```estructura ````, dibujados con `dibu`),
+```` ```mermaid ```` (con `mmdc`) y ```` ```plantuml ```` (con alucarD y `plantuml`),
+además de las fórmulas `$...$` y las imágenes con ruta relativa. Van en `files/` y
+`files.xml` del backup, referenciadas como `@@PLUGINFILE@@`, igual que en `voight unify`.
+`--diagramas svg` cambia el formato de mermaid y PlantUML, y `--no-incrustar` deja el
+texto como está.
+
+**GIFT no lleva archivos.** Si el banco tiene GIFT con diagramas, el comando lo advierte:
+hay que convertirlo a XML para que el backup contenga los diagramas.
+
+```sh
+voight convert gift-to-xml banco/ -o banco-xml/
+voight moodle backup-quiz banco-xml/ -k 2 -o parcial.mbz
+voight doctor   # dibu, mmdc y plantuml disponibles
+```
+
 El cupo debe ser positivo; tiempo e intentos admiten cero para «sin límite» y no
 admiten negativos. La nota máxima debe ser positiva y finita. El plan verifica
 cupos y tipos exportables: `voight health` y `verify` siguen siendo las revisiones

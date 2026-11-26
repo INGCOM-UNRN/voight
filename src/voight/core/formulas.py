@@ -132,7 +132,13 @@ def a_preprocesar(contenido: str) -> Dict[str, int]:
             "formulas": sum(1 for _ in _formulas_gift(_sin_diagramas(contenido)))}
 
 
-def avisos_gift(archivos: Iterable[Path]) -> List[str]:
+SUGERENCIA_UNIFY = ("pasalo a XML con `voight convert gift-to-xml` y fusionalo con `voight unify … -o banco.xml`, "
+                    "que los convierte.")
+SUGERENCIA_BACKUP = ("el backup no puede llevarlos desde GIFT: pasalo a XML con `voight convert gift-to-xml` "
+                     "para que el backup contenga los diagramas.")
+
+
+def avisos_gift(archivos: Iterable[Path], sugerencia: str = SUGERENCIA_UNIFY) -> List[str]:
     """Una advertencia por cada GIFT que Moodle no puede mostrar tal cual."""
     avisos = []
     for archivo in archivos:
@@ -141,6 +147,5 @@ def avisos_gift(archivos: Iterable[Path]) -> List[str]:
         cuenta = a_preprocesar(Path(archivo).read_text(encoding="utf-8"))
         if any(cuenta.values()):
             avisos.append(f"Advertencia: {archivo} tiene {cuenta['diagramas']} diagramas, {cuenta['tablas']} tablas y "
-                          f"{cuenta['formulas']} fórmulas, que Moodle no dibuja: pasalo a XML con `voight convert "
-                          "gift-to-xml` y fusionalo con `voight unify … -o banco.xml`, que los convierte.")
+                          f"{cuenta['formulas']} fórmulas, que Moodle no dibuja: {sugerencia}")
     return avisos

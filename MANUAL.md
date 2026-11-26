@@ -413,7 +413,8 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
     y genera un único banco monolítico (.gift o .xml).
 
     En Moodle XML, los bloques ```mermaid se renderizan con mermaid-cli (`mmdc`), los
-    ```estructura y las fórmulas `$...$` con alucarD, y esos diagramas, las fórmulas y las
+    ```dibu (o ```estructura) con dibu, los ```plantuml con alucarD y las fórmulas `$...$`
+    con alucarD, y esos diagramas, las fórmulas y las
     imágenes con ruta relativa al archivo de la pregunta quedan como imágenes incrustadas en
     la salida. En GIFT no se pueden incrustar: avisa qué archivos los tienen.
 
@@ -430,8 +431,8 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 | `-f`, `--format` | `Optional[str]` | `None` | Formato de salida (por defecto se deduce de la extensión del archivo de salida). |
 | `-r`, `--recursive/--no-recursive` | `<class 'bool'>` | `True` | Procesar directorios recursivamente (por defecto True). |
 | `--remove` | `<class 'bool'>` | `False` | Borrar los archivos fuente después de unificarlos. |
-| `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: cambia los diagramas mermaid y de estructuras, las fórmulas y las imágenes relativas por imágenes incrustadas en la salida. |
-| `--diagramas` | `<class 'str'>` | `png` | Formato de imagen de los diagramas mermaid incrustados (`png` o `svg`; las estructuras van siempre en SVG). |
+| `--incrustar/--no-incrustar` | `<class 'bool'>` | `True` | XML: cambia los diagramas (dibu, mermaid, PlantUML), las fórmulas y las imágenes relativas por imágenes incrustadas en la salida. |
+| `--diagramas` | `<class 'str'>` | `png` | Formato de imagen de los diagramas mermaid y PlantUML incrustados (`png` o `svg`; los de dibu van siempre en SVG). |
 | `--json` | `<class 'bool'>` | `False` | Emite el resultado como JSON versionado. |
 
 #### Ejemplo de Invocación
@@ -439,11 +440,11 @@ Unifica árboles o grupos de archivos de preguntas (GIFT o XML) en un único arc
 voight unify <output_file>
 ```
 
-#### Diagramas mermaid, estructuras, fórmulas e imágenes relativas
+#### Diagramas (dibu, mermaid, PlantUML), fórmulas e imágenes relativas
 
 Las preguntas se escriben y versionan como texto; sólo el archivo fusionado
-(`voight unify … -o banco.xml`) lleva las
-imágenes incrustadas. Los archivos fuente no se modifican.
+(`voight unify … -o banco.xml`) y el backup de cuestionario (`voight moodle backup-quiz … -o
+quiz.mbz`) llevan las imágenes incrustadas. Los archivos fuente no se modifican.
 
 - **Diagramas mermaid**: un bloque ```` ```mermaid ```` (en campos `markdown`) o un
   `<pre class="mermaid">` / `<div class="mermaid">` / `<pre><code class="language-mermaid">`
@@ -452,13 +453,15 @@ imágenes incrustadas. Los archivos fuente no se modifican.
   @mermaid-js/mermaid-cli`; otra ruta con `VOIGHT_MMDC`). El código puede estar
   protegido con fullwidth y marcas `·`/`↵`: se restaura antes de renderizar. Los
   renders se guardan en la caché de voight.
-- **Diagramas de estructuras**: un bloque ```` ```estructura ```` (o ```` ```statics ````)
-  con un bloque de statics en YAML/JSON (arreglo, lista, pila, cola, árbol; ver el
-  manual de alucarD), o su equivalente HTML con la clase `estructura` /
-  `language-estructura`, se dibuja como SVG con el renderizador de alucarD
-  (`uv tool install --with "generador-examenes @ git+https://github.com/INGCOM-UNRN/alucarD" …`).
-  Varios bloques en un mismo bloque de código quedan en una sola imagen.
-- **Diagramas PlantUML**: un bloque ```` ```plantuml ````, o su equivalente HTML con la clase
+- **Diagramas de dibu**: un bloque ```` ```dibu ```` (o ```` ```estructura ````/```` ```statics ````,
+  los nombres heredados) con uno o varios bloques de [dibu](https://github.com/INGCOM-UNRN/dibu) en
+  YAML/JSON (estructuras de datos, sistemas de computación, control de procesos, química, señales…;
+  ver el [manual de dibu](https://ingcom-unrn.github.io/dibu/)), o su equivalente HTML con la clase
+  `dibu` / `estructura` / `language-dibu`, se dibuja como SVG con `dibu render`. Busca el binario en
+  `VOIGHT_DIBU` (o `DIBU_BIN`), junto al Python de voight y en el `PATH`; el theme sale de
+  `DIBU_THEME` o del `theme:` del bloque. Varios bloques en un mismo bloque de código quedan en una
+  sola imagen, y los renders se guardan en la caché de voight.
+- **Diagramas PlantUML**: un bloque ```` ```plantuml ```` (o ```` ```puml ````), o su equivalente HTML con la clase
   `plantuml` / `language-plantuml`, se dibuja con alucarD y el programa `plantuml`, en el formato de
   `--diagramas`. Sus opciones son las de alucarD, en comentarios al principio del bloque:
   `// [derecha] [ancho, 60%] [escala, 1.5] [letra, 12] [color] [tema, plain] [alt, texto]`. La posición
@@ -486,12 +489,16 @@ imagen que no existe, un diagrama que no compila, una estructura o una fórmula 
 detienen la fusión con el error.
 `--no-incrustar` deja el texto como está. En GIFT no aplica: el formato no lleva
 archivos, y Moodle no dibuja los diagramas, las tablas ni las fórmulas. Por eso `unify` a GIFT,
-`convert gift-to-xml`, `moodle subir` y `health` advierten qué archivos GIFT los tienen. Para
-importarlos, pasalos a XML y fusionalos:
+`convert gift-to-xml`, `moodle subir`, `moodle backup-quiz` y `health` advierten qué archivos GIFT
+los tienen. **Para que el backup (`.mbz`) contenga los diagramas, hay que convertir los GIFT a XML**:
+`backup-quiz` guarda como archivos del backup (`files/` y `files.xml`, componente `question`) sólo
+los recursos de las preguntas Moodle XML. Para importarlos, pasalos a XML y fusionalos (o armá el
+backup desde el XML):
 
 ```bash
 voight convert gift-to-xml bancos -o xml
 voight unify xml -o banco.xml
+voight moodle backup-quiz xml -o quiz.mbz
 ```
 
 ````markdown
@@ -503,7 +510,7 @@ graph TD
   A[inicio] --> B{x > 0}
 ```
 
-```estructura
+```dibu
 type: linked_list
 values: [10, 20, 30]
 ```

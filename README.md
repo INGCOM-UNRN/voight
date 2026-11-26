@@ -32,8 +32,9 @@ Todas las herramientas anteriores han sido consolidadas en un único comando ra�
 
 ### Dependencias Externas y Binarios
 - Para los comandos de gestión de bancos (conversión, validación, limpieza): ninguna.
-- Diagramas mermaid al fusionar Moodle XML (`unify`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
-- Diagramas de estructuras (```` ```estructura ````) al fusionar Moodle XML: el paquete `alucarD` en el entorno de voight.
+- Diagramas mermaid al fusionar Moodle XML (`unify`) o al armar un backup (`moodle backup-quiz`): mermaid-cli (`npm install -g @mermaid-js/mermaid-cli`).
+- Diagramas de [dibu](https://github.com/INGCOM-UNRN/dibu) (```` ```dibu ````, ```` ```estructura ````, ```` ```statics ````) en `unify` y `backup-quiz`: el binario `dibu` en el `PATH`, en el entorno de voight o en `VOIGHT_DIBU`.
+- Diagramas PlantUML (```` ```plantuml ````, ```` ```puml ````) en `unify` y `backup-quiz`: el paquete `alucarD` en el entorno de voight y el programa `plantuml`.
 - `synth`: `gcc` (compila y ejecuta los snippets para verificar su salida) y el paquete `alucarD`, que aporta el motor de síntesis.
 - `ai`: un proveedor de IA. Con Gemini (el de siempre), el extra opcional `ai` (`uv tool install "voight[ai] @ git+https://github.com/INGCOM-UNRN/voight"`) y una `GEMINI_API_KEY` (se guarda con `voight config set gemini-key`; `voight config show` muestra todo lo configurado); con Claude, el mismo extra y `ANTHROPIC_API_KEY`; con un servidor local (Ollama, llama.cpp, LM Studio…) u OpenCode, nada más.
 - LanguageTool (local o API remota) para la revisión ortográfica opcional.
@@ -117,7 +118,7 @@ Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente
 
 ### 4. Árboles de Directorios (absorbe moodle-reorganizer)
 - `voight split banco.gift|xml -o dir/`: Exporta un banco monolítico a un árbol de carpetas por categoría (1 archivo por pregunta); sin `-o`, divide cada archivo en el lugar.
-- `voight unify dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías. En Moodle XML, los bloques ```` ```mermaid ```` (con mermaid-cli, `mmdc`) y ```` ```estructura ```` (con alucarD) se cambian por imágenes y, como las imágenes con ruta relativa, se incrustan en el archivo fusionado como `@@PLUGINFILE@@`; las preguntas fuente siguen siendo texto (`--no-incrustar` lo desactiva, `--diagramas svg` cambia el formato).
+- `voight unify dir/ -o reconstruido.gift|xml`: Recolecta el árbol nuevamente a un archivo único, restaurando las categorías. En Moodle XML, los bloques ```` ```mermaid ```` (con mermaid-cli, `mmdc`), ```` ```dibu ````/```` ```estructura ```` (con el binario `dibu`) y ```` ```plantuml ````/```` ```puml ```` (con alucarD y `plantuml`) se cambian por imágenes y, como las imágenes con ruta relativa, se incrustan en el archivo fusionado como `@@PLUGINFILE@@`; las preguntas fuente siguen siendo texto (`--no-incrustar` lo desactiva, `--diagramas svg` cambia el formato).
 
 ### 5. Editor Web (absorbe moodle-visor / mxviz)
 - `voight ui [dir]`: Abre un editor web local para navegar y editar preguntas organizadas en directorios, con soporte nativo de **Moodle XML y GIFT**. Edita todos los tipos de Moodle (numérica con tolerancia, calculadas, emparejamiento, ordenamiento, huecos, arrastrar y soltar, cloze…) sin perder lo que no muestra. Filtra el árbol por cantidad de opciones (menos de / exactamente / más de N) para encontrar preguntas con pocas opciones. Requiere el extra opcional: `uv tool install "voight[ui] @ git+https://github.com/INGCOM-UNRN/voight"`.
@@ -143,6 +144,11 @@ Los tres subcomandos aceptan archivos y directorios, que recorren recursivamente
   versiones, slots y configuración, sin extraer ni restaurar (tar/ZIP).
 - `voight moodle backup-quiz banco/ --plan -k 2`: revisa cupos y detecta categorías
   insuficientes o tipos no exportables antes de generar el MBZ; no requiere salida.
+  Al generarlo (`-o quiz.mbz`), los diagramas de dibu, mermaid y PlantUML, las fórmulas y
+  las imágenes relativas de las preguntas **Moodle XML** van como imágenes incrustadas en el
+  backup (`--no-incrustar` lo desactiva). **GIFT no lleva archivos**: hay que convertir esos
+  bancos a XML (`voight convert gift-to-xml`) para que el backup contenga los diagramas, y el
+  comando advierte qué archivos GIFT los tienen.
 - `voight catalogo banco/ -o catalogo.md`: catálogo docente con opciones, claves
   y referencias a sus archivos de origen.
 - `voight muestra banco/ -n 10 --semilla 42 -o muestra.md`: muestreo uniforme,

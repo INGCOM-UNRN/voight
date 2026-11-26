@@ -3,10 +3,16 @@
 Construye un archivo .mbz (tar.gz) conteniendo un cuestionario (quiz) con preguntas
 aleatorias distribuidas por categoría, utilizando los bancos GIFT/XML unificados y
 organizados según la estructura de directorios del repositorio.
+
+Las preguntas de Moodle XML llevan sus diagramas (dibu, mermaid, PlantUML), fórmulas, tablas e
+imágenes relativas como archivos del backup, igual que `unify` (ver `incrustar.py`). Las de GIFT
+no: el formato no lleva archivos, y hay que pasarlas a XML para que el backup los contenga.
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import mimetypes
 import os
 import tarfile
 import tempfile
@@ -16,6 +22,64 @@ from pathlib import Path
 from typing import Dict, List, Sequence, Union
 
 from voight.core.quiz_plan import planificar_categorias
+
+_NULO = "$@NULL@$"
+
+
+def _formato(obj: dict) -> str:
+    """El formato de Moodle de un texto del modelo: 4 (markdown) o 1 (HTML)."""
+    return "4" if (obj or {}).get("format") == "markdown" else "1"
+
+
+class _ArchivosBackup:
+    """Los archivos de las preguntas: `files/<hash[:2]>/<hash>` y su entrada en files.xml."""
+
+    def __init__(self, contexto: int, formato_diagrama: str, timestamp: int) -> None:
+        self.contexto = contexto
+        self.formato_diagrama = formato_diagrama
+        self.timestamp = timestamp
+        self.entradas: List[dict] = []
+        self.contenidos: Dict[str, bytes] = {}
+
+    def incrustar(self, obj: dict, base: Path, area: str, item: int, con_formulas: bool = True) -> str:
+        """El texto de `obj` con sus recursos cambiados por `@@PLUGINFILE@@` y adjuntos en `area`/`item`."""
+        from voight.core.incrustar import _Adjuntos, incrustar_texto
+
+        texto = (obj or {}).get("text", "") or ""
+        if not texto:
+            return texto
+        adjuntos = _Adjuntos()
+        markdown = "markdown" if _formato(obj) == "4" else "html"
+        texto = incrustar_texto(texto, markdown, base, adjuntos, self.formato_diagrama,
+                                con_formulas=con_formulas)
+        for nombre, datos in adjuntos.archivos.items():
+            sha = hashlib.sha1(datos).hexdigest()
+            self.contenidos[sha] = datos
+            self.entradas.append({"contenthash": sha, "filearea": area, "itemid": item,
+                                  "filename": nombre, "filesize": len(datos),
+                                  "mimetype": mimetypes.guess_type(nombre)[0] or "application/octet-stream"})
+        return texto
+
+    def escribir(self, raiz: Path) -> None:
+        """Guarda los contenidos en `files/` y arma `files.xml`."""
+        for sha, datos in self.contenidos.items():
+            destino = raiz / "files" / sha[:2] / sha
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_bytes(datos)
+        archivos = ET.Element("files")
+        for i, e in enumerate(self.entradas, start=1):
+            f = ET.SubElement(archivos, "file", {"id": str(i)})
+            campos = {
+                "contenthash": e["contenthash"], "contextid": self.contexto, "component": "question",
+                "filearea": e["filearea"], "itemid": e["itemid"], "filepath": "/", "filename": e["filename"],
+                "userid": _NULO, "filesize": e["filesize"], "mimetype": e["mimetype"], "status": 0,
+                "timecreated": self.timestamp, "timemodified": self.timestamp, "source": _NULO,
+                "author": _NULO, "license": _NULO, "sortorder": 0, "repositorytype": _NULO,
+                "repositoryid": _NULO, "reference": _NULO,
+            }
+            for etiqueta, valor in campos.items():
+                ET.SubElement(f, etiqueta).text = str(valor)
+        (raiz / "files.xml").write_bytes(ET.tostring(archivos, encoding="utf-8", xml_declaration=True))
 
 
 def _cdata_xml(text: str) -> str:
@@ -55,8 +119,19 @@ def generar_quiz_mbz(
     shuffle_respuestas: bool = True,
     curso_id: int = 101,
     curso_nombre: str = "Curso Moodle",
+    incrustar: bool = True,
+    formato_diagrama: str = "png",
 ) -> dict:
-    """Genera un archivo .mbz con las preguntas unificadas y slots aleatorios por categoría."""
+    """Genera un archivo .mbz con las preguntas unificadas y slots aleatorios por categoría.
+
+    Con `incrustar`, los diagramas, fórmulas, tablas e imágenes relativas de las preguntas de
+    Moodle XML van como archivos del backup (`files/` y `files.xml`). Las preguntas de GIFT quedan
+    como texto: `gift_con_diagramas` del resultado dice qué archivos habría que pasar a XML.
+    """
+    from voight.core.incrustar import FORMATOS_DIAGRAMA, ErrorIncrustacion
+
+    if formato_diagrama not in FORMATOS_DIAGRAMA:
+        raise ValueError(f"Formato de diagrama no soportado: {formato_diagrama}")
     categorias = recolectar_banco_unificado(rutas, recursivo=recursivo)
     if not categorias:
         raise ValueError("No se encontraron preguntas en las rutas especificadas.")
@@ -124,6 +199,7 @@ def generar_quiz_mbz(
         next_ans_id = 80001
 
         total_questions_count = 0
+        archivos = _ArchivosBackup(context_course, formato_diagrama, timestamp)
 
         for cat_info in categorias:
             cname = cat_info["name"]
@@ -170,16 +246,26 @@ def generar_quiz_mbz(
                 ET.SubElement(q_elem, "parent").text = "0"
                 ET.SubElement(q_elem, "name").text = q_data.get("title") or "Pregunta"
 
-                stem_obj = q_data.get("stem") or {}
-                stem_text = stem_obj.get("text", "")
-                stem_fmt = "4" if stem_obj.get("format") == "markdown" else "1"
+                # Sólo Moodle XML lleva archivos: un GIFT con diagramas hay que pasarlo a XML.
+                archivo_origen = Path(q_data.get("archivo") or ".")
+                con_archivos = incrustar and archivo_origen.suffix.lower() == ".xml"
 
-                ET.SubElement(q_elem, "questiontext").text = stem_text
-                ET.SubElement(q_elem, "questiontextformat").text = stem_fmt
+                def texto(obj: dict, area: str, item: int, con_archivos: bool = con_archivos,
+                          origen: Path = archivo_origen, titulo: str = q_data.get("title") or "Pregunta") -> str:
+                    if not con_archivos:
+                        return (obj or {}).get("text", "") or ""
+                    try:
+                        return archivos.incrustar(obj, origen.parent, area, item)
+                    except ErrorIncrustacion as e:
+                        raise ErrorIncrustacion(f"{origen} «{titulo}» <{area}>: {e}") from e
+
+                stem_obj = q_data.get("stem") or {}
+                ET.SubElement(q_elem, "questiontext").text = texto(stem_obj, "questiontext", q_id)
+                ET.SubElement(q_elem, "questiontextformat").text = _formato(stem_obj)
 
                 gf_obj = q_data.get("globalFeedback") or {}
-                ET.SubElement(q_elem, "generalfeedback").text = gf_obj.get("text", "") if gf_obj else ""
-                ET.SubElement(q_elem, "generalfeedbackformat").text = "1"
+                ET.SubElement(q_elem, "generalfeedback").text = texto(gf_obj, "generalfeedback", q_id)
+                ET.SubElement(q_elem, "generalfeedbackformat").text = _formato(gf_obj)
 
                 moodle_meta = q_data.get("moodle") or {}
                 ET.SubElement(q_elem, "defaultmark").text = f"{float(moodle_meta.get('defaultgrade', 1.0)):.7f}"
@@ -212,14 +298,15 @@ def generar_quiz_mbz(
                         next_ans_id += 1
                         ans_elem = ET.SubElement(answers_elem, "answer", {"id": str(ans_id)})
                         c_text_obj = c.get("text") or {}
-                        ET.SubElement(ans_elem, "answertext").text = c_text_obj.get("text", "")
-                        ET.SubElement(ans_elem, "answerformat").text = "4" if c_text_obj.get("format") == "markdown" else "1"
+                        ET.SubElement(ans_elem, "answertext").text = texto(c_text_obj, "answer", ans_id)
+                        ET.SubElement(ans_elem, "answerformat").text = _formato(c_text_obj)
                         frac = 1.0 if c.get("is_correct") else 0.0
                         if c.get("weight") is not None:
                             frac = float(c["weight"]) / 100.0
                         ET.SubElement(ans_elem, "fraction").text = f"{frac:.7f}"
-                        ET.SubElement(ans_elem, "feedback").text = (c.get("feedback") or {}).get("text", "")
-                        ET.SubElement(ans_elem, "feedbackformat").text = "1"
+                        c_fb = c.get("feedback") or {}
+                        ET.SubElement(ans_elem, "feedback").text = texto(c_fb, "answerfeedback", ans_id)
+                        ET.SubElement(ans_elem, "feedbackformat").text = _formato(c_fb)
 
                     mc_elem = ET.SubElement(plugin_mc, "multichoice", {"id": str(q_id)})
                     ET.SubElement(mc_elem, "layout").text = "0"
@@ -249,15 +336,17 @@ def generar_quiz_mbz(
                     ET.SubElement(t_ans, "answertext").text = "Verdadero"
                     ET.SubElement(t_ans, "answerformat").text = "0"
                     ET.SubElement(t_ans, "fraction").text = "1.0000000" if is_true else "0.0000000"
-                    ET.SubElement(t_ans, "feedback").text = (q_data.get("trueFeedback") or {}).get("text", "")
-                    ET.SubElement(t_ans, "feedbackformat").text = "1"
+                    t_fb = q_data.get("trueFeedback") or {}
+                    ET.SubElement(t_ans, "feedback").text = texto(t_fb, "answerfeedback", ans_true_id)
+                    ET.SubElement(t_ans, "feedbackformat").text = _formato(t_fb)
 
                     f_ans = ET.SubElement(answers_elem, "answer", {"id": str(ans_false_id)})
                     ET.SubElement(f_ans, "answertext").text = "Falso"
                     ET.SubElement(f_ans, "answerformat").text = "0"
                     ET.SubElement(f_ans, "fraction").text = "0.0000000" if is_true else "1.0000000"
-                    ET.SubElement(f_ans, "feedback").text = (q_data.get("falseFeedback") or {}).get("text", "")
-                    ET.SubElement(f_ans, "feedbackformat").text = "1"
+                    f_fb = q_data.get("falseFeedback") or {}
+                    ET.SubElement(f_ans, "feedback").text = texto(f_fb, "answerfeedback", ans_false_id)
+                    ET.SubElement(f_ans, "feedbackformat").text = _formato(f_fb)
 
                     tf_elem = ET.SubElement(plugin_tf, "truefalse", {"id": str(q_id)})
                     ET.SubElement(tf_elem, "trueanswer").text = str(ans_true_id)
@@ -543,9 +632,7 @@ def generar_quiz_mbz(
             '<?xml version="1.0" encoding="UTF-8"?>\n<course_completion>\n</course_completion>\n',
             encoding="utf-8",
         )
-        (tmp_path / "files.xml").write_text(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<files>\n</files>\n', encoding="utf-8"
-        )
+        archivos.escribir(tmp_path)
         (tmp_path / "groups.xml").write_text(
             '<?xml version="1.0" encoding="UTF-8"?>\n<groups>\n  <groupcustomfields>\n  </groupcustomfields>\n  <groupings>\n    <groupingcustomfields>\n    </groupingcustomfields>\n  </groupings>\n</groups>\n',
             encoding="utf-8",
@@ -683,4 +770,15 @@ def generar_quiz_mbz(
         "preguntas": total_questions_count,
         "slots": total_slots,
         "salida": str(archivo_salida),
+        "archivos": len(archivos.entradas),
+        "gift_con_diagramas": gift_con_diagramas(categorias),
     }
+
+
+def gift_con_diagramas(categorias: List[dict]) -> List[str]:
+    """Los GIFT del banco con diagramas, tablas o fórmulas: el backup no puede llevar sus imágenes."""
+    from voight.core.formulas import a_preprocesar
+
+    gifts = sorted({q["archivo"] for c in categorias for q in c["questions"]
+                    if str(q.get("archivo", "")).lower().endswith(".gift")})
+    return [g for g in gifts if any(a_preprocesar(Path(g).read_text(encoding="utf-8")).values())]
